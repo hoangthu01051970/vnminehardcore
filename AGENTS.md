@@ -12,6 +12,12 @@
 - Ưu tiên giải pháp chính thức, tránh workaround tạm thời nếu có cách sửa đúng gốc.
 - Không tự ý clone repository từ xa. Nếu cần mã nguồn ngoài, kiểm tra đường dẫn đã được cấu hình; nếu không có, báo người dùng và xin thống nhất trước khi clone, kèm phương án sao lưu.
 
+## Theo dõi kế hoạch
+- Khi hoàn thành một phần công việc thuộc kế hoạch nhiều giai đoạn của dự án, cập nhật `plan.md`: đánh dấu đúng các mục đã hoàn thành, ghi chú kết quả cần thiết và giữ nguyên trạng thái các mục chưa làm.
+- Chỉ đánh dấu hoàn thành sau khi đã xác minh kết quả; không tự mở rộng phạm vi hoặc đánh dấu trước các công việc chưa thực hiện.
+- Trong báo cáo cuối, nêu phần kế hoạch tiếp theo và hỏi người dùng có muốn tiếp tục không. Chờ xác nhận trước khi bắt đầu phần kế tiếp.
+- Với yêu cầu độc lập, không liên quan đến kế hoạch đang theo dõi, không sửa `plan.md` chỉ để tạo cập nhật hình thức.
+
 ## Commit, Push và Pull Request
 - Sau khi hoàn thành công việc, hỏi người dùng có muốn commit và push thay đổi lên GitHub, đồng thời tạo pull request hay không.
 - Chỉ thực hiện khi người dùng đồng ý. Trước khi commit, kiểm tra diff và chỉ đưa các thay đổi thuộc phạm vi công việc vào commit; tạo tiêu đề commit và nội dung mô tả phù hợp với thay đổi.

@@ -6196,6 +6196,10 @@ public final class MercenaryManager implements CommandExecutor, TabCompleter, Li
         }
         if (player.hasPermission("vnmine.command.reward")) inventory.setItem(16,
             menuItem(Material.CHEST, "§6Phần thưởng", List.of("§7Nhận phần thưởng boss đang chờ.")));
+        if (plugin.getConfig().getBoolean("rpg.character-creation.enabled", true)) {
+            inventory.setItem(18, menuItem(Material.ENDER_EYE, "§dNhân vật RPG", List.of(
+                "§7Chọn chủng tộc và class của bạn.", "§7Hệ thống lưu tiến trình trên SQLite.")));
+        }
         inventory.setItem(22, menuItem(Material.WRITABLE_BOOK, "§bTrợ giúp", List.of("§7Mở hướng dẫn lệnh máy chủ.")));
         if (hasAdminMenuAccess(player)
                 && plugin.getConfig().getBoolean("menus.admin.enabled", true)) {
@@ -8217,6 +8221,10 @@ public final class MercenaryManager implements CommandExecutor, TabCompleter, Li
                      this.openArmyMenu(player, 0);
                   } else if (slot == 16) {
                      player.performCommand("reward");
+                  } else if (slot == 18 && VnMineHardcore.getInstance() != null
+                      && plugin.getConfig().getBoolean("rpg.character-creation.enabled", true)
+                      && VnMineHardcore.getInstance().getCharacterSelectionManager() != null) {
+                     VnMineHardcore.getInstance().getCharacterSelectionManager().openRaceMenu(player);
                   } else if (slot == 22) {
                      player.performCommand("vnhelp");
                   } else if (slot == 24 && this.hasAdminMenuAccess(player)) {

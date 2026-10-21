@@ -587,6 +587,36 @@ dưới mức tự nhiên, còn cấp cao có thể over-enchant đến cấp 10
 từng boss được quản lý tập trung trong `plugins/VnMineHardcore/story.yml`.
 Mỗi item dùng `story-id` để liên kết tới `artifacts.<story-id>.lore`; có thể
 thêm chương mới bằng cách thêm ID duy nhất và danh sách lore vào file này.
+Định nghĩa chapter có ID ổn định được nạp riêng từ
+`plugins/VnMineHardcore/story/chapters.yml`; mỗi mục cần `order` dương duy nhất,
+`title` và `summary` không rỗng. Danh sách câu truyện cũ trong `story.yml` được
+giữ lại để tương thích; artifact và `story-id` không cần di chuyển khi thêm chapter.
+Khi cập nhật plugin, các giá trị server hiện có được giữ nguyên; chỉ khóa mặc định
+còn thiếu mới được thêm. Không có migration tự động hoặc xóa dữ liệu khỏi `story.yml`.
+Khóa YAML trùng trong `story.yml` hoặc `story/chapters.yml` làm file story tương ứng
+bị từ chối khi nạp và được ghi log; cần sửa ID trùng trong file trước khi khởi động lại.
+
+### Tạo nhân vật RPG
+
+Mục **Nhân vật RPG** trong menu chính (mở bằng phím F mặc định hoặc `/vnmenu`)
+mở GUI chọn chủng tộc rồi class. GUI hiển thị mô tả, biểu tượng và màn hình xác nhận
+trước khi lưu. Mỗi UUID chỉ tạo được một nhân vật; thao tác tạo lặp sẽ bị từ chối,
+không ghi đè race/class hay tiến trình đã lưu.
+
+Có thể tắt tính năng bằng `rpg.character-creation.enabled: false` trong
+`plugins/VnMineHardcore/config.yml`.
+Quản trị viên có thể tùy chỉnh các lựa chọn tại
+`plugins/VnMineHardcore/races.yml` và `plugins/VnMineHardcore/player-classes.yml`.
+Mỗi ID phải duy nhất, dùng chữ thường ASCII, chữ số và dấu gạch nối; class phải
+tham chiếu tới race tồn tại, tên/mô tả không rỗng và `icon` phải là Material hợp lệ.
+Mỗi race cần ít nhất một class; mỗi màn hình hiện hỗ trợ tối đa 28 lựa chọn.
+Các file này chỉ được tạo mặc định khi chưa tồn tại, vì vậy cập nhật plugin không
+ghi đè tùy chỉnh của server. Thay đổi nội dung có hiệu lực sau khi khởi động lại.
+Hồ sơ được lưu trong `plugins/VnMineHardcore/data/player_profiles.db`.
+
+Chọn race/class hiện chỉ lưu dữ liệu hồ sơ cơ bản; chưa áp dụng kỹ năng, chỉ số
+chiến đấu hoặc giới hạn đổi class. Các hệ thống đó sẽ được triển khai ở các phần RPG sau.
+
 Các cấp 1–2 dùng hậu tố `-common` với tên và câu chuyện giản dị hơn; từ cấp 3
 trở lên dùng tuyến truyện phát triển theo sức mạnh của di vật.
 Lore hỗ trợ `{level}` để hiển thị cấp vật phẩm; mỗi dòng không quá 30 ký tự,

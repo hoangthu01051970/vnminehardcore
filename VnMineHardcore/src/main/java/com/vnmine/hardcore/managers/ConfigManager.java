@@ -25,6 +25,7 @@ import org.bukkit.configuration.InvalidConfigurationException;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.EntityType;
+import org.yaml.snakeyaml.error.YAMLException;
 
 public class ConfigManager {
    private static final Random RANDOM = ThreadLocalRandom.current();
@@ -217,6 +218,8 @@ public class ConfigManager {
    public Map<String, ConfigManager.BossConfig> bossConfigs = new HashMap<>();
    private final Map<String, List<String>> bossItemStories = new HashMap<>();
    private final Map<String, ConfigManager.BossArmorPieceStory> bossArmorPieceStories = new HashMap<>();
+   private final Map<String, String> bossItemStoryBosses = new HashMap<>();
+   private Map<String, StoryChapterLoader.StoryChapter> storyChapters = Map.of();
    // Ore Control
    public boolean oreControlEnabled;
    public Map<String, Map<String, Double>> oreControlWorlds = new HashMap<>();
@@ -471,6 +474,9 @@ public class ConfigManager {
       this.loadBossSettings();
       this.loadBossItemStories();
       this.loadBossConfigs();
+      this.validateBossItemStoryBosses();
+      this.storyChapters = StoryChapterLoader.load(
+          new File(plugin.getDataFolder(), "story/chapters.yml"), plugin.getLogger());
       this.oreControlEnabled = this.config.getBoolean("ore-control.enabled", false);
       this.oreControlWorlds.clear();
       ConfigurationSection oreSection = this.config.getConfigurationSection("ore-control.worlds");
@@ -803,6 +809,8 @@ public class ConfigManager {
         saveResourceIfNotExists("scoreboard.yml");
         mergeDefaultResource("scoreboard.yml");
         mergeDefaultResource("story.yml");
+        saveResourceIfNotExists("story/chapters.yml");
+        mergeDefaultResource("story/chapters.yml");
 
         // Merge new boss settings into existing files without overwriting admin values.
         mergeDefaultResource("bosses/_settings.yml");
@@ -848,7 +856,7 @@ public class ConfigManager {
                 defaults = YamlConfiguration.loadConfiguration(reader);
             }
 
-            if (mergeMissingKeys(target, defaults)) {
+            if (YamlConfigMerger.mergeMissingKeys(target, defaults, plugin.getLogger())) {
                 target.save(targetFile);
                 plugin.getLogger().info("[Config] Added missing defaults to " + resourcePath +
                     " (existing values were preserved)");
@@ -856,30 +864,6 @@ public class ConfigManager {
         } catch (IOException exception) {
             plugin.getLogger().severe("[Config] Cannot update " + resourcePath + ": " + exception.getMessage());
         }
-    }
-
-    private boolean mergeMissingKeys(ConfigurationSection target, ConfigurationSection defaults) {
-        boolean changed = false;
-        for (String key : defaults.getKeys(false)) {
-            ConfigurationSection defaultChild = defaults.getConfigurationSection(key);
-            if (defaultChild != null) {
-                ConfigurationSection targetChild = target.getConfigurationSection(key);
-                if (targetChild == null) {
-                    if (target.contains(key)) {
-                        plugin.getLogger().warning("[Config] Preserving non-section custom value at " + key +
-                            " while merging defaults.");
-                        continue;
-                    }
-                    targetChild = target.createSection(key);
-                    changed = true;
-                }
-                changed |= mergeMissingKeys(targetChild, defaultChild);
-            } else if (!target.contains(key)) {
-                target.set(key, defaults.get(key));
-                changed = true;
-            }
-        }
-        return changed;
     }
 
    /**
@@ -1842,8 +1826,17 @@ public class ConfigManager {
     private void loadBossItemStories() {
         bossItemStories.clear();
         bossArmorPieceStories.clear();
+        bossItemStoryBosses.clear();
         File storyFile = new File(plugin.getDataFolder(), "story.yml");
-        YamlConfiguration storyConfig = YamlConfiguration.loadConfiguration(storyFile);
+        YamlConfiguration storyConfig = new YamlConfiguration();
+        try {
+            YamlDuplicateKeyValidator.validateNoDuplicateKeys(storyFile);
+            storyConfig.load(storyFile);
+        } catch (IOException | InvalidConfigurationException | YAMLException exception) {
+            plugin.getLogger().log(Level.SEVERE,
+                "[Story] Cannot load story.yml because it is invalid or contains duplicate YAML keys.", exception);
+            return;
+        }
         ConfigurationSection artifacts = storyConfig.getConfigurationSection("artifacts");
         if (artifacts == null) {
             plugin.getLogger().warning("[Boss] story.yml has no 'artifacts' section; item lore will use boss files.");
@@ -1852,7 +1845,16 @@ public class ConfigManager {
 
         for (String storyId : artifacts.getKeys(false)) {
             ConfigurationSection artifact = artifacts.getConfigurationSection(storyId);
-            if (artifact == null) continue;
+            if (artifact == null) {
+                plugin.getLogger().warning("[Story] Expected a section at story.yml:artifacts." + storyId + ".");
+                continue;
+            }
+            StoryArtifactValidator.validateArtifact(storyId, artifact.getValues(false))
+                .forEach(issue -> plugin.getLogger().warning("[Story] " + issue));
+            Object bossId = artifact.get("boss");
+            if (bossId instanceof String configuredBossId && !configuredBossId.isBlank()) {
+                bossItemStoryBosses.put(storyId, configuredBossId);
+            }
             List<String> lore = artifact.getStringList("lore");
             if (!lore.isEmpty()) bossItemStories.put(storyId, List.copyOf(lore));
             ConfigurationSection pieces = artifact.getConfigurationSection("pieces");
@@ -1873,10 +1875,21 @@ public class ConfigManager {
             " item stories and " + bossArmorPieceStories.size() + " armor-piece stories from story.yml.");
     }
 
+    private void validateBossItemStoryBosses() {
+        for (Map.Entry<String, String> entry : bossItemStoryBosses.entrySet()) {
+            StoryArtifactValidator.validateBossReference(entry.getKey(), entry.getValue(), bossConfigs.keySet())
+                .ifPresent(issue -> plugin.getLogger().warning("[Story] " + issue));
+        }
+    }
+
     public List<String> getBossItemStory(String storyId, int level) {
         List<String> lore = bossItemStories.get(storyId);
         if (lore == null) return List.of();
         return lore.stream().map(line -> line.replace("{level}", Integer.toString(level))).toList();
+    }
+
+    public Map<String, StoryChapterLoader.StoryChapter> getStoryChapters() {
+        return storyChapters;
     }
 
     public BossArmorPieceStory getBossArmorPieceStory(String storyId, String slot, int level) {

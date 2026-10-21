@@ -30,6 +30,14 @@ menus:
     # [EN] Disaster/boss active duration; default 120 seconds, valid range 1-86400.
     duration-seconds: 120
 
+# [VI] Cài đặt tạo nhân vật RPG; mặc định được bật.
+# [EN] RPG character-creation settings; enabled by default.
+rpg:
+  character-creation:
+    # [VI] Bật/tắt mục tạo nhân vật trong menu và việc mở GUI; mặc định true.
+    # [EN] Enable/disable the character-creation menu entry and GUI; default true.
+    enabled: true
+
 # ============================================================
 # [DEATH] ☠ TỬ THẦN / DEATH
 # ============================================================
@@ -423,6 +431,59 @@ environment:
     # [EN] Minimum exposure time (seconds) before cold effect starts
     #     Gives players time to find warmth before taking damage
     cold-exposure-delay-seconds: 30
+
+    # [VI] Nhóm biome áp dụng sát thương nóng, lạnh và mưa axit.
+    #      Dùng tên biome vanilla hoặc khóa namespace:key; danh sách rỗng bỏ các biome của nhóm đó.
+    #      Biome thuộc nhiều nhóm có thể nhận nhiều loại sát thương tương ứng.
+    # [EN] Biome groups for heat, cold, and acid-rain damage.
+    #      Use vanilla biome names or namespace:key identifiers; an empty list disables that biome group.
+    #      A biome in multiple groups can receive each corresponding damage type.
+    biomes:
+      # [VI] Biome khô hạn gây nóng; Nether luôn nóng bất kể danh sách này.
+      # [EN] Arid biomes that cause heat; the Nether is always hot regardless of this list.
+      hot:
+        - desert
+        - badlands
+        - wooded_badlands
+        - eroded_badlands
+        - savanna
+        - savanna_plateau
+        - windswept_savanna
+
+      # [VI] Biome tuyết/băng và vùng lạnh gây sát thương lạnh và sát thương nước.
+      # [EN] Snowy/icy and cold-region biomes that cause cold and water damage.
+      cold:
+        - snowy_plains
+        - snowy_taiga
+        - snowy_slopes
+        - snowy_beach
+        - frozen_ocean
+        - frozen_river
+        - ice_spikes
+        - frozen_peaks
+        - jagged_peaks
+        - grove
+        - taiga
+        - old_growth_taiga
+        - old_growth_pine_taiga
+        - old_growth_spruce_taiga
+        - cold_ocean
+        - deep_cold_ocean
+
+      # [VI] Biome rừng chịu mưa axit khi trời mưa và người chơi ở ngoài trời.
+      # [EN] Forest biomes affected by acid rain while it is raining and the player is uncovered.
+      acid-rain:
+        - forest
+        - flower_forest
+        - birch_forest
+        - old_growth_birch_forest
+        - dark_forest
+        - jungle
+        - sparse_jungle
+        - bamboo_jungle
+        - taiga
+        - old_growth_pine_taiga
+        - old_growth_spruce_taiga
 
   # ===== SƯƠNG MÙ / FOG (DARKNESS EFFECT) =====
   fog:

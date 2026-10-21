@@ -221,3 +221,8 @@ Mô tả ngắn gọn các chỉnh sửa đã thực hiện.
 
 ## Completion Rules (Quy định hoàn thành)
 Cline không được tuyên bố hoàn thành công việc nếu chưa đi qua đủ các bước: Phân tích nguyên nhân -> Sửa lỗi trong Act Mode -> Build thành công bằng lệnh Maven thủ công -> Xác minh sinh file JAR mới -> Tính mã SHA256 -> Gửi báo cáo đầy đủ.
+
+### Project Plan Tracking (Theo dõi kế hoạch dự án)
+- Khi hoàn thành một phần công việc thuộc kế hoạch nhiều giai đoạn của dự án, cập nhật `plan.md`: chỉ đánh dấu các mục đã thực hiện và xác minh, ghi chú kết quả cần thiết, giữ nguyên các mục chưa làm.
+- Trong báo cáo cuối, nêu phần kế hoạch tiếp theo và hỏi người dùng có muốn tiếp tục không; chờ người dùng xác nhận trước khi bắt đầu phần kế tiếp.
+- Không sửa `plan.md` cho yêu cầu độc lập không liên quan đến kế hoạch đang theo dõi.

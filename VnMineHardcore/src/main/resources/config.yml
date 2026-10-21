@@ -30,6 +30,14 @@ menus:
     # [EN] Disaster/boss active duration; default 120 seconds, valid range 1-86400.
     duration-seconds: 120
 
+# [VI] Cài đặt tạo nhân vật RPG; mặc định được bật.
+# [EN] RPG character-creation settings; enabled by default.
+rpg:
+  character-creation:
+    # [VI] Bật/tắt mục tạo nhân vật trong menu và việc mở GUI; mặc định true.
+    # [EN] Enable/disable the character-creation menu entry and GUI; default true.
+    enabled: true
+
 # ============================================================
 # [DEATH] ☠ TỬ THẦN / DEATH
 # ============================================================

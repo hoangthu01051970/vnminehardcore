@@ -1,0 +1,103 @@
+# [VI] Định nghĩa chương truyện có ID ổn định; không đổi ID sau khi đã phát hành.
+# [EN] Defines story chapters with stable IDs; do not change IDs after release.
+# [VI] Tệp này là cấu trúc chapter mới; artifacts và story-id cũ vẫn ở story.yml.
+# [EN] This is the new chapter definition file; legacy artifacts and story-ids remain in story.yml.
+# [VI] Phiên bản schema mặc định 1; chỉ hỗ trợ giá trị 1 cho định dạng hiện tại.
+# [EN] Schema version defaults to 1; only value 1 is supported by this format.
+schema-version: 1
+
+# [VI] Thứ tự khóa là ID chapter; mỗi chapter cần order dương duy nhất, title và summary không rỗng.
+# [EN] Map keys are chapter IDs; each chapter needs a unique positive order and non-empty title and summary.
+# [VI] ID chỉ gồm chữ thường ASCII, chữ số và dấu gạch nối đơn; ID ổn định sau phát hành.
+# [EN] IDs use lowercase ASCII letters, digits, and single hyphens; keep IDs stable after release.
+chapters:
+  chapter-01:
+    # [VI] Thứ tự hiển thị; số nguyên dương duy nhất trong file, mặc định theo thứ tự truyện.
+    # [EN] Display order; a unique positive integer per file, following the story order by default.
+    order: 1
+    # [VI] Tiêu đề hiển thị; chuỗi không được để trống.
+    # [EN] Display title; must be a non-empty string.
+    title: "Lôi Tâm thức tỉnh"
+    # [VI] Tóm tắt chương; chuỗi không được để trống.
+    # [EN] Chapter summary; must be a non-empty string.
+    summary: "Creeper đánh thức Cổng Vạn Giới bằng Lôi Tâm."
+  chapter-02:
+    # [VI] Thứ tự hiển thị; số nguyên dương duy nhất trong file.
+    # [EN] Display order; a unique positive integer in this file.
+    order: 2
+    # [VI] Tiêu đề hiển thị; chuỗi không được để trống.
+    # [EN] Display title; must be a non-empty string.
+    title: "Địa Mạch rung chuyển"
+    # [VI] Tóm tắt chương; chuỗi không được để trống.
+    # [EN] Chapter summary; must be a non-empty string.
+    summary: "Địa Mạch Cự Nhân làm rung đường tơ Hoàng Hôn."
+  chapter-03:
+    # [VI] Thứ tự hiển thị; số nguyên dương duy nhất trong file.
+    # [EN] Display order; a unique positive integer in this file.
+    order: 3
+    # [VI] Tiêu đề hiển thị; chuỗi không được để trống.
+    # [EN] Display title; must be a non-empty string.
+    title: "Trăng Máu và Mật Lục"
+    # [VI] Tóm tắt chương; chuỗi không được để trống.
+    # [EN] Chapter summary; must be a non-empty string.
+    summary: "Nhện dẫn người đọc tới Trăng Máu và Mật Lục."
+  chapter-04:
+    # [VI] Thứ tự hiển thị; số nguyên dương duy nhất trong file.
+    # [EN] Display order; a unique positive integer in this file.
+    order: 4
+    # [VI] Tiêu đề hiển thị; chuỗi không được để trống.
+    # [EN] Display title; must be a non-empty string.
+    title: "Cung Vạn Cốt"
+    # [VI] Tóm tắt chương; chuỗi không được để trống.
+    # [EN] Chapter summary; must be a non-empty string.
+    summary: "Cung Vạn Cốt hé lộ cuộc chiến của Kỵ Binh."
+  chapter-05:
+    # [VI] Thứ tự hiển thị; số nguyên dương duy nhất trong file.
+    # [EN] Display order; a unique positive integer in this file.
+    order: 5
+    # [VI] Tiêu đề hiển thị; chuỗi không được để trống.
+    # [EN] Display title; must be a non-empty string.
+    title: "Lời phán Rìu Đỏ"
+    # [VI] Tóm tắt chương; chuỗi không được để trống.
+    # [EN] Chapter summary; must be a non-empty string.
+    summary: "Rìu Đỏ chôn lời phán trong Mộ Sâu."
+  chapter-06:
+    # [VI] Thứ tự hiển thị; số nguyên dương duy nhất trong file.
+    # [EN] Display order; a unique positive integer in this file.
+    order: 6
+    # [VI] Tiêu đề hiển thị; chuỗi không được để trống.
+    # [EN] Display title; must be a non-empty string.
+    title: "Vĩnh Dạ"
+    # [VI] Tóm tắt chương; chuỗi không được để trống.
+    # [EN] Chapter summary; must be a non-empty string.
+    summary: "Ghast Than Khóc mở màn Vĩnh Dạ."
+  chapter-07:
+    # [VI] Thứ tự hiển thị; số nguyên dương duy nhất trong file.
+    # [EN] Display order; a unique positive integer in this file.
+    order: 7
+    # [VI] Tiêu đề hiển thị; chuỗi không được để trống.
+    # [EN] Display title; must be a non-empty string.
+    title: "Mắt Tận Cùng"
+    # [VI] Tóm tắt chương; chuỗi không được để trống.
+    # [EN] Chapter summary; must be a non-empty string.
+    summary: "Phantom chỉ đường tới Mắt Tận Cùng."
+  chapter-08:
+    # [VI] Thứ tự hiển thị; số nguyên dương duy nhất trong file.
+    # [EN] Display order; a unique positive integer in this file.
+    order: 8
+    # [VI] Tiêu đề hiển thị; chuỗi không được để trống.
+    # [EN] Display title; must be a non-empty string.
+    title: "Long Kiếm và Wither"
+    # [VI] Tóm tắt chương; chuỗi không được để trống.
+    # [EN] Chapter summary; must be a non-empty string.
+    summary: "Long Kiếm gom di vật, đối đầu Wither."
+  chapter-09:
+    # [VI] Thứ tự hiển thị; số nguyên dương duy nhất trong file.
+    # [EN] Display order; a unique positive integer in this file.
+    order: 9
+    # [VI] Tiêu đề hiển thị; chuỗi không được để trống.
+    # [EN] Display title; must be a non-empty string.
+    title: "Cổng còn thức"
+    # [VI] Tóm tắt chương; chuỗi không được để trống.
+    # [EN] Chapter summary; must be a non-empty string.
+    summary: "Cổng còn thức, mở lối cho chương tiếp theo."

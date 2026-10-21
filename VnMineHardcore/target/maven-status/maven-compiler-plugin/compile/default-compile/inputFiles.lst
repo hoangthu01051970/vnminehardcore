@@ -11,6 +11,7 @@
 /workspaces/vnminehardcore/VnMineHardcore/src/main/java/com/vnmine/hardcore/listeners/WorldInteractionListener.java
 /workspaces/vnminehardcore/VnMineHardcore/src/main/java/com/vnmine/hardcore/managers/BossEventManager.java
 /workspaces/vnminehardcore/VnMineHardcore/src/main/java/com/vnmine/hardcore/managers/BossLeaderboardManager.java
+/workspaces/vnminehardcore/VnMineHardcore/src/main/java/com/vnmine/hardcore/managers/CharacterSelectionManager.java
 /workspaces/vnminehardcore/VnMineHardcore/src/main/java/com/vnmine/hardcore/managers/ConfigManager.java
 /workspaces/vnminehardcore/VnMineHardcore/src/main/java/com/vnmine/hardcore/managers/DeathHistoryManager.java
 /workspaces/vnminehardcore/VnMineHardcore/src/main/java/com/vnmine/hardcore/managers/DeathPenaltyManager.java
@@ -23,8 +24,13 @@
 /workspaces/vnminehardcore/VnMineHardcore/src/main/java/com/vnmine/hardcore/managers/MercenaryNamePacketListener.java
 /workspaces/vnminehardcore/VnMineHardcore/src/main/java/com/vnmine/hardcore/managers/MercenaryStatusPacketListener.java
 /workspaces/vnminehardcore/VnMineHardcore/src/main/java/com/vnmine/hardcore/managers/PermissionManager.java
+/workspaces/vnminehardcore/VnMineHardcore/src/main/java/com/vnmine/hardcore/managers/PlayerProfileDatabaseManager.java
 /workspaces/vnminehardcore/VnMineHardcore/src/main/java/com/vnmine/hardcore/managers/SpawnProtectionManager.java
+/workspaces/vnminehardcore/VnMineHardcore/src/main/java/com/vnmine/hardcore/managers/StoryArtifactValidator.java
+/workspaces/vnminehardcore/VnMineHardcore/src/main/java/com/vnmine/hardcore/managers/StoryChapterLoader.java
 /workspaces/vnminehardcore/VnMineHardcore/src/main/java/com/vnmine/hardcore/managers/ThirstManager.java
 /workspaces/vnminehardcore/VnMineHardcore/src/main/java/com/vnmine/hardcore/managers/TimeControlManager.java
 /workspaces/vnminehardcore/VnMineHardcore/src/main/java/com/vnmine/hardcore/managers/TooltipManager.java
 /workspaces/vnminehardcore/VnMineHardcore/src/main/java/com/vnmine/hardcore/managers/VillagerDataManager.java
+/workspaces/vnminehardcore/VnMineHardcore/src/main/java/com/vnmine/hardcore/managers/YamlConfigMerger.java
+/workspaces/vnminehardcore/VnMineHardcore/src/main/java/com/vnmine/hardcore/managers/YamlDuplicateKeyValidator.java

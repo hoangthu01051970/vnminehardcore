@@ -118,11 +118,10 @@ VnMineHardcore/src/main/resources/
     _settings.yml
     human-realm.yml
     ...
+  story.yml
   story/
     universe.yml
-    chapters/
-      chapter-01.yml
-      ...
+    chapters.yml
     artifacts/
       ...
   quests/
@@ -161,8 +160,9 @@ Không đặt trạng thái hoàn thành nhiệm vụ của người chơi vào 
 ### 5.2 Trách nhiệm từng nhóm cấu hình
 
 - `story/universe.yml`: tên vũ trụ, premise, thứ tự chapter, glossary/nội dung chung.
-- `story/chapters/*.yml`: ID, tiêu đề, tóm tắt, điều kiện mở khóa/hoàn thành và các quest liên quan.
-- `story/artifacts/*.yml` hoặc catalog artifact tương thích: mô tả vật phẩm/lore; phải duy trì liên kết ID đang dùng bởi boss.
+- `story/chapters.yml`: chapter dạng map theo ID, thứ tự, tiêu đề và tóm tắt; bổ sung prerequisite/quest link sau khi có schema quest.
+- `story.yml` hiện tại: catalog artifact/lore boss; không đổi các `story-id` đã được phát hành trong giai đoạn tương thích.
+- `story/artifacts/*.yml` chỉ cân nhắc khi catalog artifact lớn đến mức cần tách file; không di chuyển ở giai đoạn hiện tại.
 - `worlds/*.yml`: world-name, tên GUI, mức nguy hiểm, spawn/điểm đến, chapter và cổng liên quan.
 - `quests/**/*.yml`: mục tiêu, bước, điều kiện, phần thưởng, chuỗi tiên quyết và liên kết nội dung.
 - `races/*.yml`: ưu/nhược, kỹ năng và điều kiện áp dụng.
@@ -172,13 +172,33 @@ Không đặt trạng thái hoàn thành nhiệm vụ của người chơi vào 
 
 ### 5.3 Định danh và tham chiếu
 
-- ID dùng chữ thường ASCII, số và dấu gạch nối; không dùng tên hiển thị làm khóa.
-- ID của chapter, quest, world, race, class, skill và portal phải duy nhất trong namespace tương ứng.
-- Không tái sử dụng ID đã phát hành cho ý nghĩa khác.
-- Tham chiếu chéo dùng ID, không sao chép lặp nội dung quan trọng.
-- Có validator khi khởi động: ID trùng, loại dữ liệu sai, số ngoài giới hạn, tham chiếu mồ côi, chuỗi prerequisite không thể đạt hoặc vòng lặp mở khóa.
+- ID mới dùng biểu thức `[a-z0-9]+(?:-[a-z0-9]+)*`: chữ thường ASCII, chữ số và dấu gạch nối đơn giữa các đoạn; không dùng tên hiển thị làm khóa.
+- ID duy nhất trong từng loại dữ liệu (chapter, quest, world, race, class, skill, portal); tham chiếu phải ghi đúng trường/loại, không giả định ID giữa các loại là toàn cục.
+- Không tái sử dụng hoặc đổi ý nghĩa ID đã phát hành. Nếu cần đổi ID, phải có alias/migration và giữ tương thích dữ liệu đã lưu.
+- ID boss/artifact legacy có thể dùng quy ước cũ (ví dụ boss dùng `_`); không chuẩn hóa hoặc đổi `story-id` chỉ để khớp quy ước ID mới.
+- Tham chiếu chéo dùng ID có kiểu rõ ràng, không sao chép lặp nội dung quan trọng.
+- Mỗi loại nội dung có loader/validator riêng dựa trên schema đã chốt; không dựng registry tổng quát trước khi có nhiều loại dữ liệu cần dùng chung.
+- Validator kiểm tra ID, kiểu dữ liệu, giới hạn, tham chiếu mồ côi, chuỗi prerequisite và vòng lặp mở khóa phù hợp với từng loại.
+- Với cấu trúc map keyed-by-ID, phải kiểm tra parser có phát hiện khóa YAML bị lặp hay không; không giả định map sau parse còn giữ được thông tin duplicate.
 - Lỗi cấu hình nội dung cần nêu tên file và đường dẫn YAML; không silently skip cả hệ thống.
 - Có chính sách lỗi: cấu hình sai của một nhiệm vụ không làm crash server, nhưng nhiệm vụ đó phải bị vô hiệu hóa có log rõ; cấu hình cốt lõi như player data phải có fallback/backup an toàn.
+
+### 5.3.1 Schema chapter đã chốt
+
+- File nội dung: `story/chapters.yml`; mỗi chapter là một key dưới `chapters`, ví dụ `chapter-01`.
+- `schema-version` nằm ở cấp cao nhất của file, hiện là số nguyên `1`. Mỗi loại file nội dung quản lý version độc lập.
+- Một chapter v1 có đúng các trường cần thiết hiện tại: `order` (số nguyên dương, duy nhất trong file), `title` (chuỗi không rỗng) và `summary` (chuỗi không rỗng).
+- `order` không cần liên tục; đây là thứ tự hiển thị, không phải ID hay điều kiện mở khóa.
+- Loader sắp xếp theo `order`, kiểm tra ID/field và chỉ nạp các chapter hợp lệ; lỗi phải nêu đường dẫn cấu hình.
+- Thay đổi cấu trúc không tương thích phải tăng `schema-version` và có kế hoạch migration; bổ sung tùy chọn tương thích ngược có thể giữ version. Loader hiện tại từ chối version không hỗ trợ thay vì diễn giải sai.
+- `story.yml:universe.chapters` được giữ lại như văn bản legacy; dữ liệu chapter có ID trong `story/chapters.yml` là nguồn định nghĩa runtime mới. Artifact và `story-id` không bị di chuyển.
+
+### 5.3.2 Chiến lược loader/validator
+
+- Dùng loader riêng theo từng loại định nghĩa khi schema của loại đó được duyệt; hiện tại artifact có `StoryArtifactValidator`, chapter có `StoryChapterLoader`.
+- Loader trả về dữ liệu đã validate theo model riêng của loại đó và log lỗi có file/path; dữ liệu sai bị loại khỏi registry của loại tương ứng, không làm sập plugin.
+- Chỉ trích xuất helper chung khi có ít nhất hai schema thực sự dùng chung cùng một quy tắc; không tạo framework registry tổng quát cho world/quest/race/class trước khi các schema ấy tồn tại.
+- ID map có thể bị YAML parser ghi đè nếu cùng key xuất hiện nhiều lần; phải có test/biện pháp strict parsing trước khi tuyên bố đã phát hiện duplicate key.
 
 ### 5.4 Lưu tiến trình người chơi
 
@@ -204,7 +224,7 @@ cooldowns: {}
 
 Schema chỉ là ví dụ, không phải định dạng đã cố định. Cần quyết định:
 
-- Có một nhân vật hay nhiều nhân vật trên mỗi UUID.
+- Đã chốt một nhân vật trên mỗi UUID; runtime profile không có slot hay `characterId`.
 - XP/cấp nhân vật có thực sự cần trong vertical slice hay tiến trình mở khóa dựa vào quest/gear.
 - Trạng thái nào phải đồng bộ ngay và trạng thái nào có thể ghi theo batch.
 - Làm sao đảm bảo nhận thưởng chỉ một lần, kể cả khi server restart giữa lúc hoàn thành.
@@ -607,6 +627,73 @@ com.vnmine.hardcore.rpg/
 - Tài liệu cho biết file cấu hình, điều kiện, quyền admin và hành vi mặc định.
 - Không build JAR/phát hành khi chưa được yêu cầu; khi có yêu cầu build tính năng, tăng version đúng quy ước dự án.
 
+### 12.1 Backlog triển khai thành các phần nhỏ
+
+Mỗi đầu việc dưới đây nên được triển khai và kiểm chứng độc lập; không gộp nhiều hệ thống gameplay vào một thay đổi lớn. Các mục phụ thuộc chỉ bắt đầu khi prerequisite đã được chốt.
+
+#### A. Thiết kế và hợp đồng dữ liệu
+
+- [x] `DESIGN-01` Chốt chính sách tử vong, mất vật phẩm và phục hồi; ghi rõ tương tác với death penalty/grave hiện có.
+- [x] `DESIGN-02` Chốt một hay nhiều nhân vật trên mỗi UUID, quy tắc đổi race/class và tiến trình cá nhân/party.
+- [x] `SCHEMA-01` Chốt convention ID, cấu trúc chapter và version schema sau khi các quyết định Phase 0 hoàn tất.
+
+#### B. Story và cấu hình
+
+- [x] `STORY-01` Kiểm tra `artifacts.*.boss` trong `story.yml` có trỏ tới boss được cấu hình; giữ nguyên hành vi lore hiện có.
+- [x] `STORY-02` Kiểm tra slug ID, tên item và lore không rỗng của artifact; cảnh báo kèm đường dẫn YAML, không đổi hành vi nạp lore.
+- [x] `STORY-03` Thêm kiểm tra tự động cho artifact hợp lệ, boss không tồn tại và metadata tùy chọn bị thiếu/sai loại.
+- [x] `STORY-04` Định nghĩa chapter có ID ổn định trong `story/chapters.yml` và loader riêng; giữ nguyên văn bản cũ cùng artifact IDs trong `story.yml`.
+- [x] `CONFIG-01` Chốt chiến lược loader/validator riêng theo từng loại; artifact và chapter dùng loader/validator cụ thể, chưa dựng framework tổng quát.
+- [x] `CONFIG-02` Kiểm thử merge mặc định không ghi đè cấu hình server; chốt giữ story legacy và không migration/xóa dữ liệu tự động.
+- [x] `CONFIG-03` Kiểm tra parser và thêm strict handling cho duplicate YAML keys trong các map định nghĩa ID; loader từ chối file có khóa trùng trước khi nạp.
+
+#### C. Hồ sơ và tạo nhân vật
+
+- [x] `PROFILE-01` Chốt quyết định lưu hồ sơ người chơi bằng SQLite cho dữ liệu tiến trình, đồng thời giữ YAML cho nội dung tĩnh như race/class/world/portal definitions. Lý do: đây là game RPG có nhiều trạng thái theo thời gian, quest checkpoint, unlock đại lục, cooldown, progression cá nhân và khả năng mở rộng lên nhiều thế giới; YAML tốt cho config tĩnh nhưng không tối ưu cho update nhiều bản ghi theo thời gian và migration. Ở giai đoạn đầu, nếu server nhỏ/đơn giản, có thể dùng YAML tạm thời, nhưng với kế hoạch RPG dài hạn, SQLite là lựa chọn đúng để chuẩn bị cho nhiều player, nhiều world và nhiều loại tiến trình.
+- [ ] `PROFILE-02` Định nghĩa schema version, backup, phục hồi file lỗi và kiểm thử migration.
+- [x] `CHARACTER-01` Tạo GUI chọn race/class có preview, xác nhận và chặn tạo/ghi đè hồ sơ lặp; race/class định nghĩa bằng YAML để quản trị viên tùy chỉnh.
+- [ ] `CHARACTER-02` Lưu hồ sơ và xác minh reconnect/restart không mất hoặc nhân đôi dữ liệu.
+
+##### 6.1.1 Quyết định lưu trữ hồ sơ
+
+- `data/` hoặc `database/` giữ `player_profiles.db` với SQLite, không lưu biến trạng thái cá nhân trong nhiều file YAML.
+- `player_profiles`: `uuid`, `player_name`, `selected_race`, `selected_class`, `level`, `exp`, `home_world`, `created_at`, `updated_at`, `is_active`.
+- `player_quest_progress`: `uuid`, `quest_id`, `status`, `current_step`, `started_at`, `completed_at`, `reward_claimed`.
+- `player_world_progress`: `uuid`, `world_id`, `unlocked`, `completed`, `last_visited`.
+- `player_portal_progress`: `uuid`, `portal_id`, `unlocked`, `last_used`.
+- Dữ liệu tĩnh như `races/*.yml`, `player-classes/*.yml`, `worlds/*.yml`, `quests/*.yml`, `portals/*.yml` vẫn ở YAML để dễ sửa nội dung bằng admin và không cần migration phức tạp.
+- Mỗi lần cập nhật schema phải tăng `schema_version`; nếu file hoặc DB lỗi, phục hồi từ backup và không xóa progress chưa lưu.
+- Trong môi trường nhỏ, mỗi UUID chỉ có một profile chính; nếu có nhiều nhân vật thì mỗi profile là một bản ghi độc lập với `profile_id`, nhưng không bắt đầu bằng nhiều character trong giai đoạn đầu.
+
+##### 6.1.2 Chi tiết PROFILE-02
+
+- `schema_version` đặt ở file/database cấp cao nhất. Với SQLite: thêm bảng `meta` với `key = 'schema_version'`, `value = '1'` hoặc hàng tương ứng.
+- Mỗi bảng có `created_at`, `updated_at` để hỗ trợ audit và debug; `uuid` là khóa chính hoặc khóa phụ lệ thuộc vào bảng tương ứng.
+- Mỗi lần thay đổi cấu trúc phải có migration function rõ ràng: `migrate_v1_to_v2`, không sửa dữ liệu bằng cách viết mặc định mù quáng.
+- Backup: mỗi lần save/commit state, copy file SQLite sang `player_profiles.db.bak` hoặc `player_profiles.db.<timestamp>`, tối thiểu một bản backup mỗi 6 giờ hoặc khi có thay đổi lớn.
+- Recovery: nếu DB lỗi hoặc bị corrupt, khôi phục bản backup gần nhất, nếu không có backup thì tạo profile mới với dữ liệu chặn lỗi hoặc giữ `player_profiles` cũ dạng read-only cho admin.
+- `failed=retry` strategy: write transaction với `BEGIN IMMEDIATE`, cập nhật đủ trường, commit; nếu thất bại, rollback và log rõ trước khi trả lỗi tới player.
+- Các test migration phải bao gồm: schema cũ không có cột `selected_class`, thêm world unlock mới, quest completed bị dupli, và lỗi giữa chừng khi save.
+- Tất cả profile data phải được lưu trong transaction riêng, không gộp với config YAML hoặc save world state vì sẽ tăng rủi ro corruption.
+
+#### D. Vertical slice Nhân giới
+
+- [ ] `HUMAN-01` Khai báo một world Nhân giới cùng spawn, vùng an toàn và fallback khi world không tải.
+- [ ] `QUEST-01` Implement một quest tutorial tuyến tính với một loại objective đã được xác thực.
+- [ ] `QUEST-02` Lưu checkpoint, hoàn thành và trao reward đúng một lần qua reconnect/restart.
+- [ ] `JOURNAL-01` Hiển thị quest đang làm, bước hiện tại và chỉ dẫn tiếp theo trong GUI.
+- [ ] `DEATH-01` Kiểm thử death/recovery trong tutorial để không tạo soft-lock hoặc mất vật phẩm bắt buộc.
+
+#### E. Hub GUI, cổng và kiểm thử mở rộng
+
+- [ ] `GUI-01` Thêm các entry RPG vào hub F mà không làm thay đổi menu lính hiện tại.
+- [ ] `GUI-02` Kiểm thử F bật/tắt, inventory click variants, respawn grace và offhand interaction.
+- [ ] `PORTAL-01` Hiển thị đại lục đã khóa/mở và điều kiện truy cập trong GUI.
+- [ ] `PORTAL-02` Thực hiện teleport có kiểm tra world/location/combat và chỉ commit unlock sau khi thành công.
+- [ ] `BALANCE-01` Playtest Nhân giới solo với người mới; điều chỉnh cấu hình trước khi thêm đại lục mới.
+
+`STORY-01` đến `STORY-04`, `DESIGN-01`, `DESIGN-02`, `SCHEMA-01`, `CONFIG-01`, `CONFIG-02`, `CONFIG-03`, `PROFILE-01` và `CHARACTER-01` đã hoàn tất; 20/20 test liên quan pass. CHARACTER-01 có GUI chọn race/class, preview/xác nhận, ngăn UUID tạo hoặc ghi đè profile thứ hai, danh sách YAML tùy chỉnh và khóa bật/tắt trong `config.yml`. PROFILE-02 hiện mới có bảng SQLite và khung khởi tạo/backup; migration/recovery/backup an toàn vẫn chưa được hoàn thiện, do đó chưa đánh dấu xong. Bước tiếp theo là hoàn thiện `PROFILE-02` trước khi tích hợp việc nạp/lưu profile qua reconnect trong `CHARACTER-02`.
+
 ## 13. Kế hoạch kiểm thử chi tiết
 
 ### 13.1 Unit/logic tests
@@ -701,18 +788,21 @@ Không tối ưu chỉ theo tỷ lệ thắng boss; một boss quá dễ hoặc 
 
 ## 18. Quyết định cần chốt trước khi triển khai
 
-Các câu hỏi dưới đây có ảnh hưởng kiến trúc hoặc trải nghiệm, cần được chủ dự án duyệt ở Phase 0:
+### 18.1 Đã chốt
 
-1. Hardcore có mất đồ/XP vĩnh viễn không, hay death penalty hiện tại là giới hạn phạt chính?
-2. Mỗi tài khoản có một nhân vật hay cho phép nhiều nhân vật?
-3. Race/class có đổi được không? Nếu có, bằng quest, vật phẩm hay chi phí?
-4. Tiến trình quest và mở cổng là cá nhân, party hay một phần dùng chung toàn server?
-5. XP/cấp nhân vật có cần trong MVP hay chỉ dùng quest/chapter/gear?
-6. Đại lục nào sẽ là nội dung đầu tiên sau Nhân giới, và cốt truyện chương đầu được duyệt ra sao?
-7. Người chơi có thể teleport khi ở combat/boss không? Cơ chế hồi hương khẩn cấp là gì?
-8. Server dự kiến có bao nhiêu người chơi đồng thời và mức dữ liệu cần lưu để chọn YAML hay SQLite?
-9. F có tiếp tục mặc định chặn swap tay phụ hay mặc định tắt và để người chơi tự bật?
-10. Có party/co-op trong MVP không, hay phiên bản đầu solo-first?
+- **Tử vong:** giữ hệ thống hiện tại: người chơi chết sẽ drop inventory; nếu Graves bật, vật phẩm được giữ trong mộ theo các giới hạn/thời hạn cấu hình hiện có; death penalty vẫn tích lũy và hồi phục theo thời gian sống sót. Không thêm phạt RPG chồng lên các cơ chế này nếu chưa được duyệt riêng.
+- **Hồ sơ nhân vật:** một nhân vật trên mỗi UUID người chơi; profile không cần `characterId`/slot ở phiên bản đầu.
+- **Đổi race/class:** được phép có giới hạn qua quest hoặc vật phẩm; điều kiện, chi phí và số lần đổi sẽ thiết kế trước khi triển khai, có preview/xác nhận và chống khai thác.
+- **Tiến trình:** quest và mở khóa là cá nhân. Người chơi có thể hỗ trợ nhau trong nhóm, nhưng điều kiện mở khóa được ghi nhận cho từng người chơi theo quy tắc tham gia sẽ thiết kế cùng hệ quest.
+
+### 18.2 Còn cần chốt
+
+1. XP/cấp nhân vật có cần trong MVP hay chỉ dùng quest/chapter/gear?
+2. Đại lục nào sẽ là nội dung đầu tiên sau Nhân giới, và cốt truyện chương đầu được duyệt ra sao?
+3. Người chơi có thể teleport khi ở combat/boss không? Cơ chế hồi hương khẩn cấp là gì?
+4. Server dự kiến có bao nhiêu người chơi đồng thời và mức dữ liệu cần lưu để chọn YAML hay SQLite?
+5. F có tiếp tục mặc định chặn swap tay phụ hay mặc định tắt và để người chơi tự bật?
+6. Có party/co-op trong MVP không, hay phiên bản đầu solo-first?
 
 ## 19. Thứ tự ưu tiên rút gọn
 

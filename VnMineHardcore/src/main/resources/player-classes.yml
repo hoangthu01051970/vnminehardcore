@@ -1,0 +1,200 @@
+# [VI] Class có thể chọn. Khóa dưới 'classes' là ID ổn định, không đổi sau phát hành.
+# [EN] Selectable classes. Keys under 'classes' are stable IDs and must not change after release.
+# [VI] Mỗi chủng tộc hỗ trợ tối đa 28 class trong GUI; mỗi class chỉ thuộc một race.
+# [EN] Each race supports up to 28 classes in the GUI; each class belongs to one race.
+classes:
+  swordsman:
+    # [VI] ID chủng tộc trong races.yml mà class này dành cho; bắt buộc.
+    # [EN] Race ID from races.yml this class belongs to; required.
+    race: human
+    # [VI] Tên hiển thị; bắt buộc, không được để trống.
+    # [EN] Display name; required and must not be blank.
+    name: "Lính kiếm"
+    # [VI] Vật phẩm Minecraft dùng làm biểu tượng; phải là Material hợp lệ.
+    # [EN] Minecraft item used as the icon; must be a valid Material.
+    icon: IRON_SWORD
+    # [VI] Mô tả ngắn hiển thị trong GUI; bắt buộc, không được để trống.
+    # [EN] Short description shown in the GUI; required and must not be blank.
+    description: "Chống chịu tốt, cận chiến bền bỉ."
+  guardian:
+    # [VI] Race mặc định; phải tham chiếu tới ID có trong races.yml.
+    # [EN] Default race; must reference an ID defined in races.yml.
+    race: human
+    # [VI] Tên hiển thị mặc định; chuỗi không rỗng.
+    # [EN] Default display name; must be a non-empty string.
+    name: "Vệ binh"
+    # [VI] Biểu tượng mặc định; phải là Material có thể cầm/nằm trong inventory.
+    # [EN] Default icon; must be an item Material usable in an inventory.
+    icon: SHIELD
+    # [VI] Mô tả mặc định; chuỗi không rỗng.
+    # [EN] Default description; must be a non-empty string.
+    description: "Phòng thủ mạnh, giữ đội hình."
+  ranger:
+    # [VI] Race mặc định; phải tham chiếu tới ID có trong races.yml.
+    # [EN] Default race; must reference an ID defined in races.yml.
+    race: human
+    # [VI] Tên hiển thị mặc định; chuỗi không rỗng.
+    # [EN] Default display name; must be a non-empty string.
+    name: "Cung thủ"
+    # [VI] Biểu tượng mặc định; phải là Material có thể cầm/nằm trong inventory.
+    # [EN] Default icon; must be an item Material usable in an inventory.
+    icon: BOW
+    # [VI] Mô tả mặc định; chuỗi không rỗng.
+    # [EN] Default description; must be a non-empty string.
+    description: "Sát thương xa, di chuyển linh hoạt."
+  assassin:
+    # [VI] Race mặc định; phải tham chiếu tới ID có trong races.yml.
+    # [EN] Default race; must reference an ID defined in races.yml.
+    race: elf
+    # [VI] Tên hiển thị mặc định; chuỗi không rỗng.
+    # [EN] Default display name; must be a non-empty string.
+    name: "Sát thủ"
+    # [VI] Biểu tượng mặc định; phải là Material có thể cầm/nằm trong inventory.
+    # [EN] Default icon; must be an item Material usable in an inventory.
+    icon: DIAMOND_SWORD
+    # [VI] Mô tả mặc định; chuỗi không rỗng.
+    # [EN] Default description; must be a non-empty string.
+    description: "Tấn công nhanh, né va tốt."
+  archer:
+    # [VI] Race mặc định; phải tham chiếu tới ID có trong races.yml.
+    # [EN] Default race; must reference an ID defined in races.yml.
+    race: elf
+    # [VI] Tên hiển thị mặc định; chuỗi không rỗng.
+    # [EN] Default display name; must be a non-empty string.
+    name: "Xạ thủ"
+    # [VI] Biểu tượng mặc định; phải là Material có thể cầm/nằm trong inventory.
+    # [EN] Default icon; must be an item Material usable in an inventory.
+    icon: BOW
+    # [VI] Mô tả mặc định; chuỗi không rỗng.
+    # [EN] Default description; must be a non-empty string.
+    description: "Gây sát thương xa cao."
+  mage:
+    # [VI] Race mặc định; phải tham chiếu tới ID có trong races.yml.
+    # [EN] Default race; must reference an ID defined in races.yml.
+    race: elf
+    # [VI] Tên hiển thị mặc định; chuỗi không rỗng.
+    # [EN] Default display name; must be a non-empty string.
+    name: "Pháp sư"
+    # [VI] Biểu tượng mặc định; phải là Material có thể cầm/nằm trong inventory.
+    # [EN] Default icon; must be an item Material usable in an inventory.
+    icon: BLAZE_POWDER
+    # [VI] Mô tả mặc định; chuỗi không rỗng.
+    # [EN] Default description; must be a non-empty string.
+    description: "Gây sát thương phép và kiểm soát."
+  knight:
+    # [VI] Race mặc định; phải tham chiếu tới ID có trong races.yml.
+    # [EN] Default race; must reference an ID defined in races.yml.
+    race: dwarf
+    # [VI] Tên hiển thị mặc định; chuỗi không rỗng.
+    # [EN] Default display name; must be a non-empty string.
+    name: "Kỵ sĩ"
+    # [VI] Biểu tượng mặc định; phải là Material có thể cầm/nằm trong inventory.
+    # [EN] Default icon; must be an item Material usable in an inventory.
+    icon: IRON_AXE
+    # [VI] Mô tả mặc định; chuỗi không rỗng.
+    # [EN] Default description; must be a non-empty string.
+    description: "Gánh đòn, bảo vệ đồng đội."
+  smith:
+    # [VI] Race mặc định; phải tham chiếu tới ID có trong races.yml.
+    # [EN] Default race; must reference an ID defined in races.yml.
+    race: dwarf
+    # [VI] Tên hiển thị mặc định; chuỗi không rỗng.
+    # [EN] Default display name; must be a non-empty string.
+    name: "Thợ rèn"
+    # [VI] Biểu tượng mặc định; phải là Material có thể cầm/nằm trong inventory.
+    # [EN] Default icon; must be an item Material usable in an inventory.
+    icon: ANVIL
+    # [VI] Mô tả mặc định; chuỗi không rỗng.
+    # [EN] Default description; must be a non-empty string.
+    description: "Tập trung vào giáp và khả năng trụ vững."
+  brute:
+    # [VI] Race mặc định; phải tham chiếu tới ID có trong races.yml.
+    # [EN] Default race; must reference an ID defined in races.yml.
+    race: dwarf
+    # [VI] Tên hiển thị mặc định; chuỗi không rỗng.
+    # [EN] Default display name; must be a non-empty string.
+    name: "Bạo chiến"
+    # [VI] Biểu tượng mặc định; phải là Material có thể cầm/nằm trong inventory.
+    # [EN] Default icon; must be an item Material usable in an inventory.
+    icon: DIAMOND_AXE
+    # [VI] Mô tả mặc định; chuỗi không rỗng.
+    # [EN] Default description; must be a non-empty string.
+    description: "Đánh mạnh, chịu đòn tốt."
+  berserker:
+    # [VI] Race mặc định; phải tham chiếu tới ID có trong races.yml.
+    # [EN] Default race; must reference an ID defined in races.yml.
+    race: demon
+    # [VI] Tên hiển thị mặc định; chuỗi không rỗng.
+    # [EN] Default display name; must be a non-empty string.
+    name: "Cuồng chiến"
+    # [VI] Biểu tượng mặc định; phải là Material có thể cầm/nằm trong inventory.
+    # [EN] Default icon; must be an item Material usable in an inventory.
+    icon: NETHERITE_SWORD
+    # [VI] Mô tả mặc định; chuỗi không rỗng.
+    # [EN] Default description; must be a non-empty string.
+    description: "Sức tấn công bùng nổ."
+  warlock:
+    # [VI] Race mặc định; phải tham chiếu tới ID có trong races.yml.
+    # [EN] Default race; must reference an ID defined in races.yml.
+    race: demon
+    # [VI] Tên hiển thị mặc định; chuỗi không rỗng.
+    # [EN] Default display name; must be a non-empty string.
+    name: "Hắc thuật sư"
+    # [VI] Biểu tượng mặc định; phải là Material có thể cầm/nằm trong inventory.
+    # [EN] Default icon; must be an item Material usable in an inventory.
+    icon: SOUL_LANTERN
+    # [VI] Mô tả mặc định; chuỗi không rỗng.
+    # [EN] Default description; must be a non-empty string.
+    description: "Dùng phép thuật áp chế mục tiêu."
+  cultist:
+    # [VI] Race mặc định; phải tham chiếu tới ID có trong races.yml.
+    # [EN] Default race; must reference an ID defined in races.yml.
+    race: demon
+    # [VI] Tên hiển thị mặc định; chuỗi không rỗng.
+    # [EN] Default display name; must be a non-empty string.
+    name: "Mật giáo"
+    # [VI] Biểu tượng mặc định; phải là Material có thể cầm/nằm trong inventory.
+    # [EN] Default icon; must be an item Material usable in an inventory.
+    icon: BLAZE_ROD
+    # [VI] Mô tả mặc định; chuỗi không rỗng.
+    # [EN] Default description; must be a non-empty string.
+    description: "Hỗ trợ và gây ảnh hưởng lên giao tranh."
+  sage:
+    # [VI] Race mặc định; phải tham chiếu tới ID có trong races.yml.
+    # [EN] Default race; must reference an ID defined in races.yml.
+    race: spirit
+    # [VI] Tên hiển thị mặc định; chuỗi không rỗng.
+    # [EN] Default display name; must be a non-empty string.
+    name: "Tiên sư"
+    # [VI] Biểu tượng mặc định; phải là Material có thể cầm/nằm trong inventory.
+    # [EN] Default icon; must be an item Material usable in an inventory.
+    icon: ENCHANTED_BOOK
+    # [VI] Mô tả mặc định; chuỗi không rỗng.
+    # [EN] Default description; must be a non-empty string.
+    description: "Hỗ trợ và hồi phục."
+  seer:
+    # [VI] Race mặc định; phải tham chiếu tới ID có trong races.yml.
+    # [EN] Default race; must reference an ID defined in races.yml.
+    race: spirit
+    # [VI] Tên hiển thị mặc định; chuỗi không rỗng.
+    # [EN] Default display name; must be a non-empty string.
+    name: "Nhà tiên tri"
+    # [VI] Biểu tượng mặc định; phải là Material có thể cầm/nằm trong inventory.
+    # [EN] Default icon; must be an item Material usable in an inventory.
+    icon: OMINOUS_TRIAL_KEY
+    # [VI] Mô tả mặc định; chuỗi không rỗng.
+    # [EN] Default description; must be a non-empty string.
+    description: "Định vị và cảm nhận nguy hiểm."
+  spirit-blade:
+    # [VI] Race mặc định; phải tham chiếu tới ID có trong races.yml.
+    # [EN] Default race; must reference an ID defined in races.yml.
+    race: spirit
+    # [VI] Tên hiển thị mặc định; chuỗi không rỗng.
+    # [EN] Default display name; must be a non-empty string.
+    name: "Lưỡi linh"
+    # [VI] Biểu tượng mặc định; phải là Material có thể cầm/nằm trong inventory.
+    # [EN] Default icon; must be an item Material usable in an inventory.
+    icon: NETHERITE_SWORD
+    # [VI] Mô tả mặc định; chuỗi không rỗng.
+    # [EN] Default description; must be a non-empty string.
+    description: "Tốc độ và sát thương chính xác."

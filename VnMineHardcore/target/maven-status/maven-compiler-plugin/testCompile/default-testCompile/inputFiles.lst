@@ -1,0 +1,6 @@
+/workspaces/vnminehardcore/VnMineHardcore/src/test/java/com/vnmine/hardcore/managers/CharacterDefinitionsTest.java
+/workspaces/vnminehardcore/VnMineHardcore/src/test/java/com/vnmine/hardcore/managers/PlayerProfileDatabaseManagerTest.java
+/workspaces/vnminehardcore/VnMineHardcore/src/test/java/com/vnmine/hardcore/managers/StoryArtifactValidatorTest.java
+/workspaces/vnminehardcore/VnMineHardcore/src/test/java/com/vnmine/hardcore/managers/StoryChapterLoaderTest.java
+/workspaces/vnminehardcore/VnMineHardcore/src/test/java/com/vnmine/hardcore/managers/YamlConfigMergerTest.java
+/workspaces/vnminehardcore/VnMineHardcore/src/test/java/com/vnmine/hardcore/managers/YamlDuplicateKeyValidatorTest.java

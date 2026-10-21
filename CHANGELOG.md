@@ -1,5 +1,13 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+- Thêm file `story/chapters.yml` với chapter có ID ổn định, thứ tự hiển thị và loader/kiểm tra cấu hình riêng; giữ nguyên danh sách artifact và `story-id` hiện có trong `story.yml`.
+- Kiểm thử và tách logic merge cấu hình YAML: chỉ thêm giá trị mặc định còn thiếu, không ghi đè cấu hình server; giữ nội dung story legacy, không tự động migration hoặc xóa dữ liệu `story.yml`.
+- Từ chối file story có khóa YAML trùng trước khi cấu hình map có thể ghi đè định nghĩa ID; lỗi được log và nội dung file đó không được nạp.
+- Thêm GUI tạo nhân vật race/class có bước xem trước và xác nhận, chặn tạo nhiều nhân vật trên cùng UUID, và nạp danh sách tùy chỉnh từ `races.yml`/`player-classes.yml`.
+
 ## [v2.0.2] - 2026-10-21
 
 ### Fixed

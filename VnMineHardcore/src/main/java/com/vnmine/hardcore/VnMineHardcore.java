@@ -19,6 +19,8 @@ public final class VnMineHardcore extends JavaPlugin {
 
     private static VnMineHardcore instance;
     private ConfigManager configManager;
+    private PlayerProfileDatabaseManager playerProfileDatabaseManager;
+    private CharacterSelectionManager characterSelectionManager;
     private LogManager logManager;
     private ThirstManager thirstManager;
     private DisasterManager disasterManager;
@@ -69,6 +71,16 @@ public final class VnMineHardcore extends JavaPlugin {
 
         // Load config first
         this.configManager = new ConfigManager(this);
+        this.playerProfileDatabaseManager = new PlayerProfileDatabaseManager(getDataFolder());
+        try {
+            this.playerProfileDatabaseManager.initialize();
+            this.playerProfileDatabaseManager.migrateIfNeeded();
+        } catch (Exception exception) {
+            getLogger().log(java.util.logging.Level.SEVERE, "Failed to initialize player profile database.", exception);
+            Bukkit.getPluginManager().disablePlugin(this);
+            return;
+        }
+        this.characterSelectionManager = new CharacterSelectionManager(this);
         this.timeControlManager = new TimeControlManager(this, configManager);
         this.timeControlManager.reload();
 
@@ -89,6 +101,7 @@ public final class VnMineHardcore extends JavaPlugin {
         this.tooltipManager = new TooltipManager(this);
 
         // Create listeners (pass config)
+        Bukkit.getPluginManager().registerEvents(characterSelectionManager, this);
         this.deathListener = new DeathListener(this, configManager, deathRenameManager, deathPenaltyManager);
         this.combatListener = new CombatListener(this, deathListener, configManager);
         this.environmentListener = new EnvironmentListener(this, configManager);
@@ -1001,6 +1014,8 @@ public final class VnMineHardcore extends JavaPlugin {
 
     public static VnMineHardcore getInstance() { return instance; }
     public ConfigManager getConfigManager() { return configManager; }
+    public PlayerProfileDatabaseManager getPlayerProfileDatabaseManager() { return playerProfileDatabaseManager; }
+    public CharacterSelectionManager getCharacterSelectionManager() { return characterSelectionManager; }
     public LogManager getLogManager() { return logManager; }
     public ThirstManager getThirstManager() { return thirstManager; }
     public DisasterManager getDisasterManager() { return disasterManager; }

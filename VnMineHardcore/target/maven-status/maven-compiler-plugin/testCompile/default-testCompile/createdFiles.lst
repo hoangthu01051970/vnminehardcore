@@ -1,0 +1,6 @@
+com/vnmine/hardcore/managers/YamlDuplicateKeyValidatorTest.class
+com/vnmine/hardcore/managers/YamlConfigMergerTest.class
+com/vnmine/hardcore/managers/StoryArtifactValidatorTest.class
+com/vnmine/hardcore/managers/StoryChapterLoaderTest.class
+com/vnmine/hardcore/managers/CharacterDefinitionsTest.class
+com/vnmine/hardcore/managers/PlayerProfileDatabaseManagerTest.class

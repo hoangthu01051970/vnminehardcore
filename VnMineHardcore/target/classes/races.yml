@@ -1,0 +1,55 @@
+# [VI] Chủng tộc có thể chọn khi tạo nhân vật. Khóa dưới 'races' là ID ổn định.
+# [EN] Races available during character creation. Keys under 'races' are stable IDs.
+# [VI] Giới hạn mặc định của GUI là 28 chủng tộc; ID phải theo slug chữ thường.
+# [EN] The GUI supports up to 28 races by default; IDs must use lowercase slugs.
+races:
+  human:
+    # [VI] Tên hiển thị; bắt buộc, không được để trống.
+    # [EN] Display name; required and must not be blank.
+    name: "Nhân tộc"
+    # [VI] Vật phẩm Minecraft dùng làm biểu tượng; dùng tên Material hợp lệ.
+    # [EN] Minecraft item used as the icon; must be a valid Material name.
+    icon: PLAYER_HEAD
+    # [VI] Mô tả ngắn hiển thị trong GUI; bắt buộc, không được để trống.
+    # [EN] Short description shown in the GUI; required and must not be blank.
+    description: "Dễ thích nghi, bền bỉ, ổn định."
+  elf:
+    # [VI] Tên hiển thị mặc định; chuỗi không rỗng.
+    # [EN] Default display name; must be a non-empty string.
+    name: "Tiên tộc"
+    # [VI] Biểu tượng mặc định; phải là Material có thể cầm/nằm trong inventory.
+    # [EN] Default icon; must be an item Material usable in an inventory.
+    icon: SPRUCE_SAPLING
+    # [VI] Mô tả mặc định; chuỗi không rỗng.
+    # [EN] Default description; must be a non-empty string.
+    description: "Nhanh nhẹn, tập trung và lợi hại trong tầm xa."
+  dwarf:
+    # [VI] Tên hiển thị mặc định; chuỗi không rỗng.
+    # [EN] Default display name; must be a non-empty string.
+    name: "Thạch tộc"
+    # [VI] Biểu tượng mặc định; phải là Material có thể cầm/nằm trong inventory.
+    # [EN] Default icon; must be an item Material usable in an inventory.
+    icon: STONE_BRICK_WALL
+    # [VI] Mô tả mặc định; chuỗi không rỗng.
+    # [EN] Default description; must be a non-empty string.
+    description: "Máu chiến đấu, chịu đòn mạnh, kỹ thuật phòng ngự."
+  demon:
+    # [VI] Tên hiển thị mặc định; chuỗi không rỗng.
+    # [EN] Default display name; must be a non-empty string.
+    name: "Ma tộc"
+    # [VI] Biểu tượng mặc định; phải là Material có thể cầm/nằm trong inventory.
+    # [EN] Default icon; must be an item Material usable in an inventory.
+    icon: REDSTONE_BLOCK
+    # [VI] Mô tả mặc định; chuỗi không rỗng.
+    # [EN] Default description; must be a non-empty string.
+    description: "Sức mạnh bùng phát, tốc độ đánh nhanh."
+  spirit:
+    # [VI] Tên hiển thị mặc định; chuỗi không rỗng.
+    # [EN] Default display name; must be a non-empty string.
+    name: "Linh tộc"
+    # [VI] Biểu tượng mặc định; phải là Material có thể cầm/nằm trong inventory.
+    # [EN] Default icon; must be an item Material usable in an inventory.
+    icon: ENDER_EYE
+    # [VI] Mô tả mặc định; chuỗi không rỗng.
+    # [EN] Default description; must be a non-empty string.
+    description: "Linh cảm, tri thức cổ xưa và năng lực phức hợp."

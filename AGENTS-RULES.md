@@ -12,6 +12,12 @@
 - Ưu tiên giải pháp chính thức, tránh workaround tạm thời nếu có cách sửa đúng gốc.
 - Không tự ý clone repository từ xa. Nếu cần mã nguồn ngoài, kiểm tra đường dẫn đã được cấu hình; nếu không có, báo người dùng và xin thống nhất trước khi clone, kèm phương án sao lưu.
 
+## Theo dõi kế hoạch
+- Khi hoàn thành một phần công việc thuộc kế hoạch nhiều giai đoạn của dự án, cập nhật `plan.md`: đánh dấu đúng các mục đã hoàn thành, ghi chú kết quả cần thiết và giữ nguyên trạng thái các mục chưa làm.
+- Chỉ đánh dấu hoàn thành sau khi đã xác minh kết quả; không tự mở rộng phạm vi hoặc đánh dấu trước các công việc chưa thực hiện.
+- Trong báo cáo cuối, nêu phần kế hoạch tiếp theo và hỏi người dùng có muốn tiếp tục không. Chờ xác nhận trước khi bắt đầu phần kế tiếp.
+- Với yêu cầu độc lập, không liên quan đến kế hoạch đang theo dõi, không sửa `plan.md` chỉ để tạo cập nhật hình thức.
+
 ## Cấu hình và tài liệu
 - Mọi tính năng mới phải có cấu hình để người quản trị tùy chỉnh mà không cần sửa và biên dịch lại mã Java. Cung cấp giá trị mặc định hợp lý khi khóa cấu hình bị thiếu.
 - Mọi tham số trong file cấu hình mặc định phải có chú thích cả tiếng Việt và tiếng Anh, nêu công dụng, giá trị mặc định và giới hạn hợp lệ nếu có. Ví dụ:
