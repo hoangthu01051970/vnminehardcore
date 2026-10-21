@@ -16,8 +16,10 @@
 - Nạp hồ sơ nhân vật đã lưu khi người chơi vào server, giữ profile trong session và xóa cache khi người chơi thoát; reconnect/restart không tạo hoặc ghi đè profile.
 - Thêm định nghĩa đại lục Nhân giới trong `worlds/human-realm.yml`, phân giải spawn với world dự phòng đã nạp, và vùng an toàn chặn sát thương, PvP, quái thù địch cùng phá hoại địa hình.
 - Thêm quest tutorial `first-steps` tự bắt đầu cho profile đang hoạt động; objective `visit-realm-spawn` được kiểm tra cấu hình và lưu trạng thái active/completed trong SQLite.
+- Thêm GUI nhật ký nhiệm vụ từ menu chính: hiển thị trạng thái/checkpoint/chỉ dẫn/phần thưởng, làm mới tiến trình và ẩn mục menu qua cấu hình.
 
 ### Changed
+- Hoàn thành quest tutorial và cộng XP nhân vật trong cùng transaction SQLite; cờ `reward_claimed` chống trao lặp và hỗ trợ nhận bù một lần cho quest đã hoàn tất trước khi có reward.
 - Nâng schema hồ sơ SQLite lên v2 với migration v1→v2 transactional; ghi hồ sơ dùng `BEGIN IMMEDIATE`, backup checkpoint WAL trước khi ghi/migration, và phục hồi an toàn từ backup hợp lệ khi database bị lỗi.
 - Thêm backup SQLite định kỳ và giới hạn số bản lưu cấu hình được; retry có giới hạn cho lỗi database tạm bận, áp dụng lại qua `/vnreload`.
 - Thêm API SQLite idempotent cho mở khóa đại lục và lưu trạng thái/bước/hoàn thành quest; duplicate unlock/completion không tạo tiến trình trùng.

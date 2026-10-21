@@ -676,25 +676,25 @@ Mỗi đầu việc dưới đây nên được triển khai và kiểm chứng 
 - Các test migration phải bao gồm: schema cũ không có cột `selected_class`, thêm world unlock mới, quest completed bị dupli, và lỗi giữa chừng khi save.
 - Tất cả profile data phải được lưu trong transaction riêng, không gộp với config YAML hoặc save world state vì sẽ tăng rủi ro corruption.
 - `PROFILE-02` hoàn tất: schema v2 và migration v1→v2 transactional; backup checkpoint WAL khi khởi động, trước khi ghi hồ sơ/migration và định kỳ; retention, retry lỗi SQLite busy/locked, recovery; transaction idempotent cho world unlock và quest start/step/completion. Mười lăm test manager bao phủ migration dữ liệu cũ, migration atomic khi lỗi, từ chối schema mới hơn, rollback, retry, retention, world unlock, quest completion trùng, recovery và đọc lại profile sau restart.
-- Quest GUI và phát/claim reward chưa được triển khai; đảm bảo reward exactly-once thuộc `QUEST-02`, cần thiết kế cùng luồng giao nhận reward thay vì chỉ đánh dấu database.
+- `JOURNAL-01` đã hoàn tất với GUI hiển thị trạng thái/checkpoint/chỉ dẫn/thời gian hoàn thành/reward từ SQLite, mở từ hub F/`/vnmenu`, có nút đồng bộ tiến trình và nút tạo nhân vật khi thiếu profile. Nút đồng bộ gọi khởi tạo quest nên có thể tạo tiến trình cho profile hợp lệ chưa có quest; GUI dùng holder riêng, xác thực viewer, chặn click/drag. Mục menu có thể tắt bằng `rpg.quest-journal.enabled`. Reward XP nhân vật của tutorial được cộng nguyên tử cùng quest completion; reward dạng item/inventory chưa triển khai vì cần một thiết kế giao nhận bền vững riêng.
 
 #### D. Vertical slice Nhân giới
 
 - [x] `HUMAN-01` Khai báo world Nhân giới, spawn, safe zone và fallback; đã thêm loader/validator YAML, không tự tạo world, fallback tới world đã nạp, vùng an toàn chặn sát thương/PvP/quái thù địch và phá hoại địa hình. Năm test mới xác minh cấu hình, tọa độ bắt buộc, bán kính và khóa YAML trùng.
-- [x] `QUEST-01` Implement quest tutorial tự bắt đầu cho profile đang hoạt động, objective `visit-realm-spawn` được validate và lưu active/completed trong SQLite; 5 test kiểm tra YAML, objective type, khóa trùng và biên bán kính. Chưa có reward hoặc GUI journal; thuộc `QUEST-02` và `JOURNAL-01`.
-- [ ] `QUEST-02` Lưu checkpoint, hoàn thành và trao reward đúng một lần qua reconnect/restart.
-- [ ] `JOURNAL-01` Hiển thị quest đang làm, bước hiện tại và chỉ dẫn tiếp theo trong GUI.
+- [x] `QUEST-01` Implement quest tutorial tự bắt đầu cho profile đang hoạt động, objective `visit-realm-spawn` được validate và lưu active/completed trong SQLite; 5 test kiểm tra YAML, objective type, khóa trùng và biên bán kính. Reward và GUI được hoàn thiện lần lượt trong `QUEST-02` và `JOURNAL-01`.
+- [x] `QUEST-02` Lưu checkpoint, hoàn thành và trao reward XP đúng một lần qua reconnect/restart. Trạng thái hoàn thành, `reward_claimed` và XP nhân vật được cập nhật trong một SQLite transaction; nếu ghi XP lỗi thì rollback cả completion. Hỗ trợ claim bù một lần cho completion cũ chưa claim. Đã xác minh restart/checkpoint, chống claim/completion trùng và rollback khi cập nhật reward thất bại.
+- [x] `JOURNAL-01` Hiển thị quest đang làm, bước hiện tại, chỉ dẫn và trạng thái reward trong GUI; mở từ menu F/`/vnmenu`, có refresh/back và hướng dẫn tạo nhân vật nếu thiếu profile. Holder xác thực người xem, chặn thao tác inventory; mục menu có config bật/tắt. Có test định dạng lore cho quest active/completed.
 - [ ] `DEATH-01` Kiểm thử death/recovery trong tutorial để không tạo soft-lock hoặc mất vật phẩm bắt buộc.
 
 #### E. Hub GUI, cổng và kiểm thử mở rộng
 
-- [ ] `GUI-01` Thêm các entry RPG vào hub F mà không làm thay đổi menu lính hiện tại.
+- [ ] `GUI-01` Hoàn thiện hub F thành điểm điều hướng RPG (nhân vật và nhật ký nhiệm vụ đã được thêm trong các phần trước); bổ sung các entry RPG còn thiếu mà không làm thay đổi menu lính hiện tại.
 - [ ] `GUI-02` Kiểm thử F bật/tắt, inventory click variants, respawn grace và offhand interaction.
 - [ ] `PORTAL-01` Hiển thị đại lục đã khóa/mở và điều kiện truy cập trong GUI.
 - [ ] `PORTAL-02` Thực hiện teleport có kiểm tra world/location/combat và chỉ commit unlock sau khi thành công.
 - [ ] `BALANCE-01` Playtest Nhân giới solo với người mới; điều chỉnh cấu hình trước khi thêm đại lục mới.
 
-`STORY-01` đến `STORY-04`, `DESIGN-01`, `DESIGN-02`, `SCHEMA-01`, `CONFIG-01`, `CONFIG-02`, `CONFIG-03`, `PROFILE-01`, `PROFILE-02`, `CHARACTER-01`, `CHARACTER-02`, `HUMAN-01` và `QUEST-01` đã hoàn tất. PROFILE-02 có 15 test manager pass; CHARACTER-02 xác minh reconnect/restart và chống ghi đè profile; HUMAN-01 và QUEST-01 mỗi phần có 5 test cấu hình/logic; toàn bộ 41 test đều pass. Bước kế tiếp là `QUEST-02`, lưu checkpoint/hoàn thành và đảm bảo reward chỉ được trao một lần qua reconnect/restart. GUI journal vẫn thuộc `JOURNAL-01`.
+`STORY-01` đến `STORY-04`, `DESIGN-01`, `DESIGN-02`, `SCHEMA-01`, `CONFIG-01`, `CONFIG-02`, `CONFIG-03`, `PROFILE-01`, `PROFILE-02`, `CHARACTER-01`, `CHARACTER-02`, `HUMAN-01`, `QUEST-01`, `QUEST-02` và `JOURNAL-01` đã hoàn tất. Bộ `PlayerProfileDatabaseManagerTest` có 18 test pass (15 test profile và 3 test checkpoint/reward); QUEST-02 kiểm thử restart, chống trao XP lặp, claim bù và rollback nguyên tử. JOURNAL-01 kiểm thử lore cho quest active/completed. Toàn bộ Maven test suite đã chạy thành công ngày 2026-10-21: 48/48 test pass. Phần tiếp theo theo thứ tự kế hoạch là `DEATH-01`, nhưng chưa bắt đầu; chờ xác nhận của người dùng. Mục này kiểm thử death/recovery trong tutorial để không tạo soft-lock hoặc mất vật phẩm bắt buộc. Reward hiện tại là RPG character XP lưu bền vững; item/inventory reward chưa hỗ trợ.
 
 ## 13. Kế hoạch kiểm thử chi tiết
 

@@ -37,6 +37,10 @@ rpg:
     # [VI] Bật/tắt mục tạo nhân vật trong menu và việc mở GUI; mặc định true.
     # [EN] Enable/disable the character-creation menu entry and GUI; default true.
     enabled: true
+  quest-journal:
+    # [VI] Bật/tắt mục nhật ký nhiệm vụ trong menu chính; mặc định true.
+    # [EN] Enable/disable the quest journal entry in the main menu; default true.
+    enabled: true
   profile-database:
     # [VI] Số giờ giữa các lần sao lưu SQLite tự động; mặc định 6 giờ, hợp lệ 1-168.
     # [EN] Hours between automatic SQLite backups; default 6 hours, valid range 1-168.

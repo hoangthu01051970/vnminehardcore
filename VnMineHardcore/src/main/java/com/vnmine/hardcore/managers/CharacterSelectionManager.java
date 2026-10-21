@@ -209,6 +209,21 @@ public final class CharacterSelectionManager implements Listener {
         return Optional.ofNullable(loadedProfiles.get(playerId));
     }
 
+    public void refreshLoadedProfile(Player player) {
+        try {
+            Optional<PlayerProfileDatabaseManager.PlayerProfile> profile =
+                plugin.getPlayerProfileDatabaseManager().getPlayerProfile(player.getUniqueId().toString());
+            if (profile.isPresent()) {
+                loadedProfiles.put(player.getUniqueId(), profile.get());
+            } else {
+                loadedProfiles.remove(player.getUniqueId());
+            }
+        } catch (SQLException exception) {
+            plugin.getLogger().log(Level.SEVERE, "[Profile] Failed to refresh the in-memory profile for " +
+                player.getName(), exception);
+        }
+    }
+
     public void finalizeSelection(Player player, String raceId, String classId) {
         if (!isCreationAvailable(player)) return;
         RaceDefinition race = races.get(raceId);

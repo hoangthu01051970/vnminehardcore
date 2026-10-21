@@ -6179,7 +6179,7 @@ public final class MercenaryManager implements CommandExecutor, TabCompleter, Li
         return holder;
     }
 
-    private void openMainMenu(Player player) {
+    public void openMainMenu(Player player) {
         if (!plugin.getConfig().getBoolean("menus.main.enabled", true)) {
             player.sendMessage("§cMenu chính hiện đang tắt.");
             return;
@@ -6199,6 +6199,10 @@ public final class MercenaryManager implements CommandExecutor, TabCompleter, Li
         if (plugin.getConfig().getBoolean("rpg.character-creation.enabled", true)) {
             inventory.setItem(18, menuItem(Material.ENDER_EYE, "§dNhân vật RPG", List.of(
                 "§7Chọn chủng tộc và class của bạn.", "§7Hệ thống lưu tiến trình trên SQLite.")));
+        }
+        if (plugin.getConfig().getBoolean("rpg.quest-journal.enabled", true)) {
+            inventory.setItem(20, menuItem(Material.WRITABLE_BOOK, "§bNhật ký nhiệm vụ", List.of(
+                "§7Xem nhiệm vụ tutorial và mục tiêu hiện tại.")));
         }
         inventory.setItem(22, menuItem(Material.WRITABLE_BOOK, "§bTrợ giúp", List.of("§7Mở hướng dẫn lệnh máy chủ.")));
         if (hasAdminMenuAccess(player)
@@ -8225,6 +8229,10 @@ public final class MercenaryManager implements CommandExecutor, TabCompleter, Li
                       && plugin.getConfig().getBoolean("rpg.character-creation.enabled", true)
                       && VnMineHardcore.getInstance().getCharacterSelectionManager() != null) {
                      VnMineHardcore.getInstance().getCharacterSelectionManager().openRaceMenu(player);
+                  } else if (slot == 20 && VnMineHardcore.getInstance() != null
+                      && plugin.getConfig().getBoolean("rpg.quest-journal.enabled", true)
+                      && VnMineHardcore.getInstance().getTutorialQuestManager() != null) {
+                     VnMineHardcore.getInstance().getTutorialQuestManager().openJournal(player);
                   } else if (slot == 22) {
                      player.performCommand("vnhelp");
                   } else if (slot == 24 && this.hasAdminMenuAccess(player)) {

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://maven.apache.org/surefire/maven-surefire-plugin/xsd/surefire-test-report.xsd" version="3.0.2" name="com.vnmine.hardcore.managers.StoryChapterLoaderTest" time="0.114" tests="5" errors="0" skipped="0" failures="0">
+<testsuite xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://maven.apache.org/surefire/maven-surefire-plugin/xsd/surefire-test-report.xsd" version="3.0.2" name="com.vnmine.hardcore.managers.StoryChapterLoaderTest" time="0.017" tests="5" errors="0" skipped="0" failures="0">
   <properties>
     <property name="java.specification.version" value="25"/>
     <property name="sun.jnu.encoding" value="UTF-8"/>
@@ -7,13 +7,13 @@
     <property name="java.vm.vendor" value="Microsoft"/>
     <property name="sun.arch.data.model" value="64"/>
     <property name="java.vendor.url" value="https://www.microsoft.com"/>
+    <property name="user.timezone" value="Etc/UTC"/>
     <property name="os.name" value="Linux"/>
     <property name="java.vm.specification.version" value="25"/>
     <property name="sun.java.launcher" value="SUN_STANDARD"/>
     <property name="sun.boot.library.path" value="/usr/local/sdkman/candidates/java/25.0.4+1-ms/lib"/>
-    <property name="sun.java.command" value="/workspaces/vnminehardcore/VnMineHardcore/target/surefire/surefirebooter-20261021052023988_3.jar /workspaces/vnminehardcore/VnMineHardcore/target/surefire 2026-10-21T05-20-23_844-jvmRun1 surefire-20261021052023988_1tmp surefire_0-20261021052023988_2tmp"/>
+    <property name="sun.java.command" value="/workspaces/vnminehardcore/VnMineHardcore/target/surefire/surefirebooter-20261021071212140_3.jar /workspaces/vnminehardcore/VnMineHardcore/target/surefire 2026-10-21T07-12-11_934-jvmRun1 surefire-20261021071212140_1tmp surefire_0-20261021071212140_2tmp"/>
     <property name="jdk.debug" value="release"/>
-    <property name="test" value="CharacterDefinitionsTest,PlayerProfileDatabaseManagerTest,YamlDuplicateKeyValidatorTest,YamlConfigMergerTest,StoryArtifactValidatorTest,StoryChapterLoaderTest"/>
     <property name="surefire.test.class.path" value="/workspaces/vnminehardcore/VnMineHardcore/target/test-classes:/workspaces/vnminehardcore/VnMineHardcore/target/classes:/home/codespace/.m2/repository/io/papermc/paper/paper-api/26.3.build.175-stable/paper-api-26.3.build.175-stable.jar:/home/codespace/.m2/repository/com/google/guava/guava/33.6.0-jre/guava-33.6.0-jre.jar:/home/codespace/.m2/repository/com/google/guava/failureaccess/1.0.3/failureaccess-1.0.3.jar:/home/codespace/.m2/repository/com/google/guava/listenablefuture/9999.0-empty-to-avoid-conflict-with-guava/listenablefuture-9999.0-empty-to-avoid-conflict-with-guava.jar:/home/codespace/.m2/repository/com/google/errorprone/error_prone_annotations/2.47.0/error_prone_annotations-2.47.0.jar:/home/codespace/.m2/repository/com/google/j2objc/j2objc-annotations/3.1/j2objc-annotations-3.1.jar:/home/codespace/.m2/repository/com/google/code/gson/gson/2.14.0/gson-2.14.0.jar:/home/codespace/.m2/repository/org/joml/joml/1.10.9/joml-1.10.9.jar:/home/codespace/.m2/repository/it/unimi/dsi/fastutil/8.5.18/fastutil-8.5.18.jar:/home/codespace/.m2/repository/org/apache/logging/log4j/log4j-api/2.26.0/log4j-api-2.26.0.jar:/home/codespace/.m2/repository/org/slf4j/slf4j-api/2.0.17/slf4j-api-2.0.17.jar:/home/codespace/.m2/repository/com/mojang/brigadier/1.3.11/brigadier-1.3.11.jar:/home/codespace/.m2/repository/net/md-5/bungeecord-chat/1.21-R0.2-deprecated+build.21/bungeecord-chat-1.21-R0.2-deprecated+build.21.jar:/home/codespace/.m2/repository/org/apache/maven/maven-resolver-provider/3.9.6/maven-resolver-provider-3.9.6.jar:/home/codespace/.m2/repository/org/apache/maven/maven-model/3.9.6/maven-model-3.9.6.jar:/home/codespace/.m2/repository/org/apache/maven/maven-model-builder/3.9.6/maven-model-builder-3.9.6.jar:/home/codespace/.m2/repository/org/codehaus/plexus/plexus-interpolation/1.26/plexus-interpolation-1.26.jar:/home/codespace/.m2/repository/org/apache/maven/maven-artifact/3.9.6/maven-artifact-3.9.6.jar:/home/codespace/.m2/repository/org/apache/commons/commons-lang3/3.12.0/commons-lang3-3.12.0.jar:/home/codespace/.m2/repository/org/apache/maven/maven-builder-support/3.9.6/maven-builder-support-3.9.6.jar:/home/codespace/.m2/repository/org/eclipse/sisu/org.eclipse.sisu.inject/0.9.0.M2/org.eclipse.sisu.inject-0.9.0.M2.jar:/home/codespace/.m2/repository/org/apache/maven/maven-repository-metadata/3.9.6/maven-repository-metadata-3.9.6.jar:/home/codespace/.m2/repository/org/apache/maven/resolver/maven-resolver-api/1.9.18/maven-resolver-api-1.9.18.jar:/home/codespace/.m2/repository/org/apache/maven/resolver/maven-resolver-spi/1.9.18/maven-resolver-spi-1.9.18.jar:/home/codespace/.m2/repository/org/apache/maven/resolver/maven-resolver-util/1.9.18/maven-resolver-util-1.9.18.jar:/home/codespace/.m2/repository/org/apache/maven/resolver/maven-resolver-impl/1.9.18/maven-resolver-impl-1.9.18.jar:/home/codespace/.m2/repository/org/apache/maven/resolver/maven-resolver-named-locks/1.9.18/maven-resolver-named-locks-1.9.18.jar:/home/codespace/.m2/repository/org/codehaus/plexus/plexus-utils/3.5.1/plexus-utils-3.5.1.jar:/home/codespace/.m2/repository/javax/inject/javax.inject/1/javax.inject-1.jar:/home/codespace/.m2/repository/net/kyori/adventure-api/5.2.0/adventure-api-5.2.0.jar:/home/codespace/.m2/repository/org/jetbrains/annotations/26.1.0/annotations-26.1.0.jar:/home/codespace/.m2/repository/net/kyori/adventure-key/5.2.0/adventure-key-5.2.0.jar:/home/codespace/.m2/repository/net/kyori/adventure-text-minimessage/5.2.0/adventure-text-minimessage-5.2.0.jar:/home/codespace/.m2/repository/net/kyori/adventure-text-serializer-gson/5.2.0/adventure-text-serializer-gson-5.2.0.jar:/home/codespace/.m2/repository/net/kyori/adventure-text-serializer-json/5.2.0/adventure-text-serializer-json-5.2.0.jar:/home/codespace/.m2/repository/net/kyori/option/1.1.0/option-1.1.0.jar:/home/codespace/.m2/repository/com/google/auto/service/auto-service-annotations/1.1.1/auto-service-annotations-1.1.1.jar:/home/codespace/.m2/repository/net/kyori/adventure-text-serializer-commons/5.2.0/adventure-text-serializer-commons-5.2.0.jar:/home/codespace/.m2/repository/net/kyori/adventure-text-serializer-legacy/5.2.0/adventure-text-serializer-legacy-5.2.0.jar:/home/codespace/.m2/repository/net/kyori/adventure-text-serializer-plain/5.2.0/adventure-text-serializer-plain-5.2.0.jar:/home/codespace/.m2/repository/net/kyori/adventure-text-logger-slf4j/5.2.0/adventure-text-logger-slf4j-5.2.0.jar:/home/codespace/.m2/repository/org/jspecify/jspecify/1.0.0/jspecify-1.0.0.jar:/home/codespace/.m2/repository/org/checkerframework/checker-qual/4.2.3/checker-qual-4.2.3.jar:/home/codespace/.m2/repository/org/apache/maven/resolver/maven-resolver-connector-basic/1.9.18/maven-resolver-connector-basic-1.9.18.jar:/home/codespace/.m2/repository/org/apache/maven/resolver/maven-resolver-transport-http/1.9.18/maven-resolver-transport-http-1.9.18.jar:/home/codespace/.m2/repository/org/apache/httpcomponents/httpclient/4.5.14/httpclient-4.5.14.jar:/home/codespace/.m2/repository/org/apache/httpcomponents/httpcore/4.4.16/httpcore-4.4.16.jar:/home/codespace/.m2/repository/commons-codec/commons-codec/1.16.0/commons-codec-1.16.0.jar:/home/codespace/.m2/repository/org/slf4j/jcl-over-slf4j/1.7.36/jcl-over-slf4j-1.7.36.jar:/home/codespace/.m2/repository/net/dmulloy2/ProtocolLib/5.4.0/ProtocolLib-5.4.0.jar:/home/codespace/.m2/repository/net/bytebuddy/byte-buddy/1.17.5/byte-buddy-1.17.5.jar:/home/codespace/.m2/repository/org/yaml/snakeyaml/2.2/snakeyaml-2.2.jar:/home/codespace/.m2/repository/org/xerial/sqlite-jdbc/3.46.1.0/sqlite-jdbc-3.46.1.0.jar:/home/codespace/.m2/repository/junit/junit/4.13.2/junit-4.13.2.jar:/home/codespace/.m2/repository/org/hamcrest/hamcrest-core/1.3/hamcrest-core-1.3.jar:"/>
     <property name="sun.cpu.endian" value="little"/>
     <property name="user.home" value="/home/codespace"/>
@@ -27,7 +27,7 @@
     <property name="line.separator" value="&#10;"/>
     <property name="java.specification.name" value="Java Platform API Specification"/>
     <property name="java.vm.specification.vendor" value="Oracle Corporation"/>
-    <property name="surefire.real.class.path" value="/workspaces/vnminehardcore/VnMineHardcore/target/surefire/surefirebooter-20261021052023988_3.jar"/>
+    <property name="surefire.real.class.path" value="/workspaces/vnminehardcore/VnMineHardcore/target/surefire/surefirebooter-20261021071212140_3.jar"/>
     <property name="sun.management.compiler" value="HotSpot 64-Bit Tiered Compilers"/>
     <property name="java.runtime.version" value="25.0.4.1+1-LTS"/>
     <property name="user.name" value="codespace"/>
@@ -55,36 +55,36 @@
     <property name="sun.io.unicode.encoding" value="UnicodeLittle"/>
     <property name="java.class.version" value="69.0"/>
   </properties>
-  <testcase name="skipsChaptersWithMissingTextOrInvalidOrder" classname="com.vnmine.hardcore.managers.StoryChapterLoaderTest" time="0.014">
-    <system-err><![CDATA[Oct 21, 2026 5:20:25 AM com.vnmine.hardcore.managers.StoryChapterLoader readRequiredText
+  <testcase name="skipsChaptersWithMissingTextOrInvalidOrder" classname="com.vnmine.hardcore.managers.StoryChapterLoaderTest" time="0.0">
+    <system-err><![CDATA[Oct 21, 2026 7:12:13 AM com.vnmine.hardcore.managers.StoryChapterLoader readRequiredText
 WARNING: [Story] Missing or invalid required text at chapters.yml:chapters.chapter-no-title.title.
-Oct 21, 2026 5:20:25 AM com.vnmine.hardcore.managers.StoryChapterLoader load
+Oct 21, 2026 7:12:13 AM com.vnmine.hardcore.managers.StoryChapterLoader load
 WARNING: [Story] Invalid or missing positive integer at chapters.yml:chapters.chapter-invalid-order.order.
-Oct 21, 2026 5:20:25 AM com.vnmine.hardcore.managers.StoryChapterLoader load
+Oct 21, 2026 7:12:13 AM com.vnmine.hardcore.managers.StoryChapterLoader load
 INFO: [Story] Loaded 0 chapters from chapters.yml.
 ]]></system-err>
   </testcase>
-  <testcase name="loadsBundledChaptersWithStableIds" classname="com.vnmine.hardcore.managers.StoryChapterLoaderTest" time="0.05">
-    <system-err><![CDATA[Oct 21, 2026 5:20:25 AM com.vnmine.hardcore.managers.StoryChapterLoader load
+  <testcase name="loadsBundledChaptersWithStableIds" classname="com.vnmine.hardcore.managers.StoryChapterLoaderTest" time="0.0">
+    <system-err><![CDATA[Oct 21, 2026 7:12:13 AM com.vnmine.hardcore.managers.StoryChapterLoader load
 INFO: [Story] Loaded 9 chapters from chapters.yml.
 ]]></system-err>
   </testcase>
-  <testcase name="loadsChaptersInConfiguredOrderWithStableIds" classname="com.vnmine.hardcore.managers.StoryChapterLoaderTest" time="0.001">
-    <system-err><![CDATA[Oct 21, 2026 5:20:25 AM com.vnmine.hardcore.managers.StoryChapterLoader load
+  <testcase name="loadsChaptersInConfiguredOrderWithStableIds" classname="com.vnmine.hardcore.managers.StoryChapterLoaderTest" time="0.006">
+    <system-err><![CDATA[Oct 21, 2026 7:12:13 AM com.vnmine.hardcore.managers.StoryChapterLoader load
 INFO: [Story] Loaded 2 chapters from chapters.yml.
 ]]></system-err>
   </testcase>
-  <testcase name="rejectsUnsupportedSchemaVersion" classname="com.vnmine.hardcore.managers.StoryChapterLoaderTest" time="0.015">
-    <system-err><![CDATA[Oct 21, 2026 5:20:25 AM com.vnmine.hardcore.managers.StoryChapterLoader load
+  <testcase name="rejectsUnsupportedSchemaVersion" classname="com.vnmine.hardcore.managers.StoryChapterLoaderTest" time="0.0">
+    <system-err><![CDATA[Oct 21, 2026 7:12:13 AM com.vnmine.hardcore.managers.StoryChapterLoader load
 WARNING: [Story] Unsupported or missing schema-version in chapters.yml; expected 1.
 ]]></system-err>
   </testcase>
-  <testcase name="skipsInvalidIdsAndDuplicateOrders" classname="com.vnmine.hardcore.managers.StoryChapterLoaderTest" time="0.018">
-    <system-err><![CDATA[Oct 21, 2026 5:20:25 AM com.vnmine.hardcore.managers.StoryChapterLoader load
+  <testcase name="skipsInvalidIdsAndDuplicateOrders" classname="com.vnmine.hardcore.managers.StoryChapterLoaderTest" time="0.0">
+    <system-err><![CDATA[Oct 21, 2026 7:12:13 AM com.vnmine.hardcore.managers.StoryChapterLoader load
 WARNING: [Story] Duplicate chapter order 1 at chapters.yml:chapters.chapter-duplicate; already used by chapter 'chapter-first'.
-Oct 21, 2026 5:20:25 AM com.vnmine.hardcore.managers.StoryChapterLoader load
+Oct 21, 2026 7:12:13 AM com.vnmine.hardcore.managers.StoryChapterLoader load
 WARNING: [Story] Invalid chapter ID at chapters.yml:chapters.invalid_ID; use lowercase letters, numbers, and single hyphens between segments.
-Oct 21, 2026 5:20:25 AM com.vnmine.hardcore.managers.StoryChapterLoader load
+Oct 21, 2026 7:12:13 AM com.vnmine.hardcore.managers.StoryChapterLoader load
 INFO: [Story] Loaded 1 chapters from chapters.yml.
 ]]></system-err>
   </testcase>

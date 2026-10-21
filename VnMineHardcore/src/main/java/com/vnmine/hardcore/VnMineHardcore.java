@@ -91,8 +91,8 @@ public final class VnMineHardcore extends JavaPlugin {
             return;
         }
         this.rpgWorldManager = new RpgWorldManager(this);
-        this.tutorialQuestManager = new TutorialQuestManager(this);
         this.characterSelectionManager = new CharacterSelectionManager(this);
+        this.tutorialQuestManager = new TutorialQuestManager(this);
         this.timeControlManager = new TimeControlManager(this, configManager);
         this.timeControlManager.reload();
 

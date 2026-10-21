@@ -1,0 +1,54 @@
+# [VI] Phiên bản cấu trúc quest; mặc định 1, chỉ hỗ trợ phiên bản 1.
+# [EN] Quest schema version; defaults to 1 and only version 1 is supported.
+schema-version: 1
+
+quest:
+  # [VI] Bật/tắt quest hướng dẫn; mặc định true.
+  # [EN] Enable/disable the tutorial quest; defaults to true.
+  enabled: true
+
+  # [VI] ID ổn định dùng trong SQLite; mặc định first-steps, không đổi sau khi đã phát hành.
+  # [EN] Stable SQLite quest ID; defaults to first-steps and should not change after release.
+  id: first-steps
+
+  # [VI] Tên quest hiển thị cho người chơi; mặc định Bước chân đầu tiên, không để trống.
+  # [EN] Quest title shown to players; defaults to First Steps and must not be blank.
+  title: "Bước chân đầu tiên"
+
+  # [VI] Mô tả ngắn mục đích quest; mặc định hướng dẫn người chơi tìm điểm an toàn.
+  # [EN] Short quest description; defaults to guiding players to the safe arrival point.
+  description: "Hãy tìm điểm an toàn đầu tiên tại Nhân giới."
+
+  reward:
+    # [VI] Loại phần thưởng; chỉ hỗ trợ character-exp để lưu và trao nguyên tử trong SQLite.
+    # [EN] Reward type; only character-exp is supported for atomic SQLite persistence and delivery.
+    type: character-exp
+
+    # [VI] Số XP nhân vật được cộng khi hoàn thành; mặc định 25, giới hạn 0..100000.
+    # [EN] Character XP granted on completion; defaults to 25, valid range 0..100000.
+    amount: 25
+
+  objective:
+    # [VI] ID objective phải ổn định để giữ tiến trình; mặc định reach-human-realm-spawn.
+    # [EN] Stable objective ID used to resume progress; defaults to reach-human-realm-spawn.
+    id: reach-human-realm-spawn
+
+    # [VI] Loại mục tiêu được hỗ trợ trong phần này; chỉ chấp nhận visit-realm-spawn.
+    # [EN] Objective type supported in this slice; only visit-realm-spawn is accepted.
+    type: visit-realm-spawn
+
+    # [VI] ID đại lục đích; mặc định human-realm, hiện là đại lục duy nhất được hỗ trợ.
+    # [EN] Destination realm ID; defaults to human-realm, currently the only supported realm.
+    realm-id: human-realm
+
+    # [VI] Bán kính để tính đã tới spawn; mặc định 8 block, giới hạn 1..64.
+    # [EN] Radius that counts as reaching the spawn; defaults to 8 blocks, valid range 1..64.
+    radius-blocks: 8
+
+    # [VI] Hướng dẫn khi quest tự bắt đầu; mặc định chỉ người chơi tới điểm spawn, không cần lệnh.
+    # [EN] Guidance shown when the quest auto-starts; defaults to visiting the spawn, no command required.
+    start-message: "Đi tới điểm spawn an toàn của Nhân giới để hoàn thành hướng dẫn."
+
+    # [VI] Thông báo khi objective hoàn tất; mặc định xác nhận đã tới điểm an toàn.
+    # [EN] Completion feedback; defaults to confirming arrival at the safe point.
+    complete-message: "Bạn đã tới điểm an toàn. Tiến trình đã được lưu."

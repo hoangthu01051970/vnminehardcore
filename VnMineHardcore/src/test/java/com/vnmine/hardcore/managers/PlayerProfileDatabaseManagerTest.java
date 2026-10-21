@@ -253,6 +253,74 @@ public class PlayerProfileDatabaseManagerTest {
     }
 
     @Test
+    public void questCheckpointAndExperienceRewardSurviveRestartAndAreAppliedOnce() throws Exception {
+        File dataFolder = temporaryFolder.newFolder("quest-reward-data");
+        PlayerProfileDatabaseManager manager = new PlayerProfileDatabaseManager(dataFolder);
+        manager.initialize();
+        String uuid = "11111111-2222-3333-4444-555555666666";
+        assertTrue(manager.createPlayerProfile(uuid, "Ares", "human", "swordsman", 1, 0,
+            "human-realm", "created"));
+        assertTrue(manager.startQuestProgress(uuid, "first-steps", "reach-human-realm-spawn", "started"));
+        assertTrue(manager.updateQuestStep(uuid, "first-steps", "reach-human-realm-spawn"));
+
+        PlayerProfileDatabaseManager restartedManager = new PlayerProfileDatabaseManager(dataFolder);
+        restartedManager.initialize();
+        assertEquals("reach-human-realm-spawn",
+            restartedManager.getQuestProgress(uuid, "first-steps").orElseThrow().currentStep());
+        assertTrue(restartedManager.completeQuestAndAwardExperience(
+            uuid, "first-steps", "completed", 25, "completed"));
+        assertFalse(restartedManager.completeQuestAndAwardExperience(
+            uuid, "first-steps", "completed", 25, "duplicate"));
+        assertFalse(restartedManager.claimCompletedQuestExperienceReward(
+            uuid, "first-steps", 25, "duplicate-claim"));
+
+        PlayerProfileDatabaseManager afterCompletionRestart = new PlayerProfileDatabaseManager(dataFolder);
+        afterCompletionRestart.initialize();
+        assertEquals(25, afterCompletionRestart.getPlayerProfile(uuid).orElseThrow().exp());
+        assertEquals("completed",
+            afterCompletionRestart.getQuestProgress(uuid, "first-steps").orElseThrow().status());
+        assertTrue(afterCompletionRestart.getQuestProgress(uuid, "first-steps").orElseThrow().rewardClaimed());
+    }
+
+    @Test
+    public void completedQuestCanClaimAnUnclaimedExperienceRewardOnlyOnce() throws Exception {
+        PlayerProfileDatabaseManager manager = newManager();
+        manager.initialize();
+        String uuid = "11111111-2222-3333-4444-555555666666";
+        assertTrue(manager.createPlayerProfile(uuid, "Ares", "human", "swordsman", 1, 0,
+            "human-realm", "created"));
+        assertTrue(manager.startQuestProgress(uuid, "first-steps", "reach-human-realm-spawn", "started"));
+        assertTrue(manager.completeQuest(uuid, "first-steps", "completed", "completed"));
+
+        assertTrue(manager.claimCompletedQuestExperienceReward(uuid, "first-steps", 25, "claimed"));
+        assertFalse(manager.claimCompletedQuestExperienceReward(uuid, "first-steps", 25, "duplicate"));
+        assertEquals(25, manager.getPlayerProfile(uuid).orElseThrow().exp());
+        assertTrue(manager.getQuestProgress(uuid, "first-steps").orElseThrow().rewardClaimed());
+    }
+
+    @Test
+    public void experienceRewardFailureRollsBackQuestCompletionAndRewardClaim() throws Exception {
+        PlayerProfileDatabaseManager manager = newManager();
+        manager.initialize();
+        String uuid = "11111111-2222-3333-4444-555555666666";
+        assertTrue(manager.createPlayerProfile(uuid, "Ares", "human", "swordsman", 1, 0,
+            "human-realm", "created"));
+        assertTrue(manager.startQuestProgress(uuid, "first-steps", "reach-human-realm-spawn", "started"));
+        try (Connection connection = open(manager.getDatabaseFile());
+             Statement statement = connection.createStatement()) {
+            statement.execute("CREATE TRIGGER reject_experience_reward BEFORE UPDATE ON player_profiles " +
+                "WHEN NEW.exp > OLD.exp BEGIN SELECT RAISE(ABORT, 'forced failure'); END");
+        }
+
+        assertThrows(SQLException.class, () -> manager.completeQuestAndAwardExperience(
+            uuid, "first-steps", "completed", 25, "completed"));
+
+        assertEquals("active", manager.getQuestProgress(uuid, "first-steps").orElseThrow().status());
+        assertFalse(manager.getQuestProgress(uuid, "first-steps").orElseThrow().rewardClaimed());
+        assertEquals(0, manager.getPlayerProfile(uuid).orElseThrow().exp());
+    }
+
+    @Test
     public void restoresCorruptDatabaseFromLatestValidBackupAndPreservesOriginal() throws Exception {
         PlayerProfileDatabaseManager manager = newManager();
         manager.initialize();

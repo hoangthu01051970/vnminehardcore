@@ -24,6 +24,7 @@ import java.util.Optional;
 
 public class PlayerProfileDatabaseManager {
     public static final int SCHEMA_VERSION = 2;
+    private static final int MAX_PROFILE_EXPERIENCE = Integer.MAX_VALUE;
     private static final DateTimeFormatter BACKUP_TIMESTAMP = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss-SSS")
         .withZone(ZoneOffset.UTC);
 
@@ -403,6 +404,63 @@ public class PlayerProfileDatabaseManager {
                 return statement.executeUpdate() == 1;
             }
         });
+    }
+
+    public boolean completeQuestAndAwardExperience(
+            String uuid, String questId, String currentStep, int experienceReward, String completedAt)
+            throws SQLException {
+        validateExperienceReward(experienceReward);
+        String sql = "UPDATE player_quest_progress SET status = 'completed', current_step = ?, " +
+            "completed_at = ?, reward_claimed = 1 " +
+            "WHERE uuid = ? AND quest_id = ? AND status = 'active' AND reward_claimed = 0";
+        return executeWriteTransaction(connection -> {
+            try (PreparedStatement statement = connection.prepareStatement(sql)) {
+                statement.setString(1, currentStep);
+                statement.setString(2, completedAt);
+                statement.setString(3, uuid);
+                statement.setString(4, questId);
+                if (statement.executeUpdate() != 1) return false;
+            }
+            awardProfileExperience(connection, uuid, experienceReward, completedAt);
+            return true;
+        });
+    }
+
+    public boolean claimCompletedQuestExperienceReward(
+            String uuid, String questId, int experienceReward, String claimedAt) throws SQLException {
+        validateExperienceReward(experienceReward);
+        String sql = "UPDATE player_quest_progress SET reward_claimed = 1 " +
+            "WHERE uuid = ? AND quest_id = ? AND status = 'completed' AND reward_claimed = 0";
+        return executeWriteTransaction(connection -> {
+            try (PreparedStatement statement = connection.prepareStatement(sql)) {
+                statement.setString(1, uuid);
+                statement.setString(2, questId);
+                if (statement.executeUpdate() != 1) return false;
+            }
+            awardProfileExperience(connection, uuid, experienceReward, claimedAt);
+            return true;
+        });
+    }
+
+    private void awardProfileExperience(
+            Connection connection, String uuid, int experienceReward, String updatedAt) throws SQLException {
+        String sql = "UPDATE player_profiles SET exp = exp + ?, updated_at = ? " +
+            "WHERE uuid = ? AND is_active = 1 AND exp >= 0 AND exp <= ?";
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setInt(1, experienceReward);
+            statement.setString(2, updatedAt);
+            statement.setString(3, uuid);
+            statement.setInt(4, MAX_PROFILE_EXPERIENCE - experienceReward);
+            if (statement.executeUpdate() != 1) {
+                throw new SQLException("Could not award quest experience: profile is missing, inactive, or at the experience limit.");
+            }
+        }
+    }
+
+    private void validateExperienceReward(int experienceReward) {
+        if (experienceReward < 0 || experienceReward > 100_000) {
+            throw new IllegalArgumentException("experienceReward must be between 0 and 100000.");
+        }
     }
 
     public Optional<QuestProgress> getQuestProgress(String uuid, String questId) throws SQLException {

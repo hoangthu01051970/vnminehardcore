@@ -389,9 +389,9 @@ applies changes to these settings without restarting the server.
 Invalid values use the documented defaults and are reported in the server log.
 Only transient busy/locked database errors are retried; constraint and data
 errors are returned immediately. The persistence layer also supports unique
-world unlocks and idempotent quest start, step updates, and completion; repeated
-completion cannot create a duplicate progress row. Quest GUI and actual reward
-delivery remain part of the later quest implementation.
+world unlocks and idempotent quest start, step updates, and completion. Tutorial
+completion and its character-XP reward are committed together in SQLite, so
+retries or server restarts cannot award the same XP twice.
 
 ### RPG World: Human Realm
 
@@ -424,11 +424,24 @@ spawn. The only supported objective type in this slice is
 configured from 1 to 64. The quest ID and objective ID are persisted in SQLite,
 so reconnecting does not restart or duplicate progress.
 
+The quest reward is configured with `quest.reward.type: character-exp` and
+`quest.reward.amount` (default `25`, valid range `0-100000`). It is recorded in
+the character's persistent RPG experience field, not vanilla Minecraft XP or an
+inventory item. Completion and reward claim are one SQLite transaction; failure
+to apply the reward rolls the quest status back so completion can safely retry.
+An existing completion with `reward_claimed: false` is granted the configured
+reward once on the next join, covering players who completed the tutorial before
+this reward was added.
+
 The quest can be disabled with `quest.enabled`; `/vnreload` reloads its
 definition, while invalid YAML keeps the last valid definition. There is no
-player command or permission for quest progress. Start/reminder feedback is
-currently sent as in-game messages; the GUI journal and reward delivery are
-separate planned steps.
+player command or permission for quest progress. Players open the read-only quest
+journal from slot 20 in the main menu (opened with F or `/vnmenu`). It displays
+the current status, checkpoint, guidance, destination, completion time, and
+whether the character-XP reward was claimed. The refresh button synchronizes
+saved progress; the journal can be hidden with `rpg.quest-journal.enabled`
+(default `true`) in `config.yml`. Start/reminder feedback and completion
+confirmation are also sent as in-game messages.
 
 ### Death Section
 ```yaml

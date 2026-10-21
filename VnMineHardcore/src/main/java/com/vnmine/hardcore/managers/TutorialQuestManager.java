@@ -3,20 +3,29 @@ package com.vnmine.hardcore.managers;
 import com.vnmine.hardcore.VnMineHardcore;
 import java.io.File;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.logging.Level;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
+import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.InventoryHolder;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 
 public final class TutorialQuestManager implements Listener {
     private final VnMineHardcore plugin;
@@ -65,6 +74,74 @@ public final class TutorialQuestManager implements Listener {
     @EventHandler
     public void onPlayerQuit(PlayerQuitEvent event) {
         activeQuestSessions.remove(event.getPlayer().getUniqueId());
+    }
+
+    public void openJournal(Player player) {
+        if (!plugin.getConfig().getBoolean("rpg.quest-journal.enabled", true)) {
+            player.sendMessage("§cNhật ký nhiệm vụ hiện đang tắt.");
+            return;
+        }
+        if (definition == null) {
+            player.sendMessage("§cNhật ký nhiệm vụ hiện chưa khả dụng. Hãy báo quản trị viên.");
+            return;
+        }
+
+        PlayerProfileDatabaseManager database = plugin.getPlayerProfileDatabaseManager();
+        if (database == null) {
+            plugin.getLogger().severe("[Quest] Cannot open journal because the profile database is unavailable.");
+            player.sendMessage("§cKhông thể tải nhật ký nhiệm vụ. Dữ liệu của bạn vẫn được giữ.");
+            return;
+        }
+        try {
+            Optional<PlayerProfileDatabaseManager.PlayerProfile> profile =
+                database.getPlayerProfile(player.getUniqueId().toString());
+            boolean hasActiveProfile = profile.isPresent() && profile.get().active();
+            Optional<PlayerProfileDatabaseManager.QuestProgress> progress = hasActiveProfile
+                ? database.getQuestProgress(player.getUniqueId().toString(), definition.id())
+                : Optional.empty();
+            openJournalInventory(player, hasActiveProfile, progress);
+        } catch (java.sql.SQLException exception) {
+            plugin.getLogger().log(Level.SEVERE, "[Quest] Failed to open quest journal for " +
+                player.getName(), exception);
+            player.sendMessage("§cKhông thể tải nhật ký nhiệm vụ. Dữ liệu của bạn vẫn được giữ.");
+        }
+    }
+
+    @EventHandler
+    public void onQuestJournalClick(InventoryClickEvent event) {
+        if (!(event.getView().getTopInventory().getHolder() instanceof QuestJournalHolder holder)) return;
+        event.setCancelled(true);
+        if (!(event.getWhoClicked() instanceof Player player)
+                || !holder.viewer.equals(player.getUniqueId())
+                || event.getClickedInventory() != event.getView().getTopInventory()) {
+            return;
+        }
+
+        switch (event.getRawSlot()) {
+            case 11 -> {
+                if (!holder.hasActiveProfile && plugin.getCharacterSelectionManager() != null) {
+                    plugin.getCharacterSelectionManager().openRaceMenu(player);
+                }
+            }
+            case 15 -> {
+                initializePlayer(player);
+                openJournal(player);
+            }
+            case 22 -> {
+                if (plugin.getMercenaryManager() != null) {
+                    plugin.getMercenaryManager().openMainMenu(player);
+                }
+            }
+            default -> {
+            }
+        }
+    }
+
+    @EventHandler
+    public void onQuestJournalDrag(InventoryDragEvent event) {
+        if (event.getView().getTopInventory().getHolder() instanceof QuestJournalHolder) {
+            event.setCancelled(true);
+        }
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
@@ -123,7 +200,18 @@ public final class TutorialQuestManager implements Listener {
                 }
             }
 
-            if (progress.isEmpty() || !"active".equals(progress.get().status())) return;
+            if (progress.isEmpty()) return;
+            if ("completed".equals(progress.get().status())) {
+                if (!progress.get().rewardClaimed()
+                        && database.claimCompletedQuestExperienceReward(
+                            playerId.toString(), definition.id(), definition.reward().amount(), Instant.now().toString())) {
+                    plugin.getCharacterSelectionManager().refreshLoadedProfile(player);
+                    player.sendMessage("§aPhần thưởng nhiệm vụ đã được lưu: §e+" +
+                        definition.reward().amount() + " EXP§a.");
+                }
+                return;
+            }
+            if (!"active".equals(progress.get().status())) return;
             if (!definition.objective().id().equals(progress.get().currentStep())) {
                 plugin.getLogger().warning("[Quest] Active tutorial progress has an unknown objective ID for " +
                     player.getName() + "; saved progress was preserved.");
@@ -151,6 +239,86 @@ public final class TutorialQuestManager implements Listener {
         return dx * dx + dz * dz <= (double) radius * radius;
     }
 
+    static List<String> buildJournalLore(
+            TutorialQuestDefinitionLoader.TutorialQuestDefinition quest,
+            Optional<PlayerProfileDatabaseManager.QuestProgress> progress) {
+        List<String> lore = new ArrayList<>();
+        lore.add("§7" + quest.description());
+        lore.add("");
+        if (progress.isEmpty()) {
+            lore.add("§eTrạng thái: §7Chưa bắt đầu");
+        } else {
+            PlayerProfileDatabaseManager.QuestProgress questProgress = progress.get();
+            if ("completed".equals(questProgress.status())) {
+                lore.add("§eTrạng thái: §aĐã hoàn thành");
+                lore.add("§ePhần thưởng: " + (questProgress.rewardClaimed()
+                    ? "§aĐã nhận" : "§cChưa nhận"));
+                if (questProgress.completedAt() != null) {
+                    lore.add("§eHoàn thành lúc: §f" + questProgress.completedAt());
+                }
+            } else if ("active".equals(questProgress.status())) {
+                lore.add("§eTrạng thái: §6Đang thực hiện");
+                lore.add("§eCheckpoint hiện tại: §f" + questProgress.currentStep());
+            } else {
+                lore.add("§eTrạng thái: §cKhông xác định");
+            }
+        }
+        lore.add("");
+        lore.add("§eChỉ dẫn: §f" + quest.objective().startMessage());
+        lore.add("§eĐiểm đến: §f" + quest.objective().realmId());
+        lore.add("§ePhạm vi: §f" + quest.objective().radiusBlocks() + " block");
+        lore.add("§ePhần thưởng dự kiến: §b+" + quest.reward().amount() + " EXP nhân vật");
+        return List.copyOf(lore);
+    }
+
+    private void openJournalInventory(
+            Player player,
+            boolean hasActiveProfile,
+            Optional<PlayerProfileDatabaseManager.QuestProgress> progress) {
+        QuestJournalHolder holder = new QuestJournalHolder(player.getUniqueId(), hasActiveProfile);
+        Inventory inventory = Bukkit.createInventory(holder, 27, "VnMine • Nhật ký nhiệm vụ");
+        holder.inventory = inventory;
+
+        if (!hasActiveProfile) {
+            inventory.setItem(13, createJournalItem(Material.PAPER, "§eChưa có nhân vật RPG", List.of(
+                "§7Tạo nhân vật trước để bắt đầu nhiệm vụ tutorial.")));
+            inventory.setItem(11, createJournalItem(Material.ENDER_EYE, "§dTạo nhân vật", List.of(
+                "§7Mở giao diện chọn chủng tộc và class.")));
+        } else if (!definition.enabled()) {
+            inventory.setItem(13, createJournalItem(Material.BARRIER, "§cQuest tutorial đang tắt", List.of(
+                "§7Quản trị viên có thể bật lại trong first-steps.yml.")));
+        } else {
+            inventory.setItem(13, createJournalItem(Material.WRITABLE_BOOK, "§6" + definition.title(),
+                buildJournalLore(definition, progress)));
+            boolean rewardClaimed = progress.isPresent()
+                && "completed".equals(progress.get().status())
+                && progress.get().rewardClaimed();
+            if (rewardClaimed) {
+                inventory.setItem(15, createJournalItem(Material.ENCHANTED_BOOK, "§aNhiệm vụ đã hoàn thành",
+                    List.of("§7Trạng thái và phần thưởng đã được lưu.")));
+            } else {
+                inventory.setItem(15, createJournalItem(Material.CLOCK, "§eLàm mới tiến trình", List.of(
+                    "§7Tải lại checkpoint và trạng thái đã lưu.",
+                    "§7Quest đang hoạt động cũng sẽ được đồng bộ.")));
+            }
+        }
+
+        inventory.setItem(22, createJournalItem(Material.ARROW, "§7Về menu chính", List.of(
+            "§7Quay lại hub RPG.")));
+        player.openInventory(inventory);
+    }
+
+    private ItemStack createJournalItem(Material material, String name, List<String> lore) {
+        ItemStack item = new ItemStack(material);
+        ItemMeta meta = item.getItemMeta();
+        if (meta != null) {
+            meta.setDisplayName(name);
+            meta.setLore(lore);
+            item.setItemMeta(meta);
+        }
+        return item;
+    }
+
     private boolean isAtObjective(Location location) {
         if (definition == null || location.getWorld() == null
                 || !definition.objective().realmId().equals("human-realm")) {
@@ -170,12 +338,15 @@ public final class TutorialQuestManager implements Listener {
         if (definition == null) return;
         UUID playerId = player.getUniqueId();
         try {
-            boolean completed = plugin.getPlayerProfileDatabaseManager().completeQuest(
-                playerId.toString(), definition.id(), "completed", Instant.now().toString());
+            boolean completed = plugin.getPlayerProfileDatabaseManager().completeQuestAndAwardExperience(
+                playerId.toString(), definition.id(), "completed", definition.reward().amount(),
+                Instant.now().toString());
             if (completed) {
                 activeQuestSessions.remove(playerId);
+                plugin.getCharacterSelectionManager().refreshLoadedProfile(player);
                 player.sendMessage("§a§lNhiệm vụ hoàn thành: §f" + definition.title());
                 player.sendMessage("§7" + definition.objective().completeMessage());
+                player.sendMessage("§ePhần thưởng: +" + definition.reward().amount() + " EXP nhân vật.");
                 return;
             }
 
@@ -202,5 +373,21 @@ public final class TutorialQuestManager implements Listener {
             && first.getBlockX() == second.getBlockX()
             && first.getBlockY() == second.getBlockY()
             && first.getBlockZ() == second.getBlockZ();
+    }
+
+    private static final class QuestJournalHolder implements InventoryHolder {
+        private final UUID viewer;
+        private final boolean hasActiveProfile;
+        private Inventory inventory;
+
+        private QuestJournalHolder(UUID viewer, boolean hasActiveProfile) {
+            this.viewer = viewer;
+            this.hasActiveProfile = hasActiveProfile;
+        }
+
+        @Override
+        public Inventory getInventory() {
+            return inventory;
+        }
     }
 }

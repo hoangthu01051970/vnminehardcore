@@ -57,6 +57,23 @@ public final class TutorialQuestDefinitionLoader {
         String title = readRequiredText(quest, "title", file, "quest", logger);
         String description = readRequiredText(quest, "description", file, "quest", logger);
 
+        ConfigurationSection rewardSection = quest.getConfigurationSection("reward");
+        if (rewardSection == null) {
+            logger.warning("[Quest] Missing section at " + file.getName() + ".quest.reward.");
+            return Optional.empty();
+        }
+        String rewardType = readRequiredText(rewardSection, "type", file, "quest.reward", logger);
+        if (rewardType != null && !"character-exp".equals(rewardType)) {
+            logger.warning("[Quest] Unsupported reward type '" + rewardType + "' at " +
+                file.getName() + ".quest.reward.type; only 'character-exp' is supported.");
+            valid = false;
+        }
+        Integer rewardAmount = readRequiredInteger(rewardSection, "amount", file, "quest.reward", logger);
+        if (rewardAmount != null && (rewardAmount < 0 || rewardAmount > 100_000)) {
+            logger.warning("[Quest] quest.reward.amount in " + file.getName() + " must be between 0 and 100000.");
+            valid = false;
+        }
+
         ConfigurationSection objective = quest.getConfigurationSection("objective");
         if (objective == null) {
             logger.warning("[Quest] Missing section at " + file.getName() + ".quest.objective.");
@@ -88,7 +105,8 @@ public final class TutorialQuestDefinitionLoader {
         String startMessage = readRequiredText(objective, "start-message", file, "quest.objective", logger);
         String completeMessage = readRequiredText(objective, "complete-message", file, "quest.objective", logger);
 
-        if (enabled == null || id == null || title == null || description == null || objectiveId == null
+        if (enabled == null || id == null || title == null || description == null
+                || rewardType == null || rewardAmount == null || objectiveId == null
                 || objectiveType == null || realmId == null || radiusBlocks == null
                 || startMessage == null || completeMessage == null) {
             valid = false;
@@ -96,7 +114,7 @@ public final class TutorialQuestDefinitionLoader {
         if (!valid) return Optional.empty();
 
         return Optional.of(new TutorialQuestDefinition(
-            enabled, id, title, description,
+            enabled, id, title, description, new Reward(rewardType, rewardAmount),
             new Objective(objectiveId, objectiveType, realmId, radiusBlocks, startMessage, completeMessage)
         ));
     }
@@ -132,7 +150,10 @@ public final class TutorialQuestDefinitionLoader {
     }
 
     public record TutorialQuestDefinition(boolean enabled, String id, String title, String description,
-                                          Objective objective) {
+                                          Reward reward, Objective objective) {
+    }
+
+    public record Reward(String type, int amount) {
     }
 
     public record Objective(
