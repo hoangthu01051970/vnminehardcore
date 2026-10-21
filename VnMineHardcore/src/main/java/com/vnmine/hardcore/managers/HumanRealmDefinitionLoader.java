@@ -49,6 +49,25 @@ public final class HumanRealmDefinitionLoader {
         String worldName = readRequiredText(configuration, "world-name", file, logger);
         String fallbackWorldName = readRequiredText(configuration, "fallback-world-name", file, logger);
 
+        ConfigurationSection accessSection = configuration.getConfigurationSection("access");
+        String accessType = accessSection == null ? "default"
+            : readRequiredText(accessSection, "type", file, logger);
+        String requiredQuestId = null;
+        if (accessSection != null && "completed-quest".equals(accessType)) {
+            requiredQuestId = readRequiredText(accessSection, "quest-id", file, logger);
+            if (requiredQuestId != null && !ID_PATTERN.matcher(requiredQuestId).matches()) {
+                logger.warning("[World] Invalid quest ID at " + file.getName() +
+                    ".access.quest-id; use lowercase letters, numbers, and single hyphens between segments.");
+                valid = false;
+            }
+        } else if (!"default".equals(accessType)) {
+            logger.warning("[World] Unsupported access type at " + file.getName() +
+                ".access.type; expected 'default' or 'completed-quest'.");
+            valid = false;
+        }
+        if (accessType == null) valid = false;
+        AccessCondition access = accessType == null ? null : new AccessCondition(accessType, requiredQuestId);
+
         ConfigurationSection spawnSection = configuration.getConfigurationSection("spawn");
         if (spawnSection == null) {
             logger.warning("[World] Missing section at " + file.getName() + ".spawn.");
@@ -86,7 +105,7 @@ public final class HumanRealmDefinitionLoader {
             valid = false;
         }
 
-        if (id == null || displayName == null || worldName == null || fallbackWorldName == null
+        if (id == null || displayName == null || worldName == null || fallbackWorldName == null || access == null
                 || useWorldSpawn == null || yawValue == null || pitchValue == null
                 || safeZoneEnabled == null || safeZoneRadius == null
                 || (!useWorldSpawn && (x == null || y == null || z == null))) {
@@ -96,6 +115,7 @@ public final class HumanRealmDefinitionLoader {
 
         return Optional.of(new HumanRealmDefinition(
             id, displayName, worldName, fallbackWorldName,
+            access,
             new Spawn(useWorldSpawn, x, y, z, yawValue.floatValue(), pitchValue.floatValue()),
             new SafeZone(safeZoneEnabled, safeZoneRadius)
         ));
@@ -157,9 +177,13 @@ public final class HumanRealmDefinitionLoader {
         String displayName,
         String worldName,
         String fallbackWorldName,
+        AccessCondition access,
         Spawn spawn,
         SafeZone safeZone
     ) {
+    }
+
+    public record AccessCondition(String type, String questId) {
     }
 
     public record Spawn(

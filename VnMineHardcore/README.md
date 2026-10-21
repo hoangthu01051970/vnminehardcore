@@ -599,9 +599,16 @@ bị từ chối khi nạp và được ghi log; cần sửa ID trùng trong fil
 ### Tạo nhân vật RPG
 
 Mục **Nhân vật RPG** trong menu chính (mở bằng phím F mặc định hoặc `/vnmenu`)
-mở GUI chọn chủng tộc rồi class. GUI hiển thị mô tả, biểu tượng và màn hình xác nhận
-trước khi lưu. Mỗi UUID chỉ tạo được một nhân vật; thao tác tạo lặp sẽ bị từ chối,
-không ghi đè race/class hay tiến trình đã lưu.
+mở trang hồ sơ nếu bạn đã có nhân vật; người chơi mới được đưa tới GUI chọn chủng tộc
+rồi class. Trang hồ sơ hiển thị race, class, cấp, EXP và đại lục khởi đầu, đồng thời
+có nút mở nhật ký nhiệm vụ hoặc quay lại hub. GUI tạo nhân vật hiển thị mô tả, biểu
+tượng và màn hình xác nhận trước khi lưu. Mỗi UUID chỉ tạo được một nhân vật; thao
+tác tạo lặp sẽ bị từ chối, không ghi đè race/class hay tiến trình đã lưu.
+
+Mục **Sổ truyện** trong menu chính hiển thị chapter từ
+`plugins/VnMineHardcore/story/chapters.yml` theo thứ tự cấu hình, có phân trang
+và đường quay lại hub. Đây là danh sách nội dung đọc-only; trạng thái chapter mở
+khóa theo người chơi chưa được triển khai.
 
 Có thể tắt tính năng bằng `rpg.character-creation.enabled: false` trong
 `plugins/VnMineHardcore/config.yml`.
@@ -616,6 +623,26 @@ Hồ sơ được lưu trong `plugins/VnMineHardcore/data/player_profiles.db`.
 
 Chọn race/class hiện chỉ lưu dữ liệu hồ sơ cơ bản; chưa áp dụng kỹ năng, chỉ số
 chiến đấu hoặc giới hạn đổi class. Các hệ thống đó sẽ được triển khai ở các phần RPG sau.
+
+### Bản đồ đại lục
+
+Mục **Bản đồ đại lục** trong menu chính hiển thị Nhân giới mở mặc định và Yêu giới
+khóa cho tới khi profile active hoàn thành quest `first-steps`. Mỗi card cho biết
+điều kiện truy cập, world và trạng thái spawn (bao gồm khi đang dùng world dự phòng).
+Nhấn card đã đủ điều kiện để dịch chuyển; thao tác kiểm tra lại profile/quest,
+world/spawn chính, trạng thái chết/respawn grace và combat theo cấu hình.
+Ẩn mục này bằng `rpg.world-map.enabled: false` trong
+`plugins/VnMineHardcore/config.yml`; tắt travel hoặc cấm travel khi combat tại
+`rpg.portal-travel.enabled` và `rpg.portal-travel.block-in-combat`.
+Unlock được lưu trong SQLite chỉ sau khi Paper xác nhận dịch chuyển thành công;
+dịch chuyển lỗi không đổi trạng thái unlock. Nhân giới có thể tới trước khi tạo profile,
+nhưng cần profile active để ghi tiến trình. Yêu giới yêu cầu profile active hoàn
+thành `first-steps`.
+Realm được quản lý bằng các file `plugins/VnMineHardcore/worlds/*.yml`; Yêu giới
+mặc định dùng world `yeu_realm`,
+phải do quản trị viên tạo/nạp. Plugin không tự tạo world. Fallback chỉ hiển thị
+điểm dự phòng, không dùng fallback làm đích dịch chuyển. Điều kiện `default` hoặc `completed-quest`
+được khai báo trong realm YAML; các realm khác không được tự hiển thị như đang khóa.
 
 Các cấp 1–2 dùng hậu tố `-common` với tên và câu chuyện giản dị hơn; từ cấp 3
 trở lên dùng tuyến truyện phát triển theo sức mạnh của di vật.

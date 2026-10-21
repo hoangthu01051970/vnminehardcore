@@ -41,6 +41,17 @@ rpg:
     # [VI] Bật/tắt mục nhật ký nhiệm vụ trong menu chính; mặc định true.
     # [EN] Enable/disable the quest journal entry in the main menu; default true.
     enabled: true
+  world-map:
+    # [VI] Bật/tắt mục Bản đồ đại lục trong menu chính; mặc định true.
+    # [EN] Enable/disable the continent map entry in the main menu; default true.
+    enabled: true
+  portal-travel:
+    # [VI] Bật/tắt dịch chuyển qua bản đồ; mặc định true.
+    # [EN] Enable/disable travel through the map; default true.
+    enabled: true
+    # [VI] Chặn dịch chuyển khi combat tag còn hiệu lực; mặc định true.
+    # [EN] Block travel while the combat tag is active; default true.
+    block-in-combat: true
   profile-database:
     # [VI] Số giờ giữa các lần sao lưu SQLite tự động; mặc định 6 giờ, hợp lệ 1-168.
     # [EN] Hours between automatic SQLite backups; default 6 hours, valid range 1-168.

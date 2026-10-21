@@ -2,6 +2,10 @@ package com.vnmine.hardcore.managers;
 
 import com.vnmine.hardcore.VnMineHardcore;
 import java.io.File;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Optional;
 import java.util.logging.Level;
 import org.bukkit.Bukkit;
@@ -21,21 +25,22 @@ import org.bukkit.event.entity.ProjectileLaunchEvent;
 import org.bukkit.projectiles.ProjectileSource;
 
 public final class RpgWorldManager implements Listener {
+    private static final String HUMAN_REALM_ID = "human-realm";
     private final VnMineHardcore plugin;
-    private final File definitionFile;
-    private HumanRealmDefinitionLoader.HumanRealmDefinition definition;
+    private final File definitionsFolder;
+    private Map<String, HumanRealmDefinitionLoader.HumanRealmDefinition> definitions = Map.of();
 
     public RpgWorldManager(VnMineHardcore plugin) {
         this.plugin = plugin;
         File worldsFolder = new File(plugin.getDataFolder(), "worlds");
+        definitionsFolder = worldsFolder;
         if (!worldsFolder.isDirectory() && !worldsFolder.mkdirs()) {
             plugin.getLogger().severe("[World] Could not create the worlds configuration directory.");
-            definitionFile = new File(worldsFolder, "human-realm.yml");
             return;
         }
 
-        definitionFile = new File(worldsFolder, "human-realm.yml");
-        if (!definitionFile.isFile()) {
+        File humanRealmFile = new File(worldsFolder, "human-realm.yml");
+        if (!humanRealmFile.isFile()) {
             try {
                 plugin.saveResource("worlds/human-realm.yml", false);
             } catch (IllegalArgumentException exception) {
@@ -43,29 +48,69 @@ public final class RpgWorldManager implements Listener {
                 return;
             }
         }
+        File yeuRealmFile = new File(worldsFolder, "yeu-realm.yml");
+        if (!yeuRealmFile.isFile()) {
+            try {
+                plugin.saveResource("worlds/yeu-realm.yml", false);
+            } catch (IllegalArgumentException exception) {
+                plugin.getLogger().log(Level.SEVERE, "[World] Bundled yeu-realm.yml resource is missing.", exception);
+            }
+        }
         reload();
     }
 
     public boolean reload() {
-        Optional<HumanRealmDefinitionLoader.HumanRealmDefinition> loaded =
-            HumanRealmDefinitionLoader.load(definitionFile, plugin.getLogger());
-        if (loaded.isEmpty()) return false;
+        File[] definitionFiles = definitionsFolder.listFiles((directory, name) ->
+            name.toLowerCase(java.util.Locale.ROOT).endsWith(".yml"));
+        if (definitionFiles == null) {
+            plugin.getLogger().severe("[World] Could not list the worlds configuration directory.");
+            return false;
+        }
+        Arrays.sort(definitionFiles, Comparator.comparing(File::getName));
+        Map<String, HumanRealmDefinitionLoader.HumanRealmDefinition> loaded = new LinkedHashMap<>();
+        for (File file : definitionFiles) {
+            Optional<HumanRealmDefinitionLoader.HumanRealmDefinition> definition =
+                HumanRealmDefinitionLoader.load(file, plugin.getLogger());
+            if (definition.isEmpty()) continue;
+            String realmId = definition.get().id();
+            if (loaded.putIfAbsent(realmId, definition.get()) != null) {
+                plugin.getLogger().warning("[World] Duplicate realm ID '" + realmId + "' in " + file.getName() +
+                    "; the first definition remains active.");
+                continue;
+            }
+            logWorldAvailability(definition.get());
+        }
+        if (loaded.isEmpty()) {
+            plugin.getLogger().severe("[World] No valid realm definitions were loaded.");
+            return false;
+        }
 
-        definition = loaded.get();
-        logWorldAvailability();
+        definitions = java.util.Collections.unmodifiableMap(loaded);
+        if (!definitions.containsKey(HUMAN_REALM_ID)) {
+            plugin.getLogger().warning("[World] The default human-realm definition is missing.");
+        }
         return true;
     }
 
     public Optional<HumanRealmDefinitionLoader.HumanRealmDefinition> getDefinition() {
-        return Optional.ofNullable(definition);
+        return Optional.ofNullable(definitions.get(HUMAN_REALM_ID));
+    }
+
+    public Map<String, HumanRealmDefinitionLoader.HumanRealmDefinition> getDefinitions() {
+        return definitions;
     }
 
     public Optional<ResolvedSpawn> resolveHumanRealmSpawn() {
+        return resolveSpawn(HUMAN_REALM_ID);
+    }
+
+    public Optional<ResolvedSpawn> resolveSpawn(String realmId) {
+        HumanRealmDefinitionLoader.HumanRealmDefinition definition = definitions.get(realmId);
         if (definition == null) return Optional.empty();
 
         World realmWorld = Bukkit.getWorld(definition.worldName());
         if (realmWorld != null) {
-            return createRealmSpawn(realmWorld, false);
+            return createRealmSpawn(definition, realmWorld, false);
         }
 
         String fallbackName = definition.fallbackWorldName();
@@ -78,8 +123,9 @@ public final class RpgWorldManager implements Listener {
     }
 
     public boolean isInSafeZone(Location location) {
-        if (location == null || location.getWorld() == null || definition == null
-                || !definition.safeZone().enabled()) {
+        HumanRealmDefinitionLoader.HumanRealmDefinition humanRealm = definitions.get(HUMAN_REALM_ID);
+        if (location == null || location.getWorld() == null || humanRealm == null
+            || !humanRealm.safeZone().enabled()) {
             return false;
         }
         Optional<ResolvedSpawn> resolvedSpawn = resolveHumanRealmSpawn();
@@ -88,7 +134,7 @@ public final class RpgWorldManager implements Listener {
         Location center = resolvedSpawn.get().location();
         if (location.getWorld() != center.getWorld()) return false;
         return isWithinRadius(center.getX(), center.getZ(), location.getX(), location.getZ(),
-            definition.safeZone().radius());
+            humanRealm.safeZone().radius());
     }
 
     static boolean isWithinRadius(double centerX, double centerZ, double x, double z, int radius) {
@@ -128,7 +174,8 @@ public final class RpgWorldManager implements Listener {
         }
     }
 
-    private Optional<ResolvedSpawn> createRealmSpawn(World world, boolean fallback) {
+        private Optional<ResolvedSpawn> createRealmSpawn(
+            HumanRealmDefinitionLoader.HumanRealmDefinition definition, World world, boolean fallback) {
         HumanRealmDefinitionLoader.Spawn spawn = definition.spawn();
         Location location = spawn.useWorldSpawn()
             ? world.getSpawnLocation()
@@ -159,24 +206,26 @@ public final class RpgWorldManager implements Listener {
         return null;
     }
 
-    private void logWorldAvailability() {
+    private void logWorldAvailability(HumanRealmDefinitionLoader.HumanRealmDefinition definition) {
         if (Bukkit.getWorld(definition.worldName()) != null) {
-            plugin.getLogger().info("[World] Human realm '" + definition.id() + "' uses loaded world '" +
+            plugin.getLogger().info("[World] Realm '" + definition.id() + "' uses loaded world '" +
                 definition.worldName() + "'.");
-            if (resolveHumanRealmSpawn().isEmpty()) {
-                plugin.getLogger().severe("[World] Human realm spawn is outside the loaded world's valid bounds.");
+            if (createRealmSpawn(definition, Bukkit.getWorld(definition.worldName()), false).isEmpty()) {
+                plugin.getLogger().severe("[World] Realm '" + definition.id() +
+                    "' spawn is outside the loaded world's valid bounds.");
             }
             return;
         }
 
-        plugin.getLogger().warning("[World] Human realm world '" + definition.worldName() + "' is not loaded.");
+        plugin.getLogger().warning("[World] Realm world '" + definition.worldName() + "' is not loaded.");
+        World fallbackWorld = Bukkit.getWorld(definition.fallbackWorldName());
         if (!definition.fallbackWorldName().equalsIgnoreCase(definition.worldName())
-                && Bukkit.getWorld(definition.fallbackWorldName()) != null
-                && resolveHumanRealmSpawn().isPresent()) {
-            plugin.getLogger().warning("[World] Using fallback world '" +
+            && fallbackWorld != null
+            && isValidLocation(fallbackWorld.getSpawnLocation())) {
+            plugin.getLogger().warning("[World] Realm '" + definition.id() + "' uses fallback world '" +
                 definition.fallbackWorldName() + "' spawn; no world will be created automatically.");
         } else {
-            plugin.getLogger().severe("[World] Neither the human realm nor a valid fallback world is available.");
+            plugin.getLogger().severe("[World] Realm '" + definition.id() + "' has no valid primary or fallback world.");
         }
     }
 

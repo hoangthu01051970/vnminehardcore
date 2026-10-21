@@ -31,6 +31,11 @@ public class CharacterDefinitionsTest {
         ConfigurationSection classes = classesConfig.getConfigurationSection("classes");
 
         assertTrue(pluginConfig.getBoolean("rpg.character-creation.enabled"));
+        assertTrue(pluginConfig.getBoolean("rpg.world-map.enabled"));
+        assertTrue(pluginConfig.getBoolean("rpg.portal-travel.enabled"));
+        assertTrue(pluginConfig.getBoolean("rpg.portal-travel.block-in-combat"));
+        assertTrue(pluginConfig.getBoolean("rpg.portal-travel.enabled"));
+        assertTrue(pluginConfig.getBoolean("rpg.portal-travel.block-in-combat"));
         assertNotNull(races);
         assertNotNull(classes);
         assertEquals(5, races.getKeys(false).size());
@@ -55,6 +60,23 @@ public class CharacterDefinitionsTest {
             assertFalse(definition.getString("description", "").isBlank());
             assertNotNull(Material.matchMaterial(definition.getString("icon", "")));
         }
+    }
+
+    @Test
+    public void profileLoreShowsCharacterProgressAndUnsetWorldFallback() {
+        var profile = new PlayerProfileDatabaseManager.PlayerProfile(
+            "11111111-2222-3333-4444-555555666666", "Ares", "human", "swordsman",
+            3, 125, null, "created", "updated", true);
+
+        var lore = CharacterSelectionManager.buildProfileLore(profile, "Nhân tộc", "Kiếm sĩ");
+
+        assertTrue(lore.contains("§7Người chơi: §fAres"));
+        assertTrue(lore.contains("§7Chủng tộc: §6Nhân tộc"));
+        assertTrue(lore.contains("§7Class: §bKiếm sĩ"));
+        assertTrue(lore.contains("§7Cấp nhân vật: §e3"));
+        assertTrue(lore.contains("§7EXP nhân vật: §e125"));
+        assertTrue(lore.contains("§7Đại lục khởi đầu: §fChưa thiết lập"));
+        assertTrue(lore.contains("§aHồ sơ đang hoạt động"));
     }
 
     private File resourceFile(String name) throws Exception {

@@ -1,5 +1,4 @@
 Paper/
 
-# Local Paper integration-test server, downloaded dependencies, generated worlds and logs
-/TEST/*.jar
-/TEST/server/
+# Local Paper integration-test artifacts, server data, and test clients
+/TEST/

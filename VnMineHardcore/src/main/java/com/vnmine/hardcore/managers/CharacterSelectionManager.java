@@ -142,6 +142,15 @@ public final class CharacterSelectionManager implements Listener {
             return;
         }
 
+        if ("profile".equals(holder.type)) {
+            if (slot == 15 && plugin.getTutorialQuestManager() != null) {
+                plugin.getTutorialQuestManager().openJournal(player);
+            } else if (slot == 22 && plugin.getMercenaryManager() != null) {
+                plugin.getMercenaryManager().openMainMenu(player);
+            }
+            return;
+        }
+
         if ("confirm".equals(holder.type)) {
             if (slot == 11) {
                 finalizeSelection(player, holder.raceId, holder.classId);
@@ -207,6 +216,68 @@ public final class CharacterSelectionManager implements Listener {
 
     public Optional<PlayerProfileDatabaseManager.PlayerProfile> getLoadedProfile(UUID playerId) {
         return Optional.ofNullable(loadedProfiles.get(playerId));
+    }
+
+    public void openCharacterMenu(Player player) {
+        if (!plugin.getConfig().getBoolean("rpg.character-creation.enabled", true)) {
+            player.sendMessage("§cTính năng nhân vật RPG hiện đang tắt.");
+            return;
+        }
+        PlayerProfileDatabaseManager database = plugin.getPlayerProfileDatabaseManager();
+        if (database == null) {
+            player.sendMessage("§cHệ thống hồ sơ chưa sẵn sàng.");
+            return;
+        }
+        try {
+            Optional<PlayerProfileDatabaseManager.PlayerProfile> profile =
+                database.getPlayerProfile(player.getUniqueId().toString());
+            if (profile.isPresent()) {
+                loadedProfiles.put(player.getUniqueId(), profile.get());
+                openProfileMenu(player, profile.get());
+            } else {
+                openRaceMenu(player);
+            }
+        } catch (SQLException exception) {
+            plugin.getLogger().log(Level.SEVERE, "[Profile] Failed to open character menu for " +
+                player.getName(), exception);
+            player.sendMessage("§cKhông thể tải hồ sơ nhân vật. Dữ liệu của bạn vẫn được giữ nguyên.");
+        }
+    }
+
+    static List<String> buildProfileLore(PlayerProfileDatabaseManager.PlayerProfile profile,
+                                         String raceName, String className) {
+        String homeWorld = profile.homeWorld() == null || profile.homeWorld().isBlank()
+            ? "Chưa thiết lập" : profile.homeWorld();
+        return List.of(
+            "§7Người chơi: §f" + profile.playerName(),
+            "§7Chủng tộc: §6" + raceName,
+            "§7Class: §b" + className,
+            "§7Cấp nhân vật: §e" + profile.level(),
+            "§7EXP nhân vật: §e" + profile.exp(),
+            "§7Đại lục khởi đầu: §f" + homeWorld,
+            "",
+            profile.active() ? "§aHồ sơ đang hoạt động" : "§cHồ sơ đang tạm ngưng"
+        );
+    }
+
+    private void openProfileMenu(Player player, PlayerProfileDatabaseManager.PlayerProfile profile) {
+        RaceDefinition race = races.get(profile.selectedRace());
+        ClassDefinition selectedClass = findClass(profile.selectedRace(), profile.selectedClass());
+        String raceName = race == null ? String.valueOf(profile.selectedRace()) : race.name();
+        String className = selectedClass == null ? String.valueOf(profile.selectedClass()) : selectedClass.name();
+        CharacterMenuHolder holder = new CharacterMenuHolder(
+            player.getUniqueId(), "profile", null, null, new HashMap<>());
+        Inventory inventory = Bukkit.createInventory(holder, 27, "VnMine • Hồ sơ nhân vật");
+        holder.inventory = inventory;
+        inventory.setItem(13, createActionItem(Material.PLAYER_HEAD, "§dHồ sơ RPG",
+            buildProfileLore(profile, raceName, className)));
+        if (plugin.getConfig().getBoolean("rpg.quest-journal.enabled", true)) {
+            inventory.setItem(15, createActionItem(Material.WRITABLE_BOOK, "§bNhật ký nhiệm vụ", List.of(
+                "§7Xem checkpoint và trạng thái nhiệm vụ tutorial.")));
+        }
+        inventory.setItem(22, createActionItem(Material.ARROW, "§7Về menu chính", List.of(
+            "§7Quay lại hub RPG.")));
+        player.openInventory(inventory);
     }
 
     public void refreshLoadedProfile(Player player) {
