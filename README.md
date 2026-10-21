@@ -368,6 +368,68 @@ File: `plugins/VnMineHardcore/config.yml`
 All parameters have sensible defaults and are documented with **bilingual comments** (Tiếng Việt + English).
 Existing configs migrate bundled death-penalty defaults once; values different from the previous defaults are preserved.
 
+### RPG Profile Database
+
+Player profiles are stored in `plugins/VnMineHardcore/data/player_profiles.db`.
+Existing profiles are loaded into the player's session on join and removed from
+the in-memory cache on quit. Reconnecting or restarting the server does not
+create or overwrite an existing profile.
+Backups are kept under `plugins/VnMineHardcore/data/backups/`. The defaults in
+`config.yml` create a backup at startup, before profile writes/schema migrations,
+and every six hours; only the 12 newest snapshots are retained. `/vnreload`
+applies changes to these settings without restarting the server.
+
+| Setting | Default | Valid range | Purpose |
+|---|---:|---:|---|
+| `rpg.profile-database.backup-interval-hours` | `6` | 1-168 | Periodic backup interval |
+| `rpg.profile-database.backup-retention-count` | `12` | 1-100 | Number of recent backups to retain |
+| `rpg.profile-database.write-retries` | `2` | 0-3 | Additional retries for transient SQLite busy/locked errors |
+| `rpg.profile-database.write-retry-delay-ms` | `50` | 10-250 | Delay between write retries |
+
+Invalid values use the documented defaults and are reported in the server log.
+Only transient busy/locked database errors are retried; constraint and data
+errors are returned immediately. The persistence layer also supports unique
+world unlocks and idempotent quest start, step updates, and completion; repeated
+completion cannot create a duplicate progress row. Quest GUI and actual reward
+delivery remain part of the later quest implementation.
+
+### RPG World: Human Realm
+
+The starter-realm definition is stored at
+`plugins/VnMineHardcore/worlds/human-realm.yml`. It defines the stable content ID,
+display name, Paper world name, spawn behavior, fallback world, and safe-zone
+radius. The bundled defaults use the already-loaded `world`, its configured
+Paper spawn, and a 32-block horizontal safe zone.
+
+The plugin never creates or deletes worlds. If the configured realm is not
+loaded, the spawn resolver uses the configured fallback world's spawn; if
+neither is loaded, it logs the issue and returns no destination. The resolver
+does not teleport players automatically. `/vnreload` reloads this definition,
+and an invalid replacement leaves the last valid definition active.
+
+The safe zone is a circular area around the resolved spawn. It blocks player
+damage, attacks started inside the zone (including projectiles), hostile mob
+spawns, and block/environmental damage handled by spawn protection. The existing
+`vnmine.spawnprotection.bypass` permission bypasses build protection only; it
+does not bypass combat or hostile-spawn protection. No new permission or
+command is required.
+
+### Tutorial Quest
+
+The first tutorial quest is configured in
+`plugins/VnMineHardcore/quests/tutorial/first-steps.yml`. It starts automatically
+for active character profiles and guides players to the resolved Human Realm
+spawn. The only supported objective type in this slice is
+`visit-realm-spawn`; its horizontal radius defaults to 8 blocks and can be
+configured from 1 to 64. The quest ID and objective ID are persisted in SQLite,
+so reconnecting does not restart or duplicate progress.
+
+The quest can be disabled with `quest.enabled`; `/vnreload` reloads its
+definition, while invalid YAML keeps the last valid definition. There is no
+player command or permission for quest progress. Start/reminder feedback is
+currently sent as in-game messages; the GUI journal and reward delivery are
+separate planned steps.
+
 ### Death Section
 ```yaml
 death:

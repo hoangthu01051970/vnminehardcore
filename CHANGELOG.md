@@ -13,6 +13,14 @@
 - Kiểm thử và tách logic merge cấu hình YAML: chỉ thêm giá trị mặc định còn thiếu, không ghi đè cấu hình server; giữ nội dung story legacy, không tự động migration hoặc xóa dữ liệu `story.yml`.
 - Từ chối file story có khóa YAML trùng trước khi cấu hình map có thể ghi đè định nghĩa ID; lỗi được log và nội dung file đó không được nạp.
 - Thêm GUI tạo nhân vật race/class có bước xem trước và xác nhận, chặn tạo nhiều nhân vật trên cùng UUID, và nạp danh sách tùy chỉnh từ `races.yml`/`player-classes.yml`.
+- Nạp hồ sơ nhân vật đã lưu khi người chơi vào server, giữ profile trong session và xóa cache khi người chơi thoát; reconnect/restart không tạo hoặc ghi đè profile.
+- Thêm định nghĩa đại lục Nhân giới trong `worlds/human-realm.yml`, phân giải spawn với world dự phòng đã nạp, và vùng an toàn chặn sát thương, PvP, quái thù địch cùng phá hoại địa hình.
+- Thêm quest tutorial `first-steps` tự bắt đầu cho profile đang hoạt động; objective `visit-realm-spawn` được kiểm tra cấu hình và lưu trạng thái active/completed trong SQLite.
+
+### Changed
+- Nâng schema hồ sơ SQLite lên v2 với migration v1→v2 transactional; ghi hồ sơ dùng `BEGIN IMMEDIATE`, backup checkpoint WAL trước khi ghi/migration, và phục hồi an toàn từ backup hợp lệ khi database bị lỗi.
+- Thêm backup SQLite định kỳ và giới hạn số bản lưu cấu hình được; retry có giới hạn cho lỗi database tạm bận, áp dụng lại qua `/vnreload`.
+- Thêm API SQLite idempotent cho mở khóa đại lục và lưu trạng thái/bước/hoàn thành quest; duplicate unlock/completion không tạo tiến trình trùng.
 
 ## [v2.0.2] - 2026-10-21
 

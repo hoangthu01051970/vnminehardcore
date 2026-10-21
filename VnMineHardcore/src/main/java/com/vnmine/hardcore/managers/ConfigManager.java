@@ -31,6 +31,10 @@ public class ConfigManager {
    private static final Random RANDOM = ThreadLocalRandom.current();
    private final VnMineHardcore plugin;
    private FileConfiguration config;
+   public int profileDatabaseBackupIntervalHours = 6;
+   public int profileDatabaseBackupRetentionCount = 12;
+   public int profileDatabaseWriteRetries = 2;
+   public int profileDatabaseWriteRetryDelayMillis = 50;
    // Death
    public boolean broadcastDeath;
    public boolean playSound;
@@ -273,7 +277,15 @@ public class ConfigManager {
         return defaultValue;
     }
 
-   public ConfigManager(VnMineHardcore plugin) {
+    private int readBoundedInt(String path, int defaultValue, int minimum, int maximum) {
+       int value = this.config.getInt(path, defaultValue);
+       if (value >= minimum && value <= maximum) return value;
+       this.plugin.getLogger().warning("[Config] " + path + " must be between " + minimum + " and " + maximum
+           + "; using " + defaultValue + ".");
+       return defaultValue;
+    }
+
+    public ConfigManager(VnMineHardcore plugin) {
       this.plugin = plugin;
       this.reload();
    }
@@ -288,6 +300,14 @@ public class ConfigManager {
       this.config = this.plugin.getConfig();
       // ===== Save default external configs (bosses/, disasters/) =====
       this.saveDefaultExternalConfigs();
+      this.profileDatabaseBackupIntervalHours =
+          readBoundedInt("rpg.profile-database.backup-interval-hours", 6, 1, 168);
+      this.profileDatabaseBackupRetentionCount =
+          readBoundedInt("rpg.profile-database.backup-retention-count", 12, 1, 100);
+      this.profileDatabaseWriteRetries =
+          readBoundedInt("rpg.profile-database.write-retries", 2, 0, 3);
+      this.profileDatabaseWriteRetryDelayMillis =
+          readBoundedInt("rpg.profile-database.write-retry-delay-ms", 50, 10, 250);
       this.broadcastDeath = this.config.getBoolean("death.broadcast-death", true);
       this.playSound = this.config.getBoolean("death.play-sound", true);
       this.respawnProtectionEnabled = this.config.getBoolean("death.respawn-protection.enabled", true);

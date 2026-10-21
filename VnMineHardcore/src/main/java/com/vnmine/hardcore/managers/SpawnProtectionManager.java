@@ -87,6 +87,7 @@ public final class SpawnProtectionManager implements Listener {
 
     public boolean isProtected(Location location) {
         if (location.getWorld() == null) return false;
+        if (plugin.getRpgWorldManager() != null && plugin.getRpgWorldManager().isInSafeZone(location)) return true;
         for (Protection protection : protections.values()) {
             if (!protection.world().equalsIgnoreCase(location.getWorld().getName())) continue;
             double dx = location.getBlockX() - (double) protection.centerX();

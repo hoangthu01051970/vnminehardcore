@@ -10,17 +10,22 @@ import org.bukkit.command.PluginCommand;
 import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.scheduler.BukkitTask;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.logging.Level;
 
 public final class VnMineHardcore extends JavaPlugin {
 
     private static VnMineHardcore instance;
     private ConfigManager configManager;
     private PlayerProfileDatabaseManager playerProfileDatabaseManager;
+    private BukkitTask profileDatabaseBackupTask;
     private CharacterSelectionManager characterSelectionManager;
+    private RpgWorldManager rpgWorldManager;
+    private TutorialQuestManager tutorialQuestManager;
     private LogManager logManager;
     private ThirstManager thirstManager;
     private DisasterManager disasterManager;
@@ -71,15 +76,22 @@ public final class VnMineHardcore extends JavaPlugin {
 
         // Load config first
         this.configManager = new ConfigManager(this);
-        this.playerProfileDatabaseManager = new PlayerProfileDatabaseManager(getDataFolder());
+        this.playerProfileDatabaseManager = new PlayerProfileDatabaseManager(getDataFolder(),
+            configManager.profileDatabaseBackupRetentionCount,
+            configManager.profileDatabaseWriteRetries,
+            configManager.profileDatabaseWriteRetryDelayMillis);
         try {
             this.playerProfileDatabaseManager.initialize();
-            this.playerProfileDatabaseManager.migrateIfNeeded();
+            if (this.playerProfileDatabaseManager.getRecoveryMessage() != null) {
+                getLogger().warning(this.playerProfileDatabaseManager.getRecoveryMessage());
+            }
         } catch (Exception exception) {
             getLogger().log(java.util.logging.Level.SEVERE, "Failed to initialize player profile database.", exception);
             Bukkit.getPluginManager().disablePlugin(this);
             return;
         }
+        this.rpgWorldManager = new RpgWorldManager(this);
+        this.tutorialQuestManager = new TutorialQuestManager(this);
         this.characterSelectionManager = new CharacterSelectionManager(this);
         this.timeControlManager = new TimeControlManager(this, configManager);
         this.timeControlManager.reload();
@@ -102,6 +114,8 @@ public final class VnMineHardcore extends JavaPlugin {
 
         // Create listeners (pass config)
         Bukkit.getPluginManager().registerEvents(characterSelectionManager, this);
+        Bukkit.getPluginManager().registerEvents(rpgWorldManager, this);
+        Bukkit.getPluginManager().registerEvents(tutorialQuestManager, this);
         this.deathListener = new DeathListener(this, configManager, deathRenameManager, deathPenaltyManager);
         this.combatListener = new CombatListener(this, deathListener, configManager);
         this.environmentListener = new EnvironmentListener(this, configManager);
@@ -142,6 +156,7 @@ public final class VnMineHardcore extends JavaPlugin {
         registerCommand("vnmenu", mercenaryManager, mercenaryManager);
         registerCommand("quatanthu", mercenaryManager, mercenaryManager);
         registerCommand("vndeathhistory", deathHistoryManager, deathHistoryManager);
+        startProfileDatabaseBackupTask();
 
         getLogger().info("§a  VnMineHardcore enabled - Hell difficulty!");
         getLogger().info("§a  Deaths are recorded; no death bans are applied.");
@@ -161,8 +176,32 @@ public final class VnMineHardcore extends JavaPlugin {
         pluginCommand.setTabCompleter(tabCompleter);
     }
 
+    private void reloadProfileDatabaseMaintenance() {
+        playerProfileDatabaseManager.configureMaintenance(
+            configManager.profileDatabaseBackupRetentionCount,
+            configManager.profileDatabaseWriteRetries,
+            configManager.profileDatabaseWriteRetryDelayMillis
+        );
+        startProfileDatabaseBackupTask();
+    }
+
+    private void startProfileDatabaseBackupTask() {
+        if (profileDatabaseBackupTask != null) {
+            profileDatabaseBackupTask.cancel();
+        }
+        long intervalTicks = configManager.profileDatabaseBackupIntervalHours * 60L * 60L * 20L;
+        profileDatabaseBackupTask = Bukkit.getScheduler().runTaskTimerAsynchronously(this, () -> {
+            try {
+                playerProfileDatabaseManager.backupDatabase();
+            } catch (java.io.IOException | java.sql.SQLException exception) {
+                getLogger().log(Level.SEVERE, "Scheduled player profile database backup failed.", exception);
+            }
+        }, intervalTicks, intervalTicks);
+    }
+
     @Override
     public void onDisable() {
+        if (profileDatabaseBackupTask != null) profileDatabaseBackupTask.cancel();
         if (thirstManager != null) thirstManager.stop();
         if (deathPenaltyManager != null) deathPenaltyManager.stop();
         if (disasterManager != null) disasterManager.stop();
@@ -495,6 +534,7 @@ public final class VnMineHardcore extends JavaPlugin {
                 return true;
             }
             configManager.reload();
+            reloadProfileDatabaseMaintenance();
             timeControlManager.reload();
             hungerListener.reload();
             environmentListener.reload();
@@ -519,6 +559,14 @@ public final class VnMineHardcore extends JavaPlugin {
             }
             if (!deathHistoryManager.reload()) {
                 sender.sendMessage("§cCác hệ thống khác đã tải lại nhưng giới hạn lịch sử chết vẫn giữ giá trị cũ do không lưu được dữ liệu.");
+                return true;
+            }
+            if (!rpgWorldManager.reload()) {
+                sender.sendMessage("§cCác hệ thống khác đã tải lại nhưng định nghĩa world không hợp lệ; cấu hình world cũ vẫn được giữ.");
+                return true;
+            }
+            if (!tutorialQuestManager.reload()) {
+                sender.sendMessage("§cCác hệ thống khác đã tải lại nhưng quest tutorial không hợp lệ; cấu hình quest cũ vẫn được giữ.");
                 return true;
             }
             sender.sendMessage("§a✅ Config và các hệ thống đã được tải lại!");
@@ -1016,6 +1064,8 @@ public final class VnMineHardcore extends JavaPlugin {
     public ConfigManager getConfigManager() { return configManager; }
     public PlayerProfileDatabaseManager getPlayerProfileDatabaseManager() { return playerProfileDatabaseManager; }
     public CharacterSelectionManager getCharacterSelectionManager() { return characterSelectionManager; }
+    public RpgWorldManager getRpgWorldManager() { return rpgWorldManager; }
+    public TutorialQuestManager getTutorialQuestManager() { return tutorialQuestManager; }
     public LogManager getLogManager() { return logManager; }
     public ThirstManager getThirstManager() { return thirstManager; }
     public DisasterManager getDisasterManager() { return disasterManager; }

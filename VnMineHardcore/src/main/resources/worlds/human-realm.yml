@@ -1,0 +1,44 @@
+# [VI] Phiên bản cấu trúc của định nghĩa đại lục; mặc định 1, chỉ hỗ trợ phiên bản 1.
+# [EN] Schema version for this realm definition; defaults to 1 and only version 1 is supported.
+schema-version: 1
+
+# [VI] ID nội dung ổn định dùng để liên kết nhiệm vụ/cổng; mặc định human-realm, dùng chữ thường, số và dấu gạch nối.
+# [EN] Stable content ID for quest/portal references; defaults to human-realm, lowercase letters, digits, and hyphens.
+id: human-realm
+
+# [VI] Tên hiển thị trong giao diện RPG; mặc định Nhân giới, không được để trống.
+# [EN] Display name in RPG interfaces; defaults to Nhân giới and must not be blank.
+display-name: "Nhân giới"
+
+# [VI] Tên world Paper đã được nạp; mặc định world. Plugin không tự tạo hoặc xóa world.
+# [EN] Name of an already loaded Paper world; defaults to world. The plugin never creates or deletes worlds.
+world-name: world
+
+# [VI] World dự phòng khi world chính chưa được nạp; mặc định world. Phải là world đang được server nạp.
+# [EN] Fallback world when the primary world is not loaded; defaults to world and must already be loaded.
+fallback-world-name: world
+
+spawn:
+  # [VI] Dùng điểm spawn do Paper/server cấu hình; mặc định true. Đặt false để dùng đủ x/y/z bên dưới.
+  # [EN] Use the Paper/server-configured world spawn; defaults to true. Set false to provide x/y/z below.
+  use-world-spawn: true
+
+  # [VI] Hướng nhìn tại spawn; mặc định 0 độ, giới hạn yaw -360..360 và pitch -90..90.
+  # [EN] Facing direction at spawn; defaults to 0 degrees, yaw range -360..360 and pitch range -90..90.
+  yaw: 0
+  pitch: 0
+
+  # [VI] Tọa độ tùy chọn, chỉ cần khai báo khi use-world-spawn là false; phải nằm trong chiều cao/world border.
+  # [EN] Optional coordinates, required only when use-world-spawn is false; must be within world height/border.
+  # x: 0.5
+  # y: 80.0
+  # z: 0.5
+
+safe-zone:
+  # [VI] Bật vùng an toàn quanh spawn; mặc định true.
+  # [EN] Enable the safe zone around the resolved spawn; defaults to true.
+  enabled: true
+
+  # [VI] Bán kính ngang tính bằng block; mặc định 32, giới hạn 1..1024.
+  # [EN] Horizontal radius in blocks; defaults to 32, valid range 1..1024.
+  radius: 32

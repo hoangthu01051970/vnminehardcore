@@ -10,6 +10,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.logging.Level;
 import java.util.regex.Pattern;
@@ -22,6 +23,8 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
@@ -40,6 +43,7 @@ public final class CharacterSelectionManager implements Listener {
     private final VnMineHardcore plugin;
     private final Map<String, RaceDefinition> races = new LinkedHashMap<>();
     private final Map<String, List<ClassDefinition>> classesByRace = new HashMap<>();
+    private final Map<UUID, PlayerProfileDatabaseManager.PlayerProfile> loadedProfiles = new HashMap<>();
     private boolean definitionsAvailable;
 
     public CharacterSelectionManager(VnMineHardcore plugin) {
@@ -171,6 +175,40 @@ public final class CharacterSelectionManager implements Listener {
         }
     }
 
+    @EventHandler
+    public void onPlayerJoin(PlayerJoinEvent event) {
+        Player player = event.getPlayer();
+        try {
+            Optional<PlayerProfileDatabaseManager.PlayerProfile> profile =
+                plugin.getPlayerProfileDatabaseManager().getPlayerProfile(player.getUniqueId().toString());
+            if (profile.isEmpty()) {
+                loadedProfiles.remove(player.getUniqueId());
+                return;
+            }
+
+            PlayerProfileDatabaseManager.PlayerProfile loadedProfile = profile.get();
+            loadedProfiles.put(player.getUniqueId(), loadedProfile);
+            if (!races.containsKey(loadedProfile.selectedRace())
+                || findClass(loadedProfile.selectedRace(), loadedProfile.selectedClass()) == null) {
+                plugin.getLogger().warning("[Profile] Stored race/class definition is missing for player " +
+                    player.getName() + "; profile data was preserved.");
+            }
+        } catch (SQLException exception) {
+            plugin.getLogger().log(Level.SEVERE, "[Profile] Failed to load character profile for " +
+                player.getName(), exception);
+            player.sendMessage("§cKhông thể tải hồ sơ nhân vật. Dữ liệu của bạn vẫn được giữ nguyên.");
+        }
+    }
+
+    @EventHandler
+    public void onPlayerQuit(PlayerQuitEvent event) {
+        loadedProfiles.remove(event.getPlayer().getUniqueId());
+    }
+
+    public Optional<PlayerProfileDatabaseManager.PlayerProfile> getLoadedProfile(UUID playerId) {
+        return Optional.ofNullable(loadedProfiles.get(playerId));
+    }
+
     public void finalizeSelection(Player player, String raceId, String classId) {
         if (!isCreationAvailable(player)) return;
         RaceDefinition race = races.get(raceId);
@@ -196,8 +234,15 @@ public final class CharacterSelectionManager implements Listener {
                 now
             );
             if (created) {
+                PlayerProfileDatabaseManager.PlayerProfile profile =
+                    new PlayerProfileDatabaseManager.PlayerProfile(
+                        player.getUniqueId().toString(), player.getName(), raceId, classId,
+                        1, 0, null, now, now, true
+                    );
+                loadedProfiles.put(player.getUniqueId(), profile);
                 player.sendMessage("§aĐã tạo nhân vật: §6" + race.name() + " §7- §b" + selectedClass.name());
                 player.closeInventory();
+                plugin.getTutorialQuestManager().initializePlayer(player);
             } else {
                 player.sendMessage("§cTài khoản của bạn đã có nhân vật. Không có dữ liệu nào bị ghi đè.");
                 player.closeInventory();

@@ -650,9 +650,9 @@ Mỗi đầu việc dưới đây nên được triển khai và kiểm chứng 
 #### C. Hồ sơ và tạo nhân vật
 
 - [x] `PROFILE-01` Chốt quyết định lưu hồ sơ người chơi bằng SQLite cho dữ liệu tiến trình, đồng thời giữ YAML cho nội dung tĩnh như race/class/world/portal definitions. Lý do: đây là game RPG có nhiều trạng thái theo thời gian, quest checkpoint, unlock đại lục, cooldown, progression cá nhân và khả năng mở rộng lên nhiều thế giới; YAML tốt cho config tĩnh nhưng không tối ưu cho update nhiều bản ghi theo thời gian và migration. Ở giai đoạn đầu, nếu server nhỏ/đơn giản, có thể dùng YAML tạm thời, nhưng với kế hoạch RPG dài hạn, SQLite là lựa chọn đúng để chuẩn bị cho nhiều player, nhiều world và nhiều loại tiến trình.
-- [ ] `PROFILE-02` Định nghĩa schema version, backup, phục hồi file lỗi và kiểm thử migration.
+- [x] `PROFILE-02` Định nghĩa schema version, backup, phục hồi file lỗi và kiểm thử migration; đã xác minh migration v1→v2, recovery, backup/WAL, retention, retry, world unlock idempotent và quest progress/completion không trùng.
 - [x] `CHARACTER-01` Tạo GUI chọn race/class có preview, xác nhận và chặn tạo/ghi đè hồ sơ lặp; race/class định nghĩa bằng YAML để quản trị viên tùy chỉnh.
-- [ ] `CHARACTER-02` Lưu hồ sơ và xác minh reconnect/restart không mất hoặc nhân đôi dữ liệu.
+- [x] `CHARACTER-02` Nạp hồ sơ vào session khi join, xóa cache khi quit; xác minh reconnect/restart không mất hoặc nhân đôi dữ liệu. Đã kiểm thử nạp lặp, khởi động lại database manager và từ chối tạo profile trùng mà không thay đổi dữ liệu.
 
 ##### 6.1.1 Quyết định lưu trữ hồ sơ
 
@@ -675,11 +675,13 @@ Mỗi đầu việc dưới đây nên được triển khai và kiểm chứng 
 - `failed=retry` strategy: write transaction với `BEGIN IMMEDIATE`, cập nhật đủ trường, commit; nếu thất bại, rollback và log rõ trước khi trả lỗi tới player.
 - Các test migration phải bao gồm: schema cũ không có cột `selected_class`, thêm world unlock mới, quest completed bị dupli, và lỗi giữa chừng khi save.
 - Tất cả profile data phải được lưu trong transaction riêng, không gộp với config YAML hoặc save world state vì sẽ tăng rủi ro corruption.
+- `PROFILE-02` hoàn tất: schema v2 và migration v1→v2 transactional; backup checkpoint WAL khi khởi động, trước khi ghi hồ sơ/migration và định kỳ; retention, retry lỗi SQLite busy/locked, recovery; transaction idempotent cho world unlock và quest start/step/completion. Mười lăm test manager bao phủ migration dữ liệu cũ, migration atomic khi lỗi, từ chối schema mới hơn, rollback, retry, retention, world unlock, quest completion trùng, recovery và đọc lại profile sau restart.
+- Quest GUI và phát/claim reward chưa được triển khai; đảm bảo reward exactly-once thuộc `QUEST-02`, cần thiết kế cùng luồng giao nhận reward thay vì chỉ đánh dấu database.
 
 #### D. Vertical slice Nhân giới
 
-- [ ] `HUMAN-01` Khai báo một world Nhân giới cùng spawn, vùng an toàn và fallback khi world không tải.
-- [ ] `QUEST-01` Implement một quest tutorial tuyến tính với một loại objective đã được xác thực.
+- [x] `HUMAN-01` Khai báo world Nhân giới, spawn, safe zone và fallback; đã thêm loader/validator YAML, không tự tạo world, fallback tới world đã nạp, vùng an toàn chặn sát thương/PvP/quái thù địch và phá hoại địa hình. Năm test mới xác minh cấu hình, tọa độ bắt buộc, bán kính và khóa YAML trùng.
+- [x] `QUEST-01` Implement quest tutorial tự bắt đầu cho profile đang hoạt động, objective `visit-realm-spawn` được validate và lưu active/completed trong SQLite; 5 test kiểm tra YAML, objective type, khóa trùng và biên bán kính. Chưa có reward hoặc GUI journal; thuộc `QUEST-02` và `JOURNAL-01`.
 - [ ] `QUEST-02` Lưu checkpoint, hoàn thành và trao reward đúng một lần qua reconnect/restart.
 - [ ] `JOURNAL-01` Hiển thị quest đang làm, bước hiện tại và chỉ dẫn tiếp theo trong GUI.
 - [ ] `DEATH-01` Kiểm thử death/recovery trong tutorial để không tạo soft-lock hoặc mất vật phẩm bắt buộc.
@@ -692,7 +694,7 @@ Mỗi đầu việc dưới đây nên được triển khai và kiểm chứng 
 - [ ] `PORTAL-02` Thực hiện teleport có kiểm tra world/location/combat và chỉ commit unlock sau khi thành công.
 - [ ] `BALANCE-01` Playtest Nhân giới solo với người mới; điều chỉnh cấu hình trước khi thêm đại lục mới.
 
-`STORY-01` đến `STORY-04`, `DESIGN-01`, `DESIGN-02`, `SCHEMA-01`, `CONFIG-01`, `CONFIG-02`, `CONFIG-03`, `PROFILE-01` và `CHARACTER-01` đã hoàn tất; 20/20 test liên quan pass. CHARACTER-01 có GUI chọn race/class, preview/xác nhận, ngăn UUID tạo hoặc ghi đè profile thứ hai, danh sách YAML tùy chỉnh và khóa bật/tắt trong `config.yml`. PROFILE-02 hiện mới có bảng SQLite và khung khởi tạo/backup; migration/recovery/backup an toàn vẫn chưa được hoàn thiện, do đó chưa đánh dấu xong. Bước tiếp theo là hoàn thiện `PROFILE-02` trước khi tích hợp việc nạp/lưu profile qua reconnect trong `CHARACTER-02`.
+`STORY-01` đến `STORY-04`, `DESIGN-01`, `DESIGN-02`, `SCHEMA-01`, `CONFIG-01`, `CONFIG-02`, `CONFIG-03`, `PROFILE-01`, `PROFILE-02`, `CHARACTER-01`, `CHARACTER-02`, `HUMAN-01` và `QUEST-01` đã hoàn tất. PROFILE-02 có 15 test manager pass; CHARACTER-02 xác minh reconnect/restart và chống ghi đè profile; HUMAN-01 và QUEST-01 mỗi phần có 5 test cấu hình/logic; toàn bộ 41 test đều pass. Bước kế tiếp là `QUEST-02`, lưu checkpoint/hoàn thành và đảm bảo reward chỉ được trao một lần qua reconnect/restart. GUI journal vẫn thuộc `JOURNAL-01`.
 
 ## 13. Kế hoạch kiểm thử chi tiết
 

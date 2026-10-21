@@ -37,6 +37,19 @@ rpg:
     # [VI] Bật/tắt mục tạo nhân vật trong menu và việc mở GUI; mặc định true.
     # [EN] Enable/disable the character-creation menu entry and GUI; default true.
     enabled: true
+  profile-database:
+    # [VI] Số giờ giữa các lần sao lưu SQLite tự động; mặc định 6 giờ, hợp lệ 1-168.
+    # [EN] Hours between automatic SQLite backups; default 6 hours, valid range 1-168.
+    backup-interval-hours: 6
+    # [VI] Số bản sao lưu gần nhất cần giữ; mặc định 12, hợp lệ 1-100.
+    # [EN] Number of recent database backups to retain; default 12, valid range 1-100.
+    backup-retention-count: 12
+    # [VI] Số lần thử lại thêm khi SQLite tạm bận; mặc định 2, hợp lệ 0-3.
+    # [EN] Additional retries when SQLite is temporarily busy; default 2, valid range 0-3.
+    write-retries: 2
+    # [VI] Thời gian nghỉ giữa các lần thử ghi lại (ms); mặc định 50 ms, hợp lệ 10-250.
+    # [EN] Delay between write retries (ms); default 50 ms, valid range 10-250.
+    write-retry-delay-ms: 50
 
 # ============================================================
 # [DEATH] ☠ TỬ THẦN / DEATH
