@@ -1,0 +1,53 @@
+# [VI] Định nghĩa đại lục Yêu giới; schema mặc định 1.
+# [EN] Yêu Realm continent definition; schema defaults to 1.
+schema-version: 1
+
+# [VI] ID nội dung ổn định dùng trong profile và bản đồ; mặc định yeu-realm.
+# [EN] Stable content ID used by profiles and the map; defaults to yeu-realm.
+id: yeu-realm
+
+# [VI] Tên hiển thị trên bản đồ; mặc định Yêu giới.
+# [EN] Display name on the map; defaults to Yêu giới.
+display-name: "Yêu giới"
+
+# [VI] Tên world Paper cần được quản trị viên tạo/nạp; mặc định yeu_realm. Plugin không tự tạo world.
+# [EN] Paper world name that admins must create/load; defaults to yeu_realm. The plugin never creates worlds.
+world-name: yeu_realm
+
+# [VI] World dự phòng chỉ để hiển thị trạng thái điểm đến khi world chính chưa nạp; mặc định world đã có.
+# [EN] Fallback world used only to display a destination when the main world is absent; defaults to existing world.
+fallback-world-name: world
+
+access:
+  # [VI] Kiểu khóa; completed-quest mở đại lục sau khi quest chỉ định hoàn tất.
+  # [EN] Lock type; completed-quest opens this realm after the specified quest is complete.
+  type: completed-quest
+
+  # [VI] ID quest bắt buộc để mở; mặc định first-steps, phải là ID quest hợp lệ.
+  # [EN] Required quest ID to unlock; defaults to first-steps and must be a valid quest ID.
+  quest-id: first-steps
+
+spawn:
+  # [VI] Dùng spawn của world khi đã nạp; mặc định true.
+  # [EN] Use the world's spawn when loaded; defaults to true.
+  use-world-spawn: true
+
+  # [VI] Hướng nhìn tại spawn; yaw giới hạn -360..360, pitch -90..90.
+  # [EN] Facing direction at spawn; yaw range -360..360, pitch -90..90.
+  yaw: 0
+  pitch: 0
+
+  # [VI] Tọa độ tùy chọn, chỉ khai báo khi use-world-spawn false; phải nằm trong world height/border.
+  # [EN] Optional coordinates, required only when use-world-spawn is false; must be within world height/border.
+  # x: 0.5
+  # y: 80.0
+  # z: 0.5
+
+safe-zone:
+  # [VI] Bật vùng an toàn quanh spawn; mặc định false cho Yêu giới.
+  # [EN] Enable the safe zone around spawn; defaults to false for Yêu Realm.
+  enabled: false
+
+  # [VI] Bán kính ngang; giới hạn 1..1024 dù safe zone mặc định tắt.
+  # [EN] Horizontal radius; valid range 1..1024 even though the safe zone defaults off.
+  radius: 32

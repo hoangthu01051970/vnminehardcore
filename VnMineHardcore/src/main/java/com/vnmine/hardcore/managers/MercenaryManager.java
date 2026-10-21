@@ -21,6 +21,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.Map.Entry;
@@ -6200,16 +6201,248 @@ public final class MercenaryManager implements CommandExecutor, TabCompleter, Li
             inventory.setItem(18, menuItem(Material.ENDER_EYE, "§dNhân vật RPG", List.of(
                 "§7Chọn chủng tộc và class của bạn.", "§7Hệ thống lưu tiến trình trên SQLite.")));
         }
+        if (plugin.getConfig().getBoolean("rpg.world-map.enabled", true)) {
+            inventory.setItem(19, menuItem(Material.MAP, "§bBản đồ đại lục", List.of(
+                "§7Xem đại lục khởi đầu và trạng thái world.")));
+        }
         if (plugin.getConfig().getBoolean("rpg.quest-journal.enabled", true)) {
             inventory.setItem(20, menuItem(Material.WRITABLE_BOOK, "§bNhật ký nhiệm vụ", List.of(
                 "§7Xem nhiệm vụ tutorial và mục tiêu hiện tại.")));
         }
+        inventory.setItem(21, menuItem(Material.KNOWLEDGE_BOOK, "§dSổ truyện", List.of(
+            "§7Đọc danh sách chapter đã được nạp.")));
         inventory.setItem(22, menuItem(Material.WRITABLE_BOOK, "§bTrợ giúp", List.of("§7Mở hướng dẫn lệnh máy chủ.")));
         if (hasAdminMenuAccess(player)
                 && plugin.getConfig().getBoolean("menus.admin.enabled", true)) {
             inventory.setItem(24, menuItem(Material.COMMAND_BLOCK, "§cAdmin", List.of("§7Mở công cụ quản trị.")));
         }
         player.openInventory(inventory);
+    }
+
+    static boolean isRealmAccessAllowed(
+            HumanRealmDefinitionLoader.AccessCondition access, boolean hasActiveProfile, boolean questCompleted) {
+        return "default".equals(access.type())
+            || ("completed-quest".equals(access.type()) && hasActiveProfile && questCompleted);
+    }
+
+    static List<String> buildRealmMapLore(
+            HumanRealmDefinitionLoader.HumanRealmDefinition definition,
+            boolean accessAllowed, boolean worldUnlocked, boolean spawnAvailable,
+            boolean fallbackUsed, boolean hasProfile) {
+        String accessStatus = !accessAllowed ? "§cTrạng thái: §fĐang khóa"
+            : (worldUnlocked ? "§aTrạng thái: §fĐã mở" : "§eTrạng thái: §fĐã đủ điều kiện");
+        String accessCondition = "default".equals(definition.access().type())
+            ? "§7Điều kiện: §fĐại lục khởi đầu"
+            : "§7Điều kiện: §fHoàn thành nhiệm vụ " + definition.access().questId();
+        return List.of(
+            accessStatus,
+            accessCondition,
+            "§7ID: §f" + definition.id(),
+            "§7World: §f" + definition.worldName(),
+            spawnAvailable
+                ? (fallbackUsed ? "§eSpawn: đang dùng world dự phòng" : "§aSpawn: sẵn sàng")
+                : "§cSpawn: world chưa được nạp hoặc không hợp lệ",
+            hasProfile
+                ? "§aHồ sơ nhân vật đã sẵn sàng"
+                : "§eTạo nhân vật để lưu tiến trình cá nhân"
+        );
+    }
+
+    private void openWorldMap(Player player, int requestedPage) {
+        if (!plugin.getConfig().getBoolean("rpg.world-map.enabled", true)) {
+            player.sendMessage("§cBản đồ đại lục hiện đang tắt.");
+            return;
+        }
+        RpgWorldManager worldManager = plugin.getRpgWorldManager();
+        if (worldManager == null || worldManager.getDefinitions().isEmpty()) {
+            player.sendMessage("§cBản đồ đại lục hiện chưa khả dụng. Hãy báo quản trị viên.");
+            return;
+        }
+        PlayerProfileDatabaseManager database = plugin.getPlayerProfileDatabaseManager();
+        if (database == null) {
+            player.sendMessage("§cKhông thể tải tiến trình bản đồ lúc này.");
+            return;
+        }
+
+        Optional<PlayerProfileDatabaseManager.PlayerProfile> profile;
+        try {
+            profile = database.getPlayerProfile(player.getUniqueId().toString())
+                .filter(PlayerProfileDatabaseManager.PlayerProfile::active);
+        } catch (java.sql.SQLException exception) {
+            plugin.getLogger().log(Level.SEVERE, "[World] Failed to load map profile for " +
+                player.getName(), exception);
+            player.sendMessage("§cKhông thể tải tiến trình bản đồ lúc này. Dữ liệu của bạn vẫn được giữ.");
+            return;
+        }
+
+        List<HumanRealmDefinitionLoader.HumanRealmDefinition> realms =
+            List.copyOf(worldManager.getDefinitions().values());
+        int pageCount = Math.max(1, (realms.size() + 27) / 28);
+        int page = Math.max(0, Math.min(requestedPage, pageCount - 1));
+        ServiceMenuHolder holder = createServiceMenu(player, MenuType.WORLD_MAP, null, null, null,
+            page, 54, "VnMine • Bản đồ đại lục");
+        for (int index = page * 28; index < Math.min((page + 1) * 28, realms.size()); index++) {
+            HumanRealmDefinitionLoader.HumanRealmDefinition realm = realms.get(index);
+            boolean questCompleted = false;
+            if ("completed-quest".equals(realm.access().type()) && profile.isPresent()) {
+                try {
+                    Optional<PlayerProfileDatabaseManager.QuestProgress> progress =
+                        database.getQuestProgress(player.getUniqueId().toString(), realm.access().questId());
+                    questCompleted = progress.isPresent() && "completed".equals(progress.get().status());
+                } catch (java.sql.SQLException exception) {
+                    plugin.getLogger().log(Level.SEVERE, "[World] Failed to load access progress for realm '" +
+                        realm.id() + "' and player " + player.getName(), exception);
+                    player.sendMessage("§cKhông thể tải điều kiện đại lục lúc này.");
+                    return;
+                }
+            }
+            boolean accessAllowed = isRealmAccessAllowed(realm.access(), profile.isPresent(), questCompleted);
+            boolean worldUnlocked = "default".equals(realm.access().type());
+            if (profile.isPresent()) {
+                try {
+                    worldUnlocked |= database.isWorldUnlocked(player.getUniqueId().toString(), realm.id());
+                } catch (java.sql.SQLException exception) {
+                    plugin.getLogger().log(Level.SEVERE, "[World] Failed to load unlock state for realm '" +
+                        realm.id() + "' and player " + player.getName(), exception);
+                    player.sendMessage("§cKhông thể tải trạng thái mở đại lục lúc này.");
+                    return;
+                }
+            }
+            java.util.Optional<RpgWorldManager.ResolvedSpawn> resolvedSpawn = worldManager.resolveSpawn(realm.id());
+            int pageIndex = index % 28;
+            int slot = 10 + pageIndex % 7 + pageIndex / 7 * 9;
+            holder.choices.put(slot, realm.id());
+            holder.inventory.setItem(slot, menuItem(accessAllowed ? Material.COMPASS : Material.BARRIER,
+                (accessAllowed ? "§b" : "§c") + realm.displayName(), buildRealmMapLore(realm,
+                    accessAllowed, worldUnlocked,
+                    resolvedSpawn.isPresent(),
+                    resolvedSpawn.map(RpgWorldManager.ResolvedSpawn::fallbackUsed).orElse(false),
+                    profile.isPresent())));
+        }
+        holder.inventory.setItem(4, menuItem(Material.MAP, "§bTrang " + (page + 1) + " / " + pageCount,
+            List.of("§7Đại lục được hiển thị theo ID cấu hình.")));
+        if (page > 0) holder.inventory.setItem(45, menuItem(Material.ARROW, "§7Trang trước", List.of()));
+        holder.inventory.setItem(49, menuItem(Material.ARROW, "§7Về menu chính", List.of()));
+        if (page + 1 < pageCount) holder.inventory.setItem(53, menuItem(Material.ARROW, "§7Trang tiếp", List.of()));
+        player.openInventory(holder.inventory);
+    }
+
+    private void openStoryMenu(Player player, int requestedPage) {
+        List<StoryChapterLoader.StoryChapter> chapters =
+            List.copyOf(plugin.getConfigManager().getStoryChapters().values());
+        int pageCount = Math.max(1, (chapters.size() + 27) / 28);
+        int page = Math.max(0, Math.min(requestedPage, pageCount - 1));
+        ServiceMenuHolder holder = createServiceMenu(player, MenuType.STORY, null, null, null,
+            page, 54, "VnMine • Sổ truyện");
+        Inventory inventory = holder.inventory;
+
+        int firstChapter = page * 28;
+        int lastChapter = Math.min(firstChapter + 28, chapters.size());
+        for (int index = firstChapter; index < lastChapter; index++) {
+            StoryChapterLoader.StoryChapter chapter = chapters.get(index);
+            int slot = 10 + (index - firstChapter) % 7 + (index - firstChapter) / 7 * 9;
+            inventory.setItem(slot, menuItem(Material.WRITABLE_BOOK,
+                "§6" + chapter.order() + ". " + chapter.title(), List.of(
+                    "§8ID: " + chapter.id(), "§7" + chapter.summary())));
+        }
+        inventory.setItem(4, menuItem(Material.BOOK, "§dTrang " + (page + 1) + " / " + pageCount,
+            List.of("§7Chapter được sắp xếp theo thứ tự cấu hình.")));
+        if (page > 0) {
+            inventory.setItem(45, menuItem(Material.ARROW, "§7Trang trước", List.of()));
+        }
+        inventory.setItem(49, menuItem(Material.ARROW, "§7Về menu chính", List.of()));
+        if (page + 1 < pageCount) {
+            inventory.setItem(53, menuItem(Material.ARROW, "§7Trang tiếp", List.of()));
+        }
+        if (chapters.isEmpty()) {
+            inventory.setItem(22, menuItem(Material.BARRIER, "§cChưa có chapter", List.of(
+                "§7Quản trị viên chưa cấu hình chapter truyện.")));
+        }
+        player.openInventory(inventory);
+    }
+
+    private void travelToRealm(Player player, HumanRealmDefinitionLoader.HumanRealmDefinition realm) {
+        if (!plugin.getConfig().getBoolean("rpg.portal-travel.enabled", true)) {
+            player.sendMessage("§cDịch chuyển qua cổng hiện đang tắt.");
+            return;
+        }
+        if (player.isDead() || plugin.getDeathListener().isPortalTravelBlocked(player)) {
+            player.sendMessage("§cKhông thể dịch chuyển khi đang chết hoặc trong thời gian hồi sinh.");
+            return;
+        }
+        if (plugin.getConfig().getBoolean("rpg.portal-travel.block-in-combat", true)
+                && plugin.getDeathListener().isCombatTagged(player)) {
+            player.sendMessage("§cKhông thể dịch chuyển khi đang giao chiến.");
+            return;
+        }
+
+        PlayerProfileDatabaseManager database = plugin.getPlayerProfileDatabaseManager();
+        if (database == null) {
+            player.sendMessage("§cHệ thống hồ sơ chưa sẵn sàng.");
+            return;
+        }
+        String playerId = player.getUniqueId().toString();
+        boolean activeProfile;
+        try {
+            Optional<PlayerProfileDatabaseManager.PlayerProfile> profile = database.getPlayerProfile(playerId)
+                .filter(PlayerProfileDatabaseManager.PlayerProfile::active);
+            activeProfile = profile.isPresent();
+            boolean questCompleted = false;
+            if ("completed-quest".equals(realm.access().type()) && activeProfile) {
+                Optional<PlayerProfileDatabaseManager.QuestProgress> progress =
+                    database.getQuestProgress(playerId, realm.access().questId());
+                questCompleted = progress.isPresent() && "completed".equals(progress.get().status());
+            }
+            if (!isRealmAccessAllowed(realm.access(), activeProfile, questCompleted)) {
+                player.sendMessage("§cĐại lục đang khóa. Điều kiện: hoàn thành nhiệm vụ " +
+                    realm.access().questId() + ".");
+                return;
+            }
+        } catch (java.sql.SQLException exception) {
+            plugin.getLogger().log(Level.SEVERE, "[Portal] Failed to validate access to realm '" +
+                realm.id() + "' for " + player.getName(), exception);
+            player.sendMessage("§cKhông thể xác minh điều kiện cổng lúc này.");
+            return;
+        }
+
+        java.util.Optional<RpgWorldManager.ResolvedSpawn> destination =
+            plugin.getRpgWorldManager().resolveSpawn(realm.id());
+        if (destination.isEmpty() || destination.get().fallbackUsed()) {
+            plugin.getLogger().warning("[Portal] Refused travel to realm '" + realm.id() +
+                "': primary world/spawn is not available.");
+            player.sendMessage("§cWorld hoặc spawn của đại lục chưa sẵn sàng. Tiến trình không thay đổi.");
+            return;
+        }
+
+        player.sendMessage("§eĐang kiểm tra điểm đến của " + realm.displayName() + "...");
+        player.teleportAsync(destination.get().location(), org.bukkit.event.player.PlayerTeleportEvent.TeleportCause.PLUGIN)
+            .whenComplete((teleported, throwable) -> {
+                if (!plugin.isEnabled()) return;
+                Bukkit.getScheduler().runTask(plugin, () -> {
+                if (throwable != null || !Boolean.TRUE.equals(teleported)) {
+                    plugin.getLogger().warning("[Portal] Teleport to realm '" + realm.id() +
+                        "' failed; unlock state was not changed.");
+                    if (player.isOnline()) {
+                        player.sendMessage("§cDịch chuyển thất bại. Tiến trình đại lục không thay đổi.");
+                    }
+                    return;
+                }
+                try {
+                    if (activeProfile) database.unlockWorld(playerId, realm.id());
+                    if (player.isOnline()) {
+                        player.sendMessage(activeProfile
+                            ? "§aĐã tới " + realm.displayName() + ". Tiến trình đại lục đã được lưu."
+                            : "§aĐã tới " + realm.displayName() + ". Tạo nhân vật để lưu tiến trình cá nhân.");
+                    }
+                } catch (java.sql.SQLException exception) {
+                    plugin.getLogger().log(Level.SEVERE, "[Portal] Travel to realm '" + realm.id() +
+                        "' succeeded but unlock state could not be saved for " + player.getName(), exception);
+                    if (player.isOnline()) {
+                        player.sendMessage("§eĐã tới đại lục, nhưng chưa lưu được unlock. Hãy thử mở cổng lại.");
+                    }
+                }
+                });
+            });
     }
 
    private void openAdminMenu(Player player) {
@@ -6221,6 +6454,7 @@ public final class MercenaryManager implements CommandExecutor, TabCompleter, Li
 
          holder.inventory.setItem(12, this.menuItem(Material.CLOCK, "§eGọi thiên tai", List.of("§7Chọn một thiên tai để kích hoạt.")));
          holder.inventory.setItem(13, this.menuItem(Material.BARRIER, "§cDừng thiên tai", List.of("§7Dừng cảnh báo hoặc sự kiện đang chạy.")));
+
          holder.inventory.setItem(14, this.menuItem(Material.DRAGON_HEAD, "§cGọi boss", List.of("§7Chọn boss và level để kích hoạt.")));
          holder.inventory.setItem(15, this.menuItem(Material.DIAMOND_SWORD, "§4Kết thúc boss", List.of("§7Kết thúc boss hiện tại.")));
          holder.inventory.setItem(16, this.menuItem(Material.REDSTONE, "§eTải lại cấu hình", List.of("§7Tải lại cấu hình plugin.")));
@@ -8228,17 +8462,43 @@ public final class MercenaryManager implements CommandExecutor, TabCompleter, Li
                   } else if (slot == 18 && VnMineHardcore.getInstance() != null
                       && plugin.getConfig().getBoolean("rpg.character-creation.enabled", true)
                       && VnMineHardcore.getInstance().getCharacterSelectionManager() != null) {
-                     VnMineHardcore.getInstance().getCharacterSelectionManager().openRaceMenu(player);
+                            VnMineHardcore.getInstance().getCharacterSelectionManager().openCharacterMenu(player);
+                        } else if (slot == 19 && plugin.getConfig().getBoolean("rpg.world-map.enabled", true)) {
+                            this.openWorldMap(player, 0);
                   } else if (slot == 20 && VnMineHardcore.getInstance() != null
                       && plugin.getConfig().getBoolean("rpg.quest-journal.enabled", true)
                       && VnMineHardcore.getInstance().getTutorialQuestManager() != null) {
                      VnMineHardcore.getInstance().getTutorialQuestManager().openJournal(player);
+                        } else if (slot == 21) {
+                            this.openStoryMenu(player, 0);
                   } else if (slot == 22) {
                      player.performCommand("vnhelp");
                   } else if (slot == 24 && this.hasAdminMenuAccess(player)) {
                      this.openAdminMenu(player);
                   }
                   break;
+                    case WORLD_MAP:
+                        if (slot == 45 && holder.page > 0) {
+                            this.openWorldMap(player, holder.page - 1);
+                        } else if (slot == 49) {
+                            this.openMainMenu(player);
+                        } else if (slot == 53) {
+                            this.openWorldMap(player, holder.page + 1);
+                        } else if (choice != null) {
+                            HumanRealmDefinitionLoader.HumanRealmDefinition realm =
+                                plugin.getRpgWorldManager().getDefinitions().get(choice);
+                            if (realm != null) this.travelToRealm(player, realm);
+                        }
+                        break;
+                    case STORY:
+                        if (slot == 45 && holder.page > 0) {
+                            this.openStoryMenu(player, holder.page - 1);
+                        } else if (slot == 49) {
+                            this.openMainMenu(player);
+                        } else if (slot == 53) {
+                            this.openStoryMenu(player, holder.page + 1);
+                        }
+                        break;
                case ADMIN:
                   if (slot == 11 && player.hasPermission("vnmine.command.army.admin")) {
                      this.openAdminArmyPlayers(player, 0);
@@ -10581,6 +10841,8 @@ public final class MercenaryManager implements CommandExecutor, TabCompleter, Li
 
    private enum MenuType {
       MAIN,
+        WORLD_MAP,
+        STORY,
       ADMIN,
       ADMIN_PLAYERS,
       GIVE_TYPE,

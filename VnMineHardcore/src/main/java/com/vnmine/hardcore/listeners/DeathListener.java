@@ -553,6 +553,10 @@ public class DeathListener implements Listener {
         return true;
     }
 
+    public boolean isPortalTravelBlocked(Player player) {
+        return player.isDead() || awaitingRespawnChoice.contains(player.getUniqueId()) || isRespawnLocked(player);
+    }
+
     public boolean isCombatTagEnabled() { return true; }
     public int getTaggedPlayerCount() { return combatTagged.size(); }
     public long getCombatTagDurationMs() { return combatTagDurationMs; }

@@ -1071,6 +1071,7 @@ public final class VnMineHardcore extends JavaPlugin {
     public DisasterManager getDisasterManager() { return disasterManager; }
     public DeathPenaltyManager getDeathPenaltyManager() { return deathPenaltyManager; }
     public BossEventManager getBossEventManager() { return bossEventManager; }
+    public DeathListener getDeathListener() { return deathListener; }
     public BossLeaderboardManager getBossLeaderboardManager() { return bossLeaderboardManager; }
     public GraveManager getGraveManager() { return graveManager; }
     public SpawnProtectionManager getSpawnProtectionManager() { return spawnProtectionManager; }

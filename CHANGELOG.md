@@ -17,12 +17,21 @@
 - Thêm định nghĩa đại lục Nhân giới trong `worlds/human-realm.yml`, phân giải spawn với world dự phòng đã nạp, và vùng an toàn chặn sát thương, PvP, quái thù địch cùng phá hoại địa hình.
 - Thêm quest tutorial `first-steps` tự bắt đầu cho profile đang hoạt động; objective `visit-realm-spawn` được kiểm tra cấu hình và lưu trạng thái active/completed trong SQLite.
 - Thêm GUI nhật ký nhiệm vụ từ menu chính: hiển thị trạng thái/checkpoint/chỉ dẫn/phần thưởng, làm mới tiến trình và ẩn mục menu qua cấu hình.
+- Mở rộng hub RPG: mục Nhân vật RPG hiển thị hồ sơ đã lưu hoặc đưa người chơi mới tới luồng tạo nhân vật; trang hồ sơ liên kết tới nhật ký nhiệm vụ và menu chính.
+- Thêm mục Sổ truyện trong hub, hiển thị chapter đã validate theo thứ tự với phân trang và trạng thái rỗng; không giả định tiến trình mở khóa cá nhân.
+- Thêm Bản đồ đại lục phân trang, hiển thị access condition và trạng thái world/spawn cho các realm đã validate; có thể ẩn qua `rpg.world-map.enabled`.
+- Thêm definition Yêu giới với điều kiện mở `completed-quest:first-steps`; map đọc quest progress SQLite, resolve world/fallback và không tự tạo world.
+- Thêm dịch chuyển qua card đủ điều kiện bằng Paper async teleport; kiểm tra profile/access/world/combat/death/respawn grace và chỉ lưu unlock sau teleport thành công; failure không ghi unlock.
+- Thêm travel qua map bằng `teleportAsync`; chặn khi chết/respawn grace, combat theo config hoặc primary destination không hợp lệ; chỉ ghi unlock sau teleport thành công.
 
 ### Changed
 - Hoàn thành quest tutorial và cộng XP nhân vật trong cùng transaction SQLite; cờ `reward_claimed` chống trao lặp và hỗ trợ nhận bù một lần cho quest đã hoàn tất trước khi có reward.
 - Nâng schema hồ sơ SQLite lên v2 với migration v1→v2 transactional; ghi hồ sơ dùng `BEGIN IMMEDIATE`, backup checkpoint WAL trước khi ghi/migration, và phục hồi an toàn từ backup hợp lệ khi database bị lỗi.
 - Thêm backup SQLite định kỳ và giới hạn số bản lưu cấu hình được; retry có giới hạn cho lỗi database tạm bận, áp dụng lại qua `/vnreload`.
 - Thêm API SQLite idempotent cho mở khóa đại lục và lưu trạng thái/bước/hoàn thành quest; duplicate unlock/completion không tạo tiến trình trùng.
+
+### Fixed
+- Đồng bộ lại checkpoint và objective quest tutorial sau khi người chơi hồi sinh, tránh giữ trạng thái session cũ sau death/recovery.
 
 ## [v2.0.2] - 2026-10-21
 
