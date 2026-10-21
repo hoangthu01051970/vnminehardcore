@@ -58,6 +58,12 @@ Trước khi đề xuất bất kỳ thay đổi nào, Cline phải cung cấp �
 ## Paper Source Rules
 Dự án hiện tại là plugin chạy trên nền tảng Paper (Minecraft Server).
 
+## Paper Integration Test Downloads
+- Khi người dùng yêu cầu integration test Paper, đặt file và toàn bộ dữ liệu server thử nghiệm trong `TEST/`; thư mục này được Git bỏ qua.
+- Nếu Paper server JAR chưa có, tải `paper-26.3-209.jar` từ `https://fill-data.papermc.io/v1/objects/0a056c7648cfa0ca8d9b8c833a2bd2e1313ed4f1393a5125dd3444a4ee257e22/paper-26.3-209.jar` vào `TEST/paper-26.3-209.jar`, rồi xác minh SHA-256 `0a056c7648cfa0ca8d9b8c833a2bd2e1313ed4f1393a5125dd3444a4ee257e22`.
+- Nếu ProtocolLib chưa có, tải bản dev-build chính thức từ `https://github.com/dmulloy2/ProtocolLib/releases/download/dev-build/ProtocolLib.jar` vào `TEST/server/plugins/ProtocolLib.jar`; kiểm tra `paper-plugin.yml` và phiên bản tương thích plugin.
+- Chỉ tải khi test cần các phụ thuộc này và file đang thiếu. Kiểm tra archive sau tải; không dùng nguồn không chính thức.
+
 Mã nguồn tham chiếu:
 ```text
 ~/projects/Paper

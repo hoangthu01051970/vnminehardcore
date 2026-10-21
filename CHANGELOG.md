@@ -1,5 +1,11 @@
 # Changelog
 
+## [v2.0.3] - 2026-10-21
+
+### Added
+- Thêm nền tảng dữ liệu RPG bằng SQLite, GUI tạo nhân vật theo race/class có bước xác nhận, và cấu hình race/class riêng cho quản trị viên.
+- Thêm loader/validator chapter truyện, kiểm tra khóa YAML trùng và cơ chế merge mặc định không ghi đè cấu hình server.
+
 ## [Unreleased]
 
 ### Added
