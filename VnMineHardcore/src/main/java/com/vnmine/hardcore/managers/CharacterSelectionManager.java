@@ -11,6 +11,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.logging.Level;
 import java.util.regex.Pattern;
@@ -75,6 +76,13 @@ public final class CharacterSelectionManager implements Listener {
         }
         inventory.setItem(49, createActionItem(Material.BARRIER, "§cĐóng", List.of("§7Chưa có thay đổi nào được lưu.")));
         player.openInventory(inventory);
+    }
+
+    public Set<String> getClassIds() {
+        return classesByRace.values().stream()
+            .flatMap(List::stream)
+            .map(ClassDefinition::id)
+            .collect(java.util.stream.Collectors.toUnmodifiableSet());
     }
 
     public void openClassMenu(Player player, String raceId) {
@@ -245,15 +253,21 @@ public final class CharacterSelectionManager implements Listener {
     }
 
     static List<String> buildProfileLore(PlayerProfileDatabaseManager.PlayerProfile profile,
-                                         String raceName, String className) {
+                                         String raceName, String className,
+                                         CharacterProgression.Rules progressionRules) {
         String homeWorld = profile.homeWorld() == null || profile.homeWorld().isBlank()
             ? "Chưa thiết lập" : profile.homeWorld();
+        int experienceRequired = progressionRules.experienceRequiredForNextLevel(profile.level());
+        String experienceProgress = experienceRequired == 0
+            ? profile.exp() + " (đã đạt cấp tối đa)"
+            : profile.exp() + " / " + experienceRequired;
         return List.of(
             "§7Người chơi: §f" + profile.playerName(),
             "§7Chủng tộc: §6" + raceName,
             "§7Class: §b" + className,
             "§7Cấp nhân vật: §e" + profile.level(),
-            "§7EXP nhân vật: §e" + profile.exp(),
+            "§7EXP tới cấp tiếp theo: §e" + experienceProgress,
+            "§7Skill point chưa dùng: §e" + profile.unspentSkillPoints(),
             "§7Đại lục khởi đầu: §f" + homeWorld,
             "",
             profile.active() ? "§aHồ sơ đang hoạt động" : "§cHồ sơ đang tạm ngưng"
@@ -270,7 +284,8 @@ public final class CharacterSelectionManager implements Listener {
         Inventory inventory = Bukkit.createInventory(holder, 27, "VnMine • Hồ sơ nhân vật");
         holder.inventory = inventory;
         inventory.setItem(13, createActionItem(Material.PLAYER_HEAD, "§dHồ sơ RPG",
-            buildProfileLore(profile, raceName, className)));
+            buildProfileLore(profile, raceName, className,
+                plugin.getPlayerProfileDatabaseManager().getCharacterProgressionRules())));
         if (plugin.getConfig().getBoolean("rpg.quest-journal.enabled", true)) {
             inventory.setItem(15, createActionItem(Material.WRITABLE_BOOK, "§bNhật ký nhiệm vụ", List.of(
                 "§7Xem checkpoint và trạng thái nhiệm vụ tutorial.")));

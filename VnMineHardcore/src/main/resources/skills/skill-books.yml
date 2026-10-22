@@ -1,0 +1,175 @@
+# [VI] Phiên bản cấu trúc skill book; giá trị được hỗ trợ là 1.
+# [EN] Skill-book schema version; supported value is 1.
+schema-version: 1
+
+books:
+  blade-flare-manual:
+    # [VI] ID skill được sách này mở khóa; phải tồn tại trong skill-definitions.yml.
+    # [EN] Skill unlocked by this book; must exist in skill-definitions.yml.
+    skill-id: blade-flare
+    # [VI] Tên hiển thị của sách; bắt buộc, không được để trống.
+    # [EN] Book display name; required and must not be blank.
+    display-name: "Truyền Thừa Kiếm Khí"
+    # [VI] Độ hiếm; nhận common, uncommon, rare, epic hoặc legendary.
+    # [EN] Rarity; accepts common, uncommon, rare, epic, or legendary.
+    rarity: rare
+    # [VI] Material vật phẩm; phải là item Material hợp lệ và không phải AIR.
+    # [EN] Item Material; must be a valid item Material and not AIR.
+    material: ENCHANTED_BOOK
+    # [VI] Lore của sách; từ 1 đến 20 dòng không rỗng.
+    # [EN] Book lore; 1 to 20 non-empty lines.
+    lore:
+      - "Ghi chép của kiếm sĩ canh giữ cửa thành cổ."
+      - "Kiếm khí khởi nguồn từ nhịp thở, rồi mới thành lưỡi kiếm vô hình."
+
+  guard-break-manual:
+    # [VI] ID skill được sách này mở khóa; phải tồn tại trong skill-definitions.yml.
+    # [EN] Skill unlocked by this book; must exist in skill-definitions.yml.
+    skill-id: guard-break
+    # [VI] Tên hiển thị của sách; bắt buộc, không được để trống.
+    # [EN] Book display name; required and must not be blank.
+    display-name: "Bí Quyết Phá Thế"
+    # [VI] Độ hiếm; nhận common, uncommon, rare, epic hoặc legendary.
+    # [EN] Rarity; accepts common, uncommon, rare, epic, or legendary.
+    rarity: uncommon
+    # [VI] Material vật phẩm; phải là item Material hợp lệ và không phải AIR.
+    # [EN] Item Material; must be a valid item Material and not AIR.
+    material: ENCHANTED_BOOK
+    # [VI] Lore của sách; từ 1 đến 20 dòng không rỗng.
+    # [EN] Book lore; 1 to 20 non-empty lines.
+    lore:
+      - "Bản thảo mô tả cách nhận ra thế thủ đã mất cân bằng."
+      - "Một nhát đánh đúng lúc mạnh hơn nhiều nhát đánh vội."
+
+  battle-focus-manual:
+    # [VI] ID skill được sách này mở khóa; phải tồn tại trong skill-definitions.yml.
+    # [EN] Skill unlocked by this book; must exist in skill-definitions.yml.
+    skill-id: battle-focus
+    # [VI] Tên hiển thị của sách; bắt buộc, không được để trống.
+    # [EN] Book display name; required and must not be blank.
+    display-name: "Tâm Pháp Người Lính"
+    # [VI] Độ hiếm; nhận common, uncommon, rare, epic hoặc legendary.
+    # [EN] Rarity; accepts common, uncommon, rare, epic, or legendary.
+    rarity: common
+    # [VI] Material vật phẩm; phải là item Material hợp lệ và không phải AIR.
+    # [EN] Item Material; must be a valid item Material and not AIR.
+    material: BOOK
+    # [VI] Lore của sách; từ 1 đến 20 dòng không rỗng.
+    # [EN] Book lore; 1 to 20 non-empty lines.
+    lore:
+      - "Nhật ký huấn luyện của một kiếm sĩ đã đi qua nhiều chiến trường."
+      - "Giữ tâm trí sáng suốt khi giao tranh bắt đầu."
+
+  shield-wall-manual:
+    # [VI] ID skill được sách này mở khóa; phải tồn tại trong skill-definitions.yml.
+    # [EN] Skill unlocked by this book; must exist in skill-definitions.yml.
+    skill-id: shield-wall
+    # [VI] Tên hiển thị của sách; bắt buộc, không được để trống.
+    # [EN] Book display name; required and must not be blank.
+    display-name: "Khế Ước Tường Khiên"
+    # [VI] Độ hiếm; nhận common, uncommon, rare, epic hoặc legendary.
+    # [EN] Rarity; accepts common, uncommon, rare, epic, or legendary.
+    rarity: rare
+    # [VI] Material vật phẩm; phải là item Material hợp lệ và không phải AIR.
+    # [EN] Item Material; must be a valid item Material and not AIR.
+    material: ENCHANTED_BOOK
+    # [VI] Lore của sách; từ 1 đến 20 dòng không rỗng.
+    # [EN] Book lore; 1 to 20 non-empty lines.
+    lore:
+      - "Lời thề của người hộ vệ được khắc lên mặt trong của tấm khiên."
+      - "Bảo vệ đồng đội cũng là bảo vệ con đường trở về."
+
+  taunt-manual:
+    # [VI] ID skill được sách này mở khóa; phải tồn tại trong skill-definitions.yml.
+    # [EN] Skill unlocked by this book; must exist in skill-definitions.yml.
+    skill-id: taunt
+    # [VI] Tên hiển thị của sách; bắt buộc, không được để trống.
+    # [EN] Book display name; required and must not be blank.
+    display-name: "Lời Thề Khiêu Chiến"
+    # [VI] Độ hiếm; nhận common, uncommon, rare, epic hoặc legendary.
+    # [EN] Rarity; accepts common, uncommon, rare, epic, or legendary.
+    rarity: uncommon
+    # [VI] Material vật phẩm; phải là item Material hợp lệ và không phải AIR.
+    # [EN] Item Material; must be a valid item Material and not AIR.
+    material: BOOK
+    # [VI] Lore của sách; từ 1 đến 20 dòng không rỗng.
+    # [EN] Book lore; 1 to 20 non-empty lines.
+    lore:
+      - "Lời khiêu chiến phải đủ vang để kéo mắt kẻ địch khỏi đồng đội."
+      - "Người hộ vệ nhận lấy hiểm nguy trước khi nó chạm đến hàng ngũ."
+
+  fortify-manual:
+    # [VI] ID skill được sách này mở khóa; phải tồn tại trong skill-definitions.yml.
+    # [EN] Skill unlocked by this book; must exist in skill-definitions.yml.
+    skill-id: fortify
+    # [VI] Tên hiển thị của sách; bắt buộc, không được để trống.
+    # [EN] Book display name; required and must not be blank.
+    display-name: "Cẩm Nang Thành Đồng"
+    # [VI] Độ hiếm; nhận common, uncommon, rare, epic hoặc legendary.
+    # [EN] Rarity; accepts common, uncommon, rare, epic, or legendary.
+    rarity: common
+    # [VI] Material vật phẩm; phải là item Material hợp lệ và không phải AIR.
+    # [EN] Item Material; must be a valid item Material and not AIR.
+    material: BOOK
+    # [VI] Lore của sách; từ 1 đến 20 dòng không rỗng.
+    # [EN] Book lore; 1 to 20 non-empty lines.
+    lore:
+      - "Tư thế đúng biến từng nhịp thở thành một phần của áo giáp."
+      - "Đừng chỉ chống đỡ; hãy học cách đứng vững."
+
+  fire-bolt-manual:
+    # [VI] ID skill được sách này mở khóa; phải tồn tại trong skill-definitions.yml.
+    # [EN] Skill unlocked by this book; must exist in skill-definitions.yml.
+    skill-id: fire-bolt
+    # [VI] Tên hiển thị của sách; bắt buộc, không được để trống.
+    # [EN] Book display name; required and must not be blank.
+    display-name: "Bản Thảo Hỏa Cầu"
+    # [VI] Độ hiếm; nhận common, uncommon, rare, epic hoặc legendary.
+    # [EN] Rarity; accepts common, uncommon, rare, epic, or legendary.
+    rarity: uncommon
+    # [VI] Material vật phẩm; phải là item Material hợp lệ và không phải AIR.
+    # [EN] Item Material; must be a valid item Material and not AIR.
+    material: ENCHANTED_BOOK
+    # [VI] Lore của sách; từ 1 đến 20 dòng không rỗng.
+    # [EN] Book lore; 1 to 20 non-empty lines.
+    lore:
+      - "Một trang cháy xém ghi lại phép lửa đầu tiên của học viện."
+      - "Giữ ngọn lửa nhỏ cho đến khi bàn tay đã kiểm soát được nó."
+
+  arcane-field-manual:
+    # [VI] ID skill được sách này mở khóa; phải tồn tại trong skill-definitions.yml.
+    # [EN] Skill unlocked by this book; must exist in skill-definitions.yml.
+    skill-id: arcane-field
+    # [VI] Tên hiển thị của sách; bắt buộc, không được để trống.
+    # [EN] Book display name; required and must not be blank.
+    display-name: "Học Thuyết Trường Bí Thuật"
+    # [VI] Độ hiếm; nhận common, uncommon, rare, epic hoặc legendary.
+    # [EN] Rarity; accepts common, uncommon, rare, epic, or legendary.
+    rarity: rare
+    # [VI] Material vật phẩm; phải là item Material hợp lệ và không phải AIR.
+    # [EN] Item Material; must be a valid item Material and not AIR.
+    material: ENCHANTED_BOOK
+    # [VI] Lore của sách; từ 1 đến 20 dòng không rỗng.
+    # [EN] Book lore; 1 to 20 non-empty lines.
+    lore:
+      - "Các ký hiệu ma lực mô tả ranh giới của một vùng ảnh hưởng."
+      - "Hiểu phạm vi trước khi giải phóng phép thuật."
+
+  mana-flow-manual:
+    # [VI] ID skill được sách này mở khóa; phải tồn tại trong skill-definitions.yml.
+    # [EN] Skill unlocked by this book; must exist in skill-definitions.yml.
+    skill-id: mana-flow
+    # [VI] Tên hiển thị của sách; bắt buộc, không được để trống.
+    # [EN] Book display name; required and must not be blank.
+    display-name: "Kinh Mạch Ma Lực"
+    # [VI] Độ hiếm; nhận common, uncommon, rare, epic hoặc legendary.
+    # [EN] Rarity; accepts common, uncommon, rare, epic, or legendary.
+    rarity: common
+    # [VI] Material vật phẩm; phải là item Material hợp lệ và không phải AIR.
+    # [EN] Item Material; must be a valid item Material and not AIR.
+    material: BOOK
+    # [VI] Lore của sách; từ 1 đến 20 dòng không rỗng.
+    # [EN] Book lore; 1 to 20 non-empty lines.
+    lore:
+      - "Bản ghi chú dạy cách cảm nhận dòng ma lực giữa các lần niệm chú."
+      - "Sự kiên nhẫn giữ cho phép thuật không cạn kiệt."

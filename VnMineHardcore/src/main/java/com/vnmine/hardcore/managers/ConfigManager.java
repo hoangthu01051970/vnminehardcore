@@ -35,6 +35,12 @@ public class ConfigManager {
    public int profileDatabaseBackupRetentionCount = 12;
    public int profileDatabaseWriteRetries = 2;
    public int profileDatabaseWriteRetryDelayMillis = 50;
+   public int characterProgressionMaxLevel = CharacterProgression.DEFAULT_MAX_LEVEL;
+   public int characterProgressionBaseExperience = CharacterProgression.DEFAULT_BASE_EXPERIENCE;
+   public int characterProgressionExperiencePerLevel = CharacterProgression.DEFAULT_EXPERIENCE_PER_LEVEL;
+   public int characterProgressionSkillPointsPerLevel = CharacterProgression.DEFAULT_SKILL_POINTS_PER_LEVEL;
+   public int rpgMaxMana = 100;
+   public int rpgManaRegenerationPerSecond = 5;
    // Death
    public boolean broadcastDeath;
    public boolean playSound;
@@ -308,6 +314,20 @@ public class ConfigManager {
           readBoundedInt("rpg.profile-database.write-retries", 2, 0, 3);
       this.profileDatabaseWriteRetryDelayMillis =
           readBoundedInt("rpg.profile-database.write-retry-delay-ms", 50, 10, 250);
+      this.characterProgressionMaxLevel =
+          readBoundedInt("rpg.progression.max-level", CharacterProgression.DEFAULT_MAX_LEVEL, 2, 100);
+      this.characterProgressionBaseExperience =
+          readBoundedInt("rpg.progression.base-experience", CharacterProgression.DEFAULT_BASE_EXPERIENCE,
+              1, 1_000_000);
+      this.characterProgressionExperiencePerLevel =
+          readBoundedInt("rpg.progression.experience-per-level",
+              CharacterProgression.DEFAULT_EXPERIENCE_PER_LEVEL, 0, 1_000_000);
+      this.characterProgressionSkillPointsPerLevel =
+          readBoundedInt("rpg.progression.skill-points-per-level",
+              CharacterProgression.DEFAULT_SKILL_POINTS_PER_LEVEL, 0, 10);
+      this.rpgMaxMana = readBoundedInt("rpg.skills.mana.max-mana", 100, 1, 1000);
+      this.rpgManaRegenerationPerSecond =
+          readBoundedInt("rpg.skills.mana.regeneration-per-second", 5, 0, 100);
       this.broadcastDeath = this.config.getBoolean("death.broadcast-death", true);
       this.playSound = this.config.getBoolean("death.play-sound", true);
       this.respawnProtectionEnabled = this.config.getBoolean("death.respawn-protection.enabled", true);

@@ -393,6 +393,117 @@ world unlocks and idempotent quest start, step updates, and completion. Tutorial
 completion and its character-XP reward are committed together in SQLite, so
 retries or server restarts cannot award the same XP twice.
 
+Character progression uses the profile's RPG `level` and `exp` fields, separate
+from vanilla Minecraft XP and mercenary XP. By default, level 1 requires 100
+character XP to reach level 2; each later level costs 50 more XP than the
+previous one, up to level 30. Each level gained awards one unspent skill point.
+These values can be adjusted under `rpg.progression` in `config.yml`; invalid
+values are logged and replaced with the documented defaults. The character
+profile GUI shows current level, progress toward the next level, and unspent
+skill points.
+
+The SQLite schema is now version 6. During the transactional v2-to-v3 migration,
+existing profile XP is applied to the level curve, preserving any remainder;
+existing level is retained and the resulting level-ups grant their corresponding
+skill points. The v3-to-v4 migration adds persistent learned-skill/rank records;
+v4-to-v5 adds persistent quick-slot assignments; v5-to-v6 adds persisted mana
+and its regeneration timestamp. Each migration is transactional, and a
+pre-migration database backup is created.
+
+### RPG Skills: Skill Books
+
+Skill definitions and skill-book contents are stored in
+`plugins/VnMineHardcore/skills/skill-definitions.yml` and
+`plugins/VnMineHardcore/skills/skill-books.yml`. The bundled MVP contains nine
+skills for the existing `swordsman`, `guardian`, and `mage` classes. Definitions
+are validated at startup; invalid schema versions, duplicate YAML keys, unknown
+class/skill IDs, invalid materials, or inconsistent book links are reported and
+prevent the skill system from starting.
+
+An administrator can issue a configured book to an online player:
+
+```text
+/vnskillbook give <player> <book-id>
+```
+
+This command requires `vnmine.command.skillbook.admin` (default: operators).
+Players right-click the book in their main hand to learn its skill. A successful
+learn consumes one book and stores rank 1 in SQLite. Wrong-class, insufficient-
+level, already-learned, or database-failure cases do not consume the book.
+Players open the Quick Cast GUI with `/vnskills` (permission
+`vnmine.command.skills`, default: everyone). Click an empty slot to choose a
+learned active skill; left-click an assigned skill to cast it and right-click
+to unassign it. While the GUI is open, the number keys 1-9 cast the matching
+quick slot. `/vnskills list` prints the learned skill list; `/vnskills tree`
+opens the class skill tree. Click a skill to see its requirements, rank and
+upgrade option. Raising an active skill rank costs one skill point, requires
+the skill book unlock, and requires character level `required-level + current
+rank`. The skill-point spend and rank increase are committed in one SQLite
+transaction.
+
+Pressing Q opens the same menu by default. Since Bukkit exposes Q through the
+drop-item event, this setting prevents dropping the held item while enabled.
+Administrators can disable either `rpg.skills.quick-cast.enabled` or
+`rpg.skills.quick-cast.intercept-drop-key` in `config.yml` to retain normal Q
+behavior. Skill definitions specify `cast-type` (`active` or `passive`) and
+`cooldown-seconds` (active: 1-120; passive: 0). Cooldowns reset when a player
+logs out or the server restarts.
+
+The initial cast handlers cover `blade-flare`, `guard-break`, `shield-wall`,
+`taunt`, `fire-bolt`, and `arcane-field`; passive skills cannot be assigned.
+Damage continues through normal Bukkit damage events, preserving world and
+combat protections. Skill casts spend each definition's `mana-cost`. Maximum
+mana and regeneration are configured under `rpg.skills.mana` in `config.yml`;
+mana state and its regeneration timestamp are stored in SQLite, including
+elapsed-time regeneration after a restart. Skill rank upgrades spend skill
+points; learning books and casting do not.
+
+Passive effects (`battle-focus`, `fortify`, `mana-flow`) are still not
+implemented. They remain visible in the skill tree but cannot be assigned or
+upgraded until their passive behavior is implemented.
+
+### RPG Portals
+
+Administrators create cuboid portals without a WorldEdit dependency. Run
+`/vnportal wand` to receive the plugin's marked wooden axe, then left-click a
+block for `pos1` and right-click another block for `pos2`. The equivalent
+`/vnportal pos1` and `/vnportal pos2` commands select the block being targeted.
+Create a portal from the selected region and set its destination while
+standing at the desired safe arrival point:
+
+```text
+/vnportal create <id> <name...>
+/vnportal setspawn <id>
+/vnportal link <portalA> <portalB>
+/vnportal unlink <id>
+/vnportal enable <id>
+/vnportal disable <id>
+/vnportal info <id>
+/vnportal list
+/vnportal validate
+/vnportal remove <id>
+```
+
+Portal IDs are unique, lowercase slugs (2-32 characters: `a-z`, `0-9`, `_`,
+`-`); names may contain spaces and are limited to 64 characters. Linking is
+two-way. Both portals need a configured arrival point; a player entering a
+portal's selected region is sent to the linked portal's arrival point. The
+destination must be in a loaded world/chunk, have two passable blocks above a
+solid floor, and travel is blocked while dead, waiting to respawn, or combat-
+tagged by default. `/vnportal validate` reports missing worlds, destinations,
+or links. Portal data is stored separately in
+`plugins/VnMineHardcore/portals.yml`.
+
+The `/vnportal` command requires `vnmine.command.portal.admin` (default:
+operators). Portal behavior can be adjusted under `rpg.portals` in
+`config.yml`: `enabled` (default `true`), `max-portals` (default `100`,
+range `1-500`), `max-selection-blocks` (default `20000`, range
+`1-250000`), `travel-cooldown-seconds` (default `3`, range `0-300`), and
+`particle-ring.enabled` (default `true`). Combat blocking uses
+`rpg.portal-travel.block-in-combat` (default `true`). No WorldEdit plugin is
+required; the selection axe is identified with plugin data, not by material
+alone.
+
 ### RPG World: Human Realm
 
 The starter-realm definition is stored at

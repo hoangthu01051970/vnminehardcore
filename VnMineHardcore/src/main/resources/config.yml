@@ -33,6 +33,34 @@ menus:
 # [VI] Cài đặt tạo nhân vật RPG; mặc định được bật.
 # [EN] RPG character-creation settings; enabled by default.
 rpg:
+  progression:
+    # [VI] Cấp nhân vật tối đa; mặc định 30, hợp lệ 2-100.
+    # [EN] Maximum character level; defaults to 30, valid range 2-100.
+    max-level: 30
+    # [VI] EXP cần để đi từ cấp 1 lên cấp 2; mặc định 100, hợp lệ 1-1000000.
+    # [EN] Experience required to advance from level 1 to level 2; defaults to 100, valid range 1-1000000.
+    base-experience: 100
+    # [VI] Lượng EXP tăng thêm cho mỗi cấp kế tiếp; mặc định 50, hợp lệ 0-1000000.
+    # [EN] Additional experience required per subsequent level; defaults to 50, valid range 0-1000000.
+    experience-per-level: 50
+    # [VI] Skill point nhận được mỗi lần lên cấp; mặc định 1, hợp lệ 0-10.
+    # [EN] Skill points awarded for each level gained; defaults to 1, valid range 0-10.
+    skill-points-per-level: 1
+  skills:
+    mana:
+      # [VI] Mana tối đa của nhân vật; mặc định 100, hợp lệ 1-1000.
+      # [EN] Maximum character mana; defaults to 100, valid range 1-1000.
+      max-mana: 100
+      # [VI] Mana hồi mỗi giây; mặc định 5, hợp lệ 0-100.
+      # [EN] Mana regenerated per second; defaults to 5, valid range 0-100.
+      regeneration-per-second: 5
+    quick-cast:
+      # [VI] Bật giao diện quick cast; mặc định true.
+      # [EN] Enable the quick-cast menu; defaults to true.
+      enabled: true
+      # [VI] Dùng Q (thả vật phẩm) mở menu; mặc định true, khi bật Q không làm rơi vật phẩm.
+      # [EN] Use Q (drop-item action) to open the menu; defaults to true and prevents item drops.
+      intercept-drop-key: true
   character-creation:
     # [VI] Bật/tắt mục tạo nhân vật trong menu và việc mở GUI; mặc định true.
     # [EN] Enable/disable the character-creation menu entry and GUI; default true.
@@ -52,6 +80,23 @@ rpg:
     # [VI] Chặn dịch chuyển khi combat tag còn hiệu lực; mặc định true.
     # [EN] Block travel while the combat tag is active; default true.
     block-in-combat: true
+  portals:
+    # [VI] Bật/tắt portal do quản trị viên tạo; mặc định true.
+    # [EN] Enable/disable administrator-created portals; defaults to true.
+    enabled: true
+    # [VI] Số portal tối đa; mặc định 100, hợp lệ 1-500.
+    # [EN] Maximum portal count; defaults to 100, valid range 1-500.
+    max-portals: 100
+    # [VI] Số block tối đa trong vùng portal; mặc định 20000, hợp lệ 1-250000.
+    # [EN] Maximum blocks in a portal selection; defaults to 20000, valid range 1-250000.
+    max-selection-blocks: 20000
+    # [VI] Thời gian chờ giữa các lần dịch chuyển portal (giây); mặc định 3, hợp lệ 0-300.
+    # [EN] Cooldown between portal travels (seconds); defaults to 3, valid range 0-300.
+    travel-cooldown-seconds: 3
+    particle-ring:
+      # [VI] Hiển thị vòng particle đánh dấu tâm portal; mặc định true.
+      # [EN] Show a particle ring marking each portal center; defaults to true.
+      enabled: true
   profile-database:
     # [VI] Số giờ giữa các lần sao lưu SQLite tự động; mặc định 6 giờ, hợp lệ 1-168.
     # [EN] Hours between automatic SQLite backups; default 6 hours, valid range 1-168.

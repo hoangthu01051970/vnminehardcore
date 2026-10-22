@@ -18,13 +18,14 @@ import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 
 public class PlayerProfileDatabaseManager {
-    public static final int SCHEMA_VERSION = 2;
-    private static final int MAX_PROFILE_EXPERIENCE = Integer.MAX_VALUE;
+    public static final int SCHEMA_VERSION = 6;
     private static final DateTimeFormatter BACKUP_TIMESTAMP = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss-SSS")
         .withZone(ZoneOffset.UTC);
 
@@ -34,6 +35,7 @@ public class PlayerProfileDatabaseManager {
     private int backupRetentionCount;
     private int writeRetries;
     private int writeRetryDelayMillis;
+    private volatile CharacterProgression.Rules progressionRules = CharacterProgression.Rules.defaults();
 
     public PlayerProfileDatabaseManager(File dataFolder) {
         this(dataFolder, 12, 2, 50);
@@ -74,6 +76,16 @@ public class PlayerProfileDatabaseManager {
         this.writeRetryDelayMillis = writeRetryDelayMillis;
     }
 
+    public void configureCharacterProgression(int maxLevel, int baseExperience,
+                                              int experiencePerLevel, int skillPointsPerLevel) {
+        progressionRules = new CharacterProgression.Rules(
+            maxLevel, baseExperience, experiencePerLevel, skillPointsPerLevel);
+    }
+
+    public CharacterProgression.Rules getCharacterProgressionRules() {
+        return progressionRules;
+    }
+
     public void initialize() throws SQLException {
         ensureDirectories();
         recoverDatabaseIfNeeded();
@@ -90,6 +102,9 @@ public class PlayerProfileDatabaseManager {
         } catch (IOException exception) {
             throw new SQLException("Could not create the initial player profile database backup.", exception);
         }
+    }
+
+    private record LegacyProgress(String uuid, int level, int experience, int skillPoints) {
     }
 
     public int getSchemaVersion() throws SQLException {
@@ -192,6 +207,22 @@ public class PlayerProfileDatabaseManager {
                     if (version == 1) {
                         migrateV1ToV2(connection);
                         version = 2;
+                        setSchemaVersion(connection, version);
+                    } else if (version == 2) {
+                        migrateV2ToV3(connection);
+                        version = 3;
+                        setSchemaVersion(connection, version);
+                    } else if (version == 3) {
+                        migrateV3ToV4(connection);
+                        version = 4;
+                        setSchemaVersion(connection, version);
+                    } else if (version == 4) {
+                        migrateV4ToV5(connection);
+                        version = 5;
+                        setSchemaVersion(connection, version);
+                    } else if (version == 5) {
+                        migrateV5ToV6(connection);
+                        version = 6;
                         setSchemaVersion(connection, version);
                     } else {
                         throw new SQLException("No player profile database migration exists from version "
@@ -314,7 +345,7 @@ public class PlayerProfileDatabaseManager {
     public Optional<PlayerProfile> getPlayerProfile(String uuid) throws SQLException {
         try (Connection connection = openConnection();
              PreparedStatement statement = connection.prepareStatement(
-                 "SELECT uuid, player_name, selected_race, selected_class, level, exp, home_world, " +
+                 "SELECT uuid, player_name, selected_race, selected_class, level, exp, skill_points, home_world, " +
                      "created_at, updated_at, is_active FROM player_profiles WHERE uuid = ?")) {
             statement.setString(1, uuid);
             try (ResultSet resultSet = statement.executeQuery()) {
@@ -328,12 +359,270 @@ public class PlayerProfileDatabaseManager {
                     resultSet.getString("selected_class"),
                     resultSet.getInt("level"),
                     resultSet.getInt("exp"),
+                    resultSet.getInt("skill_points"),
                     resultSet.getString("home_world"),
                     resultSet.getString("created_at"),
                     resultSet.getString("updated_at"),
                     resultSet.getInt("is_active") == 1
                 ));
             }
+        }
+    }
+
+    public SkillLearnResult learnSkill(String uuid, String skillId, String requiredClass,
+                                       int requiredLevel, String learnedAt) throws SQLException {
+        if (requiredLevel < 1) {
+            throw new IllegalArgumentException("requiredLevel must be at least 1.");
+        }
+        return executeWriteTransaction(connection -> {
+            try (PreparedStatement profileQuery = connection.prepareStatement(
+                    "SELECT selected_class, level FROM player_profiles WHERE uuid = ? AND is_active = 1")) {
+                profileQuery.setString(1, uuid);
+                try (ResultSet resultSet = profileQuery.executeQuery()) {
+                    if (!resultSet.next()) {
+                        return SkillLearnResult.PROFILE_NOT_FOUND;
+                    }
+                    if (!requiredClass.equals(resultSet.getString("selected_class"))
+                            || resultSet.getInt("level") < requiredLevel) {
+                        return SkillLearnResult.REQUIREMENTS_NOT_MET;
+                    }
+                }
+            }
+
+            try (PreparedStatement insert = connection.prepareStatement(
+                    "INSERT INTO player_skill_progress (uuid, skill_id, rank, learned_at) " +
+                        "VALUES (?, ?, 1, ?) ON CONFLICT(uuid, skill_id) DO NOTHING")) {
+                insert.setString(1, uuid);
+                insert.setString(2, skillId);
+                insert.setString(3, learnedAt);
+                return insert.executeUpdate() == 1
+                    ? SkillLearnResult.LEARNED : SkillLearnResult.ALREADY_LEARNED;
+            }
+        });
+    }
+
+    public List<SkillProgress> getLearnedSkills(String uuid) throws SQLException {
+        List<SkillProgress> skills = new ArrayList<>();
+        try (Connection connection = openConnection();
+             PreparedStatement statement = connection.prepareStatement(
+                 "SELECT skill_id, rank, learned_at FROM player_skill_progress " +
+                     "WHERE uuid = ? ORDER BY learned_at, skill_id")) {
+            statement.setString(1, uuid);
+            try (ResultSet resultSet = statement.executeQuery()) {
+                while (resultSet.next()) {
+                    skills.add(new SkillProgress(resultSet.getString("skill_id"), resultSet.getInt("rank"),
+                        resultSet.getString("learned_at")));
+                }
+            }
+        }
+        return List.copyOf(skills);
+    }
+
+    public Map<Integer, String> getQuickSkillSlots(String uuid) throws SQLException {
+        Map<Integer, String> slots = new LinkedHashMap<>();
+        try (Connection connection = openConnection();
+             PreparedStatement statement = connection.prepareStatement(
+                 "SELECT slot, skill_id FROM player_skill_slots WHERE uuid = ? ORDER BY slot")) {
+            statement.setString(1, uuid);
+            try (ResultSet resultSet = statement.executeQuery()) {
+                while (resultSet.next()) {
+                    slots.put(resultSet.getInt("slot"), resultSet.getString("skill_id"));
+                }
+            }
+        }
+        return Map.copyOf(slots);
+    }
+
+    public QuickSlotResult assignQuickSkill(String uuid, int slot, String skillId,
+                                            String requiredClass) throws SQLException {
+        if (slot < 1 || slot > 9) {
+            throw new IllegalArgumentException("slot must be between 1 and 9.");
+        }
+        return executeWriteTransaction(connection -> {
+            try (PreparedStatement profileQuery = connection.prepareStatement(
+                    "SELECT selected_class FROM player_profiles WHERE uuid = ? AND is_active = 1")) {
+                profileQuery.setString(1, uuid);
+                try (ResultSet resultSet = profileQuery.executeQuery()) {
+                    if (!resultSet.next()) return QuickSlotResult.PROFILE_NOT_FOUND;
+                    if (!requiredClass.equals(resultSet.getString("selected_class"))) {
+                        return QuickSlotResult.REQUIREMENTS_NOT_MET;
+                    }
+                }
+            }
+            try (PreparedStatement learnedQuery = connection.prepareStatement(
+                    "SELECT 1 FROM player_skill_progress WHERE uuid = ? AND skill_id = ?")) {
+                learnedQuery.setString(1, uuid);
+                learnedQuery.setString(2, skillId);
+                try (ResultSet resultSet = learnedQuery.executeQuery()) {
+                    if (!resultSet.next()) return QuickSlotResult.SKILL_NOT_LEARNED;
+                }
+            }
+            try (PreparedStatement assignedQuery = connection.prepareStatement(
+                    "SELECT slot FROM player_skill_slots WHERE uuid = ? AND skill_id = ?")) {
+                assignedQuery.setString(1, uuid);
+                assignedQuery.setString(2, skillId);
+                try (ResultSet resultSet = assignedQuery.executeQuery()) {
+                    if (resultSet.next() && resultSet.getInt("slot") != slot) {
+                        return QuickSlotResult.ALREADY_ASSIGNED;
+                    }
+                }
+            }
+            try (PreparedStatement upsert = connection.prepareStatement(
+                    "INSERT INTO player_skill_slots (uuid, slot, skill_id) VALUES (?, ?, ?) " +
+                        "ON CONFLICT(uuid, slot) DO UPDATE SET skill_id = excluded.skill_id")) {
+                upsert.setString(1, uuid);
+                upsert.setInt(2, slot);
+                upsert.setString(3, skillId);
+                upsert.executeUpdate();
+            }
+            return QuickSlotResult.ASSIGNED;
+        });
+    }
+
+    public boolean clearQuickSkillSlot(String uuid, int slot) throws SQLException {
+        if (slot < 1 || slot > 9) {
+            throw new IllegalArgumentException("slot must be between 1 and 9.");
+        }
+        return executeWriteTransaction(connection -> {
+            try (PreparedStatement statement = connection.prepareStatement(
+                    "DELETE FROM player_skill_slots WHERE uuid = ? AND slot = ?")) {
+                statement.setString(1, uuid);
+                statement.setInt(2, slot);
+                return statement.executeUpdate() > 0;
+            }
+        });
+    }
+
+    public SkillUpgradeResult upgradeSkill(String uuid, String skillId, String requiredClass,
+                                           int requiredLevel, int maxRank) throws SQLException {
+        if (requiredLevel < 1 || maxRank < 1 || maxRank > 5) {
+            throw new IllegalArgumentException("Skill upgrade requirements are invalid.");
+        }
+        return executeWriteTransaction(connection -> {
+            int skillPoints;
+            int playerLevel;
+            try (PreparedStatement profileQuery = connection.prepareStatement(
+                    "SELECT selected_class, level, skill_points FROM player_profiles " +
+                        "WHERE uuid = ? AND is_active = 1")) {
+                profileQuery.setString(1, uuid);
+                try (ResultSet resultSet = profileQuery.executeQuery()) {
+                    if (!resultSet.next()) return SkillUpgradeResult.PROFILE_NOT_FOUND;
+                    if (!requiredClass.equals(resultSet.getString("selected_class"))) {
+                        return SkillUpgradeResult.REQUIREMENTS_NOT_MET;
+                    }
+                    playerLevel = resultSet.getInt("level");
+                    skillPoints = resultSet.getInt("skill_points");
+                }
+            }
+            int currentRank;
+            try (PreparedStatement skillQuery = connection.prepareStatement(
+                    "SELECT rank FROM player_skill_progress WHERE uuid = ? AND skill_id = ?")) {
+                skillQuery.setString(1, uuid);
+                skillQuery.setString(2, skillId);
+                try (ResultSet resultSet = skillQuery.executeQuery()) {
+                    if (!resultSet.next()) return SkillUpgradeResult.SKILL_NOT_LEARNED;
+                    currentRank = resultSet.getInt("rank");
+                }
+            }
+            if (currentRank >= maxRank) return SkillUpgradeResult.MAX_RANK;
+            if (playerLevel < requiredLevel + currentRank) return SkillUpgradeResult.REQUIREMENTS_NOT_MET;
+            if (skillPoints < 1) return SkillUpgradeResult.NO_SKILL_POINTS;
+            try (PreparedStatement spendPoint = connection.prepareStatement(
+                    "UPDATE player_profiles SET skill_points = skill_points - 1 " +
+                        "WHERE uuid = ? AND skill_points > 0")) {
+                spendPoint.setString(1, uuid);
+                if (spendPoint.executeUpdate() != 1) return SkillUpgradeResult.NO_SKILL_POINTS;
+            }
+            try (PreparedStatement updateSkill = connection.prepareStatement(
+                    "UPDATE player_skill_progress SET rank = rank + 1 " +
+                        "WHERE uuid = ? AND skill_id = ? AND rank = ? AND rank < ?")) {
+                updateSkill.setString(1, uuid);
+                updateSkill.setString(2, skillId);
+                updateSkill.setInt(3, currentRank);
+                updateSkill.setInt(4, maxRank);
+                if (updateSkill.executeUpdate() != 1) {
+                    throw new SQLException("Skill rank changed during upgrade; transaction was rolled back.");
+                }
+            }
+            return SkillUpgradeResult.UPGRADED;
+        });
+    }
+
+    public Optional<ManaState> getManaState(String uuid, int maxMana, int regenerationPerSecond,
+                                            long nowMillis) throws SQLException {
+        validateManaSettings(maxMana, regenerationPerSecond, nowMillis);
+        return executeWriteTransaction(connection -> Optional.ofNullable(
+            refreshMana(connection, uuid, maxMana, regenerationPerSecond, nowMillis)));
+    }
+
+    public ManaSpendResult spendMana(String uuid, int cost, int maxMana,
+                                    int regenerationPerSecond, long nowMillis) throws SQLException {
+        if (cost < 0 || cost > 1000) {
+            throw new IllegalArgumentException("Mana cost must be between 0 and 1000.");
+        }
+        validateManaSettings(maxMana, regenerationPerSecond, nowMillis);
+        return executeWriteTransaction(connection -> {
+            ManaState current = refreshMana(connection, uuid, maxMana, regenerationPerSecond, nowMillis);
+            if (current == null) return ManaSpendResult.PROFILE_NOT_FOUND;
+            if (current.currentMana() < cost) return ManaSpendResult.NOT_ENOUGH_MANA;
+            try (PreparedStatement update = connection.prepareStatement(
+                    "UPDATE player_profiles SET mana = mana - ? WHERE uuid = ? AND mana >= ?")) {
+                update.setInt(1, cost);
+                update.setString(2, uuid);
+                update.setInt(3, cost);
+                return update.executeUpdate() == 1
+                    ? ManaSpendResult.SPENT : ManaSpendResult.NOT_ENOUGH_MANA;
+            }
+        });
+    }
+
+    private ManaState refreshMana(Connection connection, String uuid, int maxMana,
+                                  int regenerationPerSecond, long nowMillis) throws SQLException {
+        int storedMana;
+        long previousUpdate;
+        try (PreparedStatement query = connection.prepareStatement(
+                "SELECT mana, mana_updated_at FROM player_profiles WHERE uuid = ? AND is_active = 1")) {
+            query.setString(1, uuid);
+            try (ResultSet resultSet = query.executeQuery()) {
+                if (!resultSet.next()) return null;
+                storedMana = resultSet.getInt("mana");
+                previousUpdate = resultSet.getLong("mana_updated_at");
+            }
+        }
+        long effectiveUpdate = previousUpdate <= 0 ? nowMillis : Math.max(previousUpdate, nowMillis);
+        long elapsedSeconds = previousUpdate <= 0 || nowMillis <= previousUpdate
+            ? 0 : (nowMillis - previousUpdate) / 1000;
+        if (previousUpdate > 0 && nowMillis > previousUpdate) {
+            effectiveUpdate = previousUpdate;
+        }
+        int mana = Math.min(storedMana, maxMana);
+        if (regenerationPerSecond > 0 && mana < maxMana && elapsedSeconds > 0) {
+            long neededSeconds = (maxMana - (long) mana + regenerationPerSecond - 1)
+                / regenerationPerSecond;
+            if (elapsedSeconds >= neededSeconds) {
+                mana = maxMana;
+            } else {
+                mana += (int) (elapsedSeconds * regenerationPerSecond);
+            }
+            effectiveUpdate += elapsedSeconds * 1000;
+        } else if (mana >= maxMana) {
+            mana = maxMana;
+            effectiveUpdate = Math.max(previousUpdate, nowMillis);
+        }
+        try (PreparedStatement update = connection.prepareStatement(
+                "UPDATE player_profiles SET mana = ?, mana_updated_at = ? WHERE uuid = ? AND is_active = 1")) {
+            update.setInt(1, mana);
+            update.setLong(2, effectiveUpdate);
+            update.setString(3, uuid);
+            if (update.executeUpdate() != 1) return null;
+        }
+        return new ManaState(mana, maxMana);
+    }
+
+    private static void validateManaSettings(int maxMana, int regenerationPerSecond, long nowMillis) {
+        if (maxMana < 1 || maxMana > 1000 || regenerationPerSecond < 0
+                || regenerationPerSecond > 100 || nowMillis < 0) {
+            throw new IllegalArgumentException("Mana settings are outside supported bounds.");
         }
     }
 
@@ -444,15 +733,38 @@ public class PlayerProfileDatabaseManager {
 
     private void awardProfileExperience(
             Connection connection, String uuid, int experienceReward, String updatedAt) throws SQLException {
-        String sql = "UPDATE player_profiles SET exp = exp + ?, updated_at = ? " +
-            "WHERE uuid = ? AND is_active = 1 AND exp >= 0 AND exp <= ?";
+        int level;
+        int experience;
+        int skillPoints;
+        try (PreparedStatement statement = connection.prepareStatement(
+                "SELECT level, exp, skill_points FROM player_profiles WHERE uuid = ? AND is_active = 1")) {
+            statement.setString(1, uuid);
+            try (ResultSet resultSet = statement.executeQuery()) {
+                if (!resultSet.next()) {
+                    throw new SQLException("Could not award quest experience: profile is missing or inactive.");
+                }
+                level = resultSet.getInt("level");
+                experience = resultSet.getInt("exp");
+                skillPoints = resultSet.getInt("skill_points");
+            }
+        }
+        CharacterProgression.AwardResult result;
+        try {
+            result = CharacterProgression.award(level, experience, skillPoints, experienceReward,
+                progressionRules);
+        } catch (IllegalArgumentException exception) {
+            throw new SQLException("Could not apply character progression for profile " + uuid + ".", exception);
+        }
+        String sql = "UPDATE player_profiles SET level = ?, exp = ?, skill_points = ?, updated_at = ? " +
+            "WHERE uuid = ? AND is_active = 1";
         try (PreparedStatement statement = connection.prepareStatement(sql)) {
-            statement.setInt(1, experienceReward);
-            statement.setString(2, updatedAt);
-            statement.setString(3, uuid);
-            statement.setInt(4, MAX_PROFILE_EXPERIENCE - experienceReward);
+            statement.setInt(1, result.progress().level());
+            statement.setInt(2, result.progress().experience());
+            statement.setInt(3, result.progress().unspentSkillPoints());
+            statement.setString(4, updatedAt);
+            statement.setString(5, uuid);
             if (statement.executeUpdate() != 1) {
-                throw new SQLException("Could not award quest experience: profile is missing, inactive, or at the experience limit.");
+                throw new SQLException("Could not save character progression for profile " + uuid + ".");
             }
         }
     }
@@ -522,9 +834,51 @@ public class PlayerProfileDatabaseManager {
                                 boolean rewardClaimed) {
     }
 
+    public enum SkillLearnResult {
+        LEARNED,
+        ALREADY_LEARNED,
+        REQUIREMENTS_NOT_MET,
+        PROFILE_NOT_FOUND
+    }
+
+    public enum QuickSlotResult {
+        ASSIGNED,
+        ALREADY_ASSIGNED,
+        SKILL_NOT_LEARNED,
+        REQUIREMENTS_NOT_MET,
+        PROFILE_NOT_FOUND
+    }
+
+    public enum SkillUpgradeResult {
+        UPGRADED,
+        NO_SKILL_POINTS,
+        MAX_RANK,
+        SKILL_NOT_LEARNED,
+        REQUIREMENTS_NOT_MET,
+        PROFILE_NOT_FOUND
+    }
+
+    public enum ManaSpendResult {
+        SPENT,
+        NOT_ENOUGH_MANA,
+        PROFILE_NOT_FOUND
+    }
+
+    public record SkillProgress(String skillId, int rank, String learnedAt) {
+    }
+
+    public record ManaState(int currentMana, int maxMana) {
+    }
+
     public record PlayerProfile(String uuid, String playerName, String selectedRace, String selectedClass,
-                                int level, int exp, String homeWorld, String createdAt, String updatedAt,
-                                boolean active) {
+                                int level, int exp, int unspentSkillPoints, String homeWorld,
+                                String createdAt, String updatedAt, boolean active) {
+        public PlayerProfile(String uuid, String playerName, String selectedRace, String selectedClass,
+                             int level, int exp, String homeWorld, String createdAt, String updatedAt,
+                             boolean active) {
+            this(uuid, playerName, selectedRace, selectedClass, level, exp, 0,
+                homeWorld, createdAt, updatedAt, active);
+        }
     }
 
     @FunctionalInterface
@@ -577,7 +931,10 @@ public class PlayerProfileDatabaseManager {
         try (Statement statement = connection.createStatement()) {
             statement.execute("CREATE TABLE IF NOT EXISTS player_profiles (" +
                 "uuid TEXT PRIMARY KEY, player_name TEXT NOT NULL, selected_race TEXT, selected_class TEXT, " +
-                "level INTEGER NOT NULL DEFAULT 1, exp INTEGER NOT NULL DEFAULT 0, home_world TEXT, " +
+                "level INTEGER NOT NULL DEFAULT 1, exp INTEGER NOT NULL DEFAULT 0, " +
+                "skill_points INTEGER NOT NULL DEFAULT 0 CHECK (skill_points >= 0), " +
+                "mana INTEGER NOT NULL DEFAULT 100 CHECK (mana >= 0), mana_updated_at INTEGER NOT NULL DEFAULT 0, " +
+                "home_world TEXT, " +
                 "created_at TEXT NOT NULL, updated_at TEXT NOT NULL, is_active INTEGER NOT NULL DEFAULT 1)");
             statement.execute("CREATE TABLE IF NOT EXISTS player_quest_progress (" +
                 "uuid TEXT NOT NULL, quest_id TEXT NOT NULL, status TEXT NOT NULL, current_step TEXT, " +
@@ -592,6 +949,14 @@ public class PlayerProfileDatabaseManager {
                 "uuid TEXT NOT NULL, portal_id TEXT NOT NULL, unlocked INTEGER NOT NULL DEFAULT 0, " +
                 "last_used TEXT, PRIMARY KEY (uuid, portal_id), " +
                 "FOREIGN KEY (uuid) REFERENCES player_profiles(uuid) ON DELETE CASCADE)");
+            statement.execute("CREATE TABLE IF NOT EXISTS player_skill_progress (" +
+                "uuid TEXT NOT NULL, skill_id TEXT NOT NULL, rank INTEGER NOT NULL DEFAULT 1 " +
+                "CHECK (rank BETWEEN 1 AND 5), learned_at TEXT NOT NULL, PRIMARY KEY (uuid, skill_id), " +
+                "FOREIGN KEY (uuid) REFERENCES player_profiles(uuid) ON DELETE CASCADE)");
+            statement.execute("CREATE TABLE IF NOT EXISTS player_skill_slots (" +
+                "uuid TEXT NOT NULL, slot INTEGER NOT NULL CHECK (slot BETWEEN 1 AND 9), skill_id TEXT NOT NULL, " +
+                "PRIMARY KEY (uuid, slot), UNIQUE (uuid, skill_id), " +
+                "FOREIGN KEY (uuid) REFERENCES player_profiles(uuid) ON DELETE CASCADE)");
         }
     }
 
@@ -602,6 +967,79 @@ public class PlayerProfileDatabaseManager {
             }
         }
         createCurrentTables(connection);
+    }
+
+    private void migrateV2ToV3(Connection connection) throws SQLException {
+        if (!columnExists(connection, "player_profiles", "skill_points")) {
+            try (Statement statement = connection.createStatement()) {
+                statement.execute("ALTER TABLE player_profiles ADD COLUMN skill_points INTEGER NOT NULL DEFAULT 0 " +
+                    "CHECK (skill_points >= 0)");
+            }
+        }
+        backfillLegacyExperience(connection);
+        createCurrentTables(connection);
+    }
+
+    private void migrateV3ToV4(Connection connection) throws SQLException {
+        createCurrentTables(connection);
+    }
+
+    private void migrateV4ToV5(Connection connection) throws SQLException {
+        createCurrentTables(connection);
+    }
+
+    private void migrateV5ToV6(Connection connection) throws SQLException {
+        if (!columnExists(connection, "player_profiles", "mana")) {
+            try (Statement statement = connection.createStatement()) {
+                statement.execute("ALTER TABLE player_profiles ADD COLUMN mana INTEGER NOT NULL DEFAULT 100 " +
+                    "CHECK (mana >= 0)");
+            }
+        }
+        if (!columnExists(connection, "player_profiles", "mana_updated_at")) {
+            try (Statement statement = connection.createStatement()) {
+                statement.execute("ALTER TABLE player_profiles ADD COLUMN mana_updated_at INTEGER NOT NULL DEFAULT 0");
+            }
+        }
+        createCurrentTables(connection);
+    }
+
+    private void backfillLegacyExperience(Connection connection) throws SQLException {
+        List<LegacyProgress> legacyProfiles = new ArrayList<>();
+        try (Statement statement = connection.createStatement();
+             ResultSet resultSet = statement.executeQuery(
+                 "SELECT uuid, level, exp, skill_points FROM player_profiles")) {
+            while (resultSet.next()) {
+                legacyProfiles.add(new LegacyProgress(resultSet.getString("uuid"), resultSet.getInt("level"),
+                    resultSet.getInt("exp"), resultSet.getInt("skill_points")));
+            }
+        }
+
+        for (LegacyProgress legacyProfile : legacyProfiles) {
+            if (legacyProfile.level() < 1 || legacyProfile.experience() < 0 || legacyProfile.skillPoints() < 0) {
+                throw new SQLException("Could not migrate invalid character progression for profile "
+                    + legacyProfile.uuid() + ".");
+            }
+
+            CharacterProgression.AwardResult converted;
+            try {
+                converted = CharacterProgression.award(legacyProfile.level(), 0, legacyProfile.skillPoints(),
+                    legacyProfile.experience(), progressionRules);
+            } catch (IllegalArgumentException exception) {
+                throw new SQLException("Could not migrate character experience for profile "
+                    + legacyProfile.uuid() + ".", exception);
+            }
+            try (PreparedStatement update = connection.prepareStatement(
+                    "UPDATE player_profiles SET level = ?, exp = ?, skill_points = ? WHERE uuid = ?")) {
+                update.setInt(1, converted.progress().level());
+                update.setInt(2, converted.progress().experience());
+                update.setInt(3, converted.progress().unspentSkillPoints());
+                update.setString(4, legacyProfile.uuid());
+                if (update.executeUpdate() != 1) {
+                    throw new SQLException("Could not save migrated character progression for profile "
+                        + legacyProfile.uuid() + ".");
+                }
+            }
+        }
     }
 
     private void setSchemaVersion(Connection connection, int version) throws SQLException {

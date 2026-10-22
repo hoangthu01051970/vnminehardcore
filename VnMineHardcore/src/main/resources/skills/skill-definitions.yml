@@ -1,0 +1,337 @@
+# [VI] Phiên bản cấu trúc skill; giá trị được hỗ trợ là 1.
+# [EN] Skill definition schema version; supported value is 1.
+schema-version: 1
+
+skills:
+  blade-flare:
+    # [VI] ID class trong player-classes.yml; phải là ID chữ thường, số và dấu gạch ngang.
+    # [EN] Class ID from player-classes.yml; must use lowercase letters, numbers, and hyphens.
+    class-id: swordsman
+    # [VI] Tên skill hiển thị; bắt buộc, không được để trống.
+    # [EN] Skill display name; required and must not be blank.
+    display-name: "Kiếm Khí"
+    # [VI] Mô tả chức năng skill; bắt buộc, không được để trống.
+    # [EN] Skill gameplay description; required and must not be blank.
+    description: "Chém một luồng kiếm khí ngắn theo hướng nhìn."
+    # [VI] Active có thể gán slot; passive hiện chưa có xử lý hiệu ứng trong game.
+    # [EN] Active skills can be slotted; passive effects are not implemented yet.
+    cast-type: active
+    # [VI] Mặc định là giá trị bên dưới; active hợp lệ 1-120 giây, passive phải bằng 0.
+    # [EN] Defaults to the value below; active range is 1-120 seconds, passives must be 0.
+    cooldown-seconds: 6
+    # [VI] Mana tiêu hao; mặc định là giá trị dưới đây, hợp lệ 0-1000; passive phải bằng 0.
+    # [EN] Mana cost; defaults to the value below, valid range 0-1000; passives must be 0.
+    mana-cost: 12
+    # [VI] Cấp nhân vật tối thiểu để học; hợp lệ từ 1 đến 30.
+    # [EN] Minimum character level to learn; valid range is 1 to 30.
+    required-level: 1
+    # [VI] Rank tối đa có thể nâng sau này; hợp lệ từ 1 đến 5.
+    # [EN] Maximum rank available for future upgrades; valid range is 1 to 5.
+    max-rank: 5
+    # [VI] Material biểu tượng skill; phải là item Material hợp lệ.
+    # [EN] Skill icon Material; must be a valid item Material.
+    icon: IRON_SWORD
+    # [VI] ID sách duy nhất mở khóa skill này; phải trùng book ID trong skill-books.yml.
+    # [EN] Unique book ID that unlocks this skill; must match a book ID in skill-books.yml.
+    book-id: blade-flare-manual
+    # [VI] Lore truyền thừa của skill; từ 1 đến 20 dòng, mỗi dòng không rỗng.
+    # [EN] Skill inheritance lore; 1 to 20 non-empty lines.
+    lore:
+      - "Kiếm khí bắt đầu từ một nhịp thở vững vàng."
+      - "Đừng chém vào kẻ địch; hãy chém xuyên qua khoảng cách."
+
+  guard-break:
+    # [VI] ID class trong player-classes.yml; phải là ID chữ thường, số và dấu gạch ngang.
+    # [EN] Class ID from player-classes.yml; must use lowercase letters, numbers, and hyphens.
+    class-id: swordsman
+    # [VI] Tên skill hiển thị; bắt buộc, không được để trống.
+    # [EN] Skill display name; required and must not be blank.
+    display-name: "Phá Thế"
+    # [VI] Mô tả chức năng skill; bắt buộc, không được để trống.
+    # [EN] Skill gameplay description; required and must not be blank.
+    description: "Nạp thế đánh để phá thủ của mục tiêu phía trước."
+    # [VI] Active có thể gán slot; passive hiện chưa có xử lý hiệu ứng trong game.
+    # [EN] Active skills can be slotted; passive effects are not implemented yet.
+    cast-type: active
+    # [VI] Mặc định là giá trị bên dưới; active hợp lệ 1-120 giây, passive phải bằng 0.
+    # [EN] Defaults to the value below; active range is 1-120 seconds, passives must be 0.
+    cooldown-seconds: 8
+    # [VI] Mana tiêu hao; mặc định là giá trị dưới đây, hợp lệ 0-1000; passive phải bằng 0.
+    # [EN] Mana cost; defaults to the value below, valid range 0-1000; passives must be 0.
+    mana-cost: 14
+    # [VI] Cấp nhân vật tối thiểu để học; hợp lệ từ 1 đến 30.
+    # [EN] Minimum character level to learn; valid range is 1 to 30.
+    required-level: 2
+    # [VI] Rank tối đa có thể nâng sau này; hợp lệ từ 1 đến 5.
+    # [EN] Maximum rank available for future upgrades; valid range is 1 to 5.
+    max-rank: 5
+    # [VI] Material biểu tượng skill; phải là item Material hợp lệ.
+    # [EN] Skill icon Material; must be a valid item Material.
+    icon: IRON_AXE
+    # [VI] ID sách duy nhất mở khóa skill này; phải trùng book ID trong skill-books.yml.
+    # [EN] Unique book ID that unlocks this skill; must match a book ID in skill-books.yml.
+    book-id: guard-break-manual
+    # [VI] Lore truyền thừa của skill; từ 1 đến 20 dòng, mỗi dòng không rỗng.
+    # [EN] Skill inheritance lore; 1 to 20 non-empty lines.
+    lore:
+      - "Kẻ nóng vội sẽ để lộ sơ hở trước khi kiếm chạm đích."
+      - "Hãy dồn lực vào khoảnh khắc đối thủ mất thăng bằng."
+
+  battle-focus:
+    # [VI] ID class trong player-classes.yml; phải là ID chữ thường, số và dấu gạch ngang.
+    # [EN] Class ID from player-classes.yml; must use lowercase letters, numbers, and hyphens.
+    class-id: swordsman
+    # [VI] Tên skill hiển thị; bắt buộc, không được để trống.
+    # [EN] Skill display name; required and must not be blank.
+    display-name: "Tâm Kiếm"
+    # [VI] Mô tả chức năng skill; bắt buộc, không được để trống.
+    # [EN] Skill gameplay description; required and must not be blank.
+    description: "Nội tại giúp duy trì sự tập trung khi giao chiến."
+    # [VI] Loại skill; passive chưa thể gán/cast trong vertical slice hiện tại.
+    # [EN] Skill type; passive skills cannot be slotted or cast in this vertical slice.
+    cast-type: passive
+    # [VI] Mặc định là giá trị bên dưới; active hợp lệ 1-120 giây, passive phải bằng 0.
+    # [EN] Defaults to the value below; active range is 1-120 seconds, passives must be 0.
+    cooldown-seconds: 0
+    # [VI] Mana tiêu hao; mặc định là giá trị dưới đây, hợp lệ 0-1000; passive phải bằng 0.
+    # [EN] Mana cost; defaults to the value below, valid range 0-1000; passives must be 0.
+    mana-cost: 0
+    # [VI] Cấp nhân vật tối thiểu để học; hợp lệ từ 1 đến 30.
+    # [EN] Minimum character level to learn; valid range is 1 to 30.
+    required-level: 3
+    # [VI] Rank tối đa có thể nâng sau này; hợp lệ từ 1 đến 5.
+    # [EN] Maximum rank available for future upgrades; valid range is 1 to 5.
+    max-rank: 5
+    # [VI] Material biểu tượng skill; phải là item Material hợp lệ.
+    # [EN] Skill icon Material; must be a valid item Material.
+    icon: COMPASS
+    # [VI] ID sách duy nhất mở khóa skill này; phải trùng book ID trong skill-books.yml.
+    # [EN] Unique book ID that unlocks this skill; must match a book ID in skill-books.yml.
+    book-id: battle-focus-manual
+    # [VI] Lore truyền thừa của skill; từ 1 đến 20 dòng, mỗi dòng không rỗng.
+    # [EN] Skill inheritance lore; 1 to 20 non-empty lines.
+    lore:
+      - "Người luyện kiếm lắng nghe nhịp thở của chính mình."
+      - "Tâm không loạn thì thế kiếm không tan."
+
+  shield-wall:
+    # [VI] ID class trong player-classes.yml; phải là ID chữ thường, số và dấu gạch ngang.
+    # [EN] Class ID from player-classes.yml; must use lowercase letters, numbers, and hyphens.
+    class-id: guardian
+    # [VI] Tên skill hiển thị; bắt buộc, không được để trống.
+    # [EN] Skill display name; required and must not be blank.
+    display-name: "Tường Khiên"
+    # [VI] Mô tả chức năng skill; bắt buộc, không được để trống.
+    # [EN] Skill gameplay description; required and must not be blank.
+    description: "Tăng khả năng chống chịu trong thời gian ngắn."
+    # [VI] Active có thể gán slot; passive hiện chưa có xử lý hiệu ứng trong game.
+    # [EN] Active skills can be slotted; passive effects are not implemented yet.
+    cast-type: active
+    # [VI] Mặc định là giá trị bên dưới; active hợp lệ 1-120 giây, passive phải bằng 0.
+    # [EN] Defaults to the value below; active range is 1-120 seconds, passives must be 0.
+    cooldown-seconds: 10
+    # [VI] Mana tiêu hao; mặc định là giá trị dưới đây, hợp lệ 0-1000; passive phải bằng 0.
+    # [EN] Mana cost; defaults to the value below, valid range 0-1000; passives must be 0.
+    mana-cost: 15
+    # [VI] Cấp nhân vật tối thiểu để học; hợp lệ từ 1 đến 30.
+    # [EN] Minimum character level to learn; valid range is 1 to 30.
+    required-level: 1
+    # [VI] Rank tối đa có thể nâng sau này; hợp lệ từ 1 đến 5.
+    # [EN] Maximum rank available for future upgrades; valid range is 1 to 5.
+    max-rank: 5
+    # [VI] Material biểu tượng skill; phải là item Material hợp lệ.
+    # [EN] Skill icon Material; must be a valid item Material.
+    icon: SHIELD
+    # [VI] ID sách duy nhất mở khóa skill này; phải trùng book ID trong skill-books.yml.
+    # [EN] Unique book ID that unlocks this skill; must match a book ID in skill-books.yml.
+    book-id: shield-wall-manual
+    # [VI] Lore truyền thừa của skill; từ 1 đến 20 dòng, mỗi dòng không rỗng.
+    # [EN] Skill inheritance lore; 1 to 20 non-empty lines.
+    lore:
+      - "Một tấm khiên chỉ vững khi người giữ nó không lùi bước."
+      - "Hãy giữ đội hình để bảo vệ người đứng phía sau."
+
+  taunt:
+    # [VI] ID class trong player-classes.yml; phải là ID chữ thường, số và dấu gạch ngang.
+    # [EN] Class ID from player-classes.yml; must use lowercase letters, numbers, and hyphens.
+    class-id: guardian
+    # [VI] Tên skill hiển thị; bắt buộc, không được để trống.
+    # [EN] Skill display name; required and must not be blank.
+    display-name: "Khiêu Khích"
+    # [VI] Mô tả chức năng skill; bắt buộc, không được để trống.
+    # [EN] Skill gameplay description; required and must not be blank.
+    description: "Khiêu chiến kẻ địch gần đó để bảo vệ đồng đội."
+    # [VI] Active có thể gán slot; passive hiện chưa có xử lý hiệu ứng trong game.
+    # [EN] Active skills can be slotted; passive effects are not implemented yet.
+    cast-type: active
+    # [VI] Mặc định là giá trị bên dưới; active hợp lệ 1-120 giây, passive phải bằng 0.
+    # [EN] Defaults to the value below; active range is 1-120 seconds, passives must be 0.
+    cooldown-seconds: 12
+    # [VI] Mana tiêu hao; mặc định là giá trị dưới đây, hợp lệ 0-1000; passive phải bằng 0.
+    # [EN] Mana cost; defaults to the value below, valid range 0-1000; passives must be 0.
+    mana-cost: 10
+    # [VI] Cấp nhân vật tối thiểu để học; hợp lệ từ 1 đến 30.
+    # [EN] Minimum character level to learn; valid range is 1 to 30.
+    required-level: 2
+    # [VI] Rank tối đa có thể nâng sau này; hợp lệ từ 1 đến 5.
+    # [EN] Maximum rank available for future upgrades; valid range is 1 to 5.
+    max-rank: 5
+    # [VI] Material biểu tượng skill; phải là item Material hợp lệ.
+    # [EN] Skill icon Material; must be a valid item Material.
+    icon: IRON_INGOT
+    # [VI] ID sách duy nhất mở khóa skill này; phải trùng book ID trong skill-books.yml.
+    # [EN] Unique book ID that unlocks this skill; must match a book ID in skill-books.yml.
+    book-id: taunt-manual
+    # [VI] Lore truyền thừa của skill; từ 1 đến 20 dòng, mỗi dòng không rỗng.
+    # [EN] Skill inheritance lore; 1 to 20 non-empty lines.
+    lore:
+      - "Tiếng khiên vang lên để kẻ thù nhìn về phía người hộ vệ."
+      - "Can đảm không phải là không sợ hãi; đó là chọn đứng chắn đường."
+
+  fortify:
+    # [VI] ID class trong player-classes.yml; phải là ID chữ thường, số và dấu gạch ngang.
+    # [EN] Class ID from player-classes.yml; must use lowercase letters, numbers, and hyphens.
+    class-id: guardian
+    # [VI] Tên skill hiển thị; bắt buộc, không được để trống.
+    # [EN] Skill display name; required and must not be blank.
+    display-name: "Thành Đồng"
+    # [VI] Mô tả chức năng skill; bắt buộc, không được để trống.
+    # [EN] Skill gameplay description; required and must not be blank.
+    description: "Nội tại củng cố thế thủ của người hộ vệ."
+    # [VI] Loại skill; passive chưa thể gán/cast trong vertical slice hiện tại.
+    # [EN] Skill type; passive skills cannot be slotted or cast in this vertical slice.
+    cast-type: passive
+    # [VI] Mặc định là giá trị bên dưới; active hợp lệ 1-120 giây, passive phải bằng 0.
+    # [EN] Defaults to the value below; active range is 1-120 seconds, passives must be 0.
+    cooldown-seconds: 0
+    # [VI] Mana tiêu hao; mặc định là giá trị dưới đây, hợp lệ 0-1000; passive phải bằng 0.
+    # [EN] Mana cost; defaults to the value below, valid range 0-1000; passives must be 0.
+    mana-cost: 0
+    # [VI] Cấp nhân vật tối thiểu để học; hợp lệ từ 1 đến 30.
+    # [EN] Minimum character level to learn; valid range is 1 to 30.
+    required-level: 3
+    # [VI] Rank tối đa có thể nâng sau này; hợp lệ từ 1 đến 5.
+    # [EN] Maximum rank available for future upgrades; valid range is 1 to 5.
+    max-rank: 5
+    # [VI] Material biểu tượng skill; phải là item Material hợp lệ.
+    # [EN] Skill icon Material; must be a valid item Material.
+    icon: IRON_CHESTPLATE
+    # [VI] ID sách duy nhất mở khóa skill này; phải trùng book ID trong skill-books.yml.
+    # [EN] Unique book ID that unlocks this skill; must match a book ID in skill-books.yml.
+    book-id: fortify-manual
+    # [VI] Lore truyền thừa của skill; từ 1 đến 20 dòng, mỗi dòng không rỗng.
+    # [EN] Skill inheritance lore; 1 to 20 non-empty lines.
+    lore:
+      - "Từng vết xước nhắc nhở người hộ vệ vì sao mình đứng đây."
+      - "Khi ý chí vững, hàng ngũ cũng vững."
+
+  fire-bolt:
+    # [VI] ID class trong player-classes.yml; phải là ID chữ thường, số và dấu gạch ngang.
+    # [EN] Class ID from player-classes.yml; must use lowercase letters, numbers, and hyphens.
+    class-id: mage
+    # [VI] Tên skill hiển thị; bắt buộc, không được để trống.
+    # [EN] Skill display name; required and must not be blank.
+    display-name: "Hỏa Cầu"
+    # [VI] Mô tả chức năng skill; bắt buộc, không được để trống.
+    # [EN] Skill gameplay description; required and must not be blank.
+    description: "Phóng một tia lửa ma thuật về phía mục tiêu."
+    # [VI] Active có thể gán slot; passive hiện chưa có xử lý hiệu ứng trong game.
+    # [EN] Active skills can be slotted; passive effects are not implemented yet.
+    cast-type: active
+    # [VI] Mặc định là giá trị bên dưới; active hợp lệ 1-120 giây, passive phải bằng 0.
+    # [EN] Defaults to the value below; active range is 1-120 seconds, passives must be 0.
+    cooldown-seconds: 5
+    # [VI] Mana tiêu hao; mặc định là giá trị dưới đây, hợp lệ 0-1000; passive phải bằng 0.
+    # [EN] Mana cost; defaults to the value below, valid range 0-1000; passives must be 0.
+    mana-cost: 12
+    # [VI] Cấp nhân vật tối thiểu để học; hợp lệ từ 1 đến 30.
+    # [EN] Minimum character level to learn; valid range is 1 to 30.
+    required-level: 1
+    # [VI] Rank tối đa có thể nâng sau này; hợp lệ từ 1 đến 5.
+    # [EN] Maximum rank available for future upgrades; valid range is 1 to 5.
+    max-rank: 5
+    # [VI] Material biểu tượng skill; phải là item Material hợp lệ.
+    # [EN] Skill icon Material; must be a valid item Material.
+    icon: BLAZE_POWDER
+    # [VI] ID sách duy nhất mở khóa skill này; phải trùng book ID trong skill-books.yml.
+    # [EN] Unique book ID that unlocks this skill; must match a book ID in skill-books.yml.
+    book-id: fire-bolt-manual
+    # [VI] Lore truyền thừa của skill; từ 1 đến 20 dòng, mỗi dòng không rỗng.
+    # [EN] Skill inheritance lore; 1 to 20 non-empty lines.
+    lore:
+      - "Ngọn lửa đầu tiên được thắp lên bằng sự tập trung."
+      - "Pháp sư điều khiển sức nóng, không để nó điều khiển mình."
+
+  arcane-field:
+    # [VI] ID class trong player-classes.yml; phải là ID chữ thường, số và dấu gạch ngang.
+    # [EN] Class ID from player-classes.yml; must use lowercase letters, numbers, and hyphens.
+    class-id: mage
+    # [VI] Tên skill hiển thị; bắt buộc, không được để trống.
+    # [EN] Skill display name; required and must not be blank.
+    display-name: "Trường Bí Thuật"
+    # [VI] Mô tả chức năng skill; bắt buộc, không được để trống.
+    # [EN] Skill gameplay description; required and must not be blank.
+    description: "Tạo vùng ma lực làm suy yếu kẻ địch trong khu vực."
+    # [VI] Active có thể gán slot; passive hiện chưa có xử lý hiệu ứng trong game.
+    # [EN] Active skills can be slotted; passive effects are not implemented yet.
+    cast-type: active
+    # [VI] Mặc định là giá trị bên dưới; active hợp lệ 1-120 giây, passive phải bằng 0.
+    # [EN] Defaults to the value below; active range is 1-120 seconds, passives must be 0.
+    cooldown-seconds: 11
+    # [VI] Mana tiêu hao; mặc định là giá trị dưới đây, hợp lệ 0-1000; passive phải bằng 0.
+    # [EN] Mana cost; defaults to the value below, valid range 0-1000; passives must be 0.
+    mana-cost: 18
+    # [VI] Cấp nhân vật tối thiểu để học; hợp lệ từ 1 đến 30.
+    # [EN] Minimum character level to learn; valid range is 1 to 30.
+    required-level: 2
+    # [VI] Rank tối đa có thể nâng sau này; hợp lệ từ 1 đến 5.
+    # [EN] Maximum rank available for future upgrades; valid range is 1 to 5.
+    max-rank: 5
+    # [VI] Material biểu tượng skill; phải là item Material hợp lệ.
+    # [EN] Skill icon Material; must be a valid item Material.
+    icon: ENDER_EYE
+    # [VI] ID sách duy nhất mở khóa skill này; phải trùng book ID trong skill-books.yml.
+    # [EN] Unique book ID that unlocks this skill; must match a book ID in skill-books.yml.
+    book-id: arcane-field-manual
+    # [VI] Lore truyền thừa của skill; từ 1 đến 20 dòng, mỗi dòng không rỗng.
+    # [EN] Skill inheritance lore; 1 to 20 non-empty lines.
+    lore:
+      - "Ma lực không mất đi; nó chỉ đổi hình dạng."
+      - "Một vùng kiểm soát tốt có thể thay đổi cả trận chiến."
+
+  mana-flow:
+    # [VI] ID class trong player-classes.yml; phải là ID chữ thường, số và dấu gạch ngang.
+    # [EN] Class ID from player-classes.yml; must use lowercase letters, numbers, and hyphens.
+    class-id: mage
+    # [VI] Tên skill hiển thị; bắt buộc, không được để trống.
+    # [EN] Skill display name; required and must not be blank.
+    display-name: "Mạch Pháp"
+    # [VI] Mô tả chức năng skill; bắt buộc, không được để trống.
+    # [EN] Skill gameplay description; required and must not be blank.
+    description: "Nội tại giúp pháp sư duy trì dòng chảy ma lực."
+    # [VI] Loại skill; passive chưa thể gán/cast trong vertical slice hiện tại.
+    # [EN] Skill type; passive skills cannot be slotted or cast in this vertical slice.
+    cast-type: passive
+    # [VI] Mặc định là giá trị bên dưới; active hợp lệ 1-120 giây, passive phải bằng 0.
+    # [EN] Defaults to the value below; active range is 1-120 seconds, passives must be 0.
+    cooldown-seconds: 0
+    # [VI] Mana tiêu hao; mặc định là giá trị dưới đây, hợp lệ 0-1000; passive phải bằng 0.
+    # [EN] Mana cost; defaults to the value below, valid range 0-1000; passives must be 0.
+    mana-cost: 0
+    # [VI] Cấp nhân vật tối thiểu để học; hợp lệ từ 1 đến 30.
+    # [EN] Minimum character level to learn; valid range is 1 to 30.
+    required-level: 3
+    # [VI] Rank tối đa có thể nâng sau này; hợp lệ từ 1 đến 5.
+    # [EN] Maximum rank available for future upgrades; valid range is 1 to 5.
+    max-rank: 5
+    # [VI] Material biểu tượng skill; phải là item Material hợp lệ.
+    # [EN] Skill icon Material; must be a valid item Material.
+    icon: AMETHYST_SHARD
+    # [VI] ID sách duy nhất mở khóa skill này; phải trùng book ID trong skill-books.yml.
+    # [EN] Unique book ID that unlocks this skill; must match a book ID in skill-books.yml.
+    book-id: mana-flow-manual
+    # [VI] Lore truyền thừa của skill; từ 1 đến 20 dòng, mỗi dòng không rỗng.
+    # [EN] Skill inheritance lore; 1 to 20 non-empty lines.
+    lore:
+      - "Hãy để ma lực đi qua mình, đừng cố gắng cưỡng ép nó."
+      - "Sự tĩnh lặng cũng là một dạng sức mạnh."

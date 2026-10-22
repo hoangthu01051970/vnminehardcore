@@ -11,6 +11,7 @@
 /workspaces/vnminehardcore/VnMineHardcore/src/main/java/com/vnmine/hardcore/listeners/WorldInteractionListener.java
 /workspaces/vnminehardcore/VnMineHardcore/src/main/java/com/vnmine/hardcore/managers/BossEventManager.java
 /workspaces/vnminehardcore/VnMineHardcore/src/main/java/com/vnmine/hardcore/managers/BossLeaderboardManager.java
+/workspaces/vnminehardcore/VnMineHardcore/src/main/java/com/vnmine/hardcore/managers/CharacterProgression.java
 /workspaces/vnminehardcore/VnMineHardcore/src/main/java/com/vnmine/hardcore/managers/CharacterSelectionManager.java
 /workspaces/vnminehardcore/VnMineHardcore/src/main/java/com/vnmine/hardcore/managers/ConfigManager.java
 /workspaces/vnminehardcore/VnMineHardcore/src/main/java/com/vnmine/hardcore/managers/DeathHistoryManager.java
@@ -26,7 +27,11 @@
 /workspaces/vnminehardcore/VnMineHardcore/src/main/java/com/vnmine/hardcore/managers/MercenaryStatusPacketListener.java
 /workspaces/vnminehardcore/VnMineHardcore/src/main/java/com/vnmine/hardcore/managers/PermissionManager.java
 /workspaces/vnminehardcore/VnMineHardcore/src/main/java/com/vnmine/hardcore/managers/PlayerProfileDatabaseManager.java
+/workspaces/vnminehardcore/VnMineHardcore/src/main/java/com/vnmine/hardcore/managers/PortalDefinition.java
+/workspaces/vnminehardcore/VnMineHardcore/src/main/java/com/vnmine/hardcore/managers/PortalManager.java
 /workspaces/vnminehardcore/VnMineHardcore/src/main/java/com/vnmine/hardcore/managers/RpgWorldManager.java
+/workspaces/vnminehardcore/VnMineHardcore/src/main/java/com/vnmine/hardcore/managers/SkillDefinitionLoader.java
+/workspaces/vnminehardcore/VnMineHardcore/src/main/java/com/vnmine/hardcore/managers/SkillManager.java
 /workspaces/vnminehardcore/VnMineHardcore/src/main/java/com/vnmine/hardcore/managers/SpawnProtectionManager.java
 /workspaces/vnminehardcore/VnMineHardcore/src/main/java/com/vnmine/hardcore/managers/StoryArtifactValidator.java
 /workspaces/vnminehardcore/VnMineHardcore/src/main/java/com/vnmine/hardcore/managers/StoryChapterLoader.java
