@@ -214,6 +214,7 @@ enabled: false  # in plugins/VnMineHardcore/disasters/chorus-explosion.yml
 | `/vngroup ...` | Create/delete groups and grant/revoke group permissions | `vnmine.command.groups.manage` |
 | `/vnuser ...` | Inspect users, assign groups, manage personal permission grants | `vnmine.command.users.manage` |
 | `/vnarmy ...` | Hire/manage mercenaries; rename with `/vnarmy rename <ID> <Tên mới>` | `vnmine.command.army` |
+| `/vnnpc ...` | Create, rename, move, inspect, list, or remove RPG NPCs | `vnmine.command.npc.admin` |
 | `/quatanthu` | Nhận túi quà tân thủ và chọn 1 token triệu hồi lính đánh thuê bậc 1 | — |
 
 ### `/vnevent` Usage
@@ -325,6 +326,7 @@ Operators and the console have all plugin permissions by default.
 | `vnmine.command.groups.manage`, `.users.manage` | Manage permission groups and player assignments |
 | `vnmine.command.army` | Hire and manage a player's mercenary army (default: true) |
 | `vnmine.command.army.admin` | Grant summon tokens or mercenaries with `/vnarmy give` (default: op) |
+| `vnmine.command.npc.admin` | Create, rename, move, inspect, list, and remove RPG NPCs (default: op) |
 | `vnmine.spawnprotection.bypass` | Let a non-operator place/break blocks inside protected regions |
 
 The old `vnmine.hardcore.admin` and `vnmine.hardcore.stats` nodes remain
@@ -574,6 +576,44 @@ whether the character-XP reward was claimed. The refresh button synchronizes
 saved progress; the journal can be hidden with `rpg.quest-journal.enabled`
 (default `true`) in `config.yml`. Start/reminder feedback and completion
 confirmation are also sent as in-game messages.
+
+### RPG NPCs
+
+NPC dialogue templates are defined in
+`plugins/VnMineHardcore/npcs/npc-definitions.yml` and validated at startup.
+The schema supports seven roles: `tutorial`, `quest-giver`, `trainer`,
+`merchant`, `story`, `gatekeeper`, and `healer`. Each definition has a stable
+lowercase ID, display name (up to 64 characters), and 1-20 dialogue lines
+(up to 256 characters each). The file can contain up to 100 definitions;
+duplicate YAML keys, unknown role types, and invalid definitions prevent the
+plugin from starting so the invalid data is not silently ignored. Runtime NPCs
+are stored separately in `plugins/VnMineHardcore/npcs.yml`; their entity UUID,
+role, display name, world, and location are saved and reconciled as chunks load.
+
+The bundled file currently provides tutorial-guide, class-trainer, and
+story-keeper dialogue templates. Create a runtime NPC where you are standing:
+
+```text
+/vnnpc create <id> <type> [display name...]
+/vnnpc rename <id> <display name...>
+/vnnpc move <id>
+/vnnpc info <id>
+/vnnpc list
+/vnnpc remove <id>
+```
+
+IDs use lowercase letters, numbers, and single hyphens. The seven supported
+types are `tutorial`, `quest-giver`, `trainer`, `merchant`, `story`,
+`gatekeeper`, and `healer`; omitted names use the matching template name or a
+title-cased role. Names are limited to 64 characters and support `&` color
+codes. Create and move require a player location; other commands may be run
+from console. Runtime NPCs are stationary, silent, invulnerable vanilla
+villagers and are protected from the custom villager-trade system. Right-click
+is intentionally blocked until dialogue interactions are implemented.
+`rpg.npc.max-runtime-npcs` sets the runtime limit (default `100`, range `1-100`).
+The command requires `vnmine.command.npc.admin` (default: operators). Admin GUI,
+dialogue GUI/actions, quests, waypoint particles, and custom skins remain future
+work.
 
 ### Death Section
 ```yaml
@@ -1038,6 +1078,7 @@ Located in `plugins/VnMineHardcore/`:
 | `stats.yml` | Player statistics |
 | `death-penalty.yml` | Death penalty data (stacks, recovery) |
 | `permission.yml` | Permission groups and user assignments |
+| `npcs.yml` | Runtime RPG NPC records and spawn locations |
 
 ---
 

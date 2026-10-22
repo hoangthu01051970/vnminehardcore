@@ -440,7 +440,8 @@ Mỗi portal có dữ liệu:
 
 ### Phase 0 – Cốt lõi dữ liệu và design lock
 - [x] Chốt class, skill, naming convention và schema skill/book.
-- [ ] Thiết kế/validate schema portal, NPC và dialogue trước khi bắt đầu các phase tương ứng.
+- [x] Thiết kế/validate schema NPC/dialogue: bảy loại vai trò, ID ổn định, display name, giới hạn nội dung thoại, kiểm tra khóa YAML trùng và giới hạn registry.
+- [ ] Thiết kế/validate các điểm còn lại của portal/NPC runtime trước khi triển khai tương ứng.
 
 ### Phase 1 – Level/EXP + skill point
 - [x] Tăng level, EXP, skill point; hiển thị trong GUI profile.
@@ -488,9 +489,12 @@ Mỗi portal có dữ liệu:
 - [ ] Kiểm thử Paper: trigger theo vùng, teleport qua nhiều world/chunk, combat/death gate, particle và reload/restart persistence.
 
 ### Phase 5 – NPC + tutorial + quest flow
-- NPC trainer, story, quest giver, gatekeeper.
-- Dialogue GUI + reward chain.
-- Waypoint, particle, quest bước đầu.
+- [x] Tạo registry definition NPC YAML có schema version, bảy loại vai trò và mẫu thoại cho tutorial guide, class trainer, story keeper.
+- [x] Nạp/validate registry khi plugin khởi động; file lỗi được log rõ và từ chối khởi động plugin.
+- [x] Tạo nhiều NPC runtime bằng villager vanilla có tag/UUID ổn định; lưu/khôi phục theo chunk, lệnh `/vnnpc create|rename|move|remove|info|list`, quyền admin và giới hạn cấu hình 1-100.
+- [ ] Kiểm thử Paper: tạo nhiều NPC, restart/chunk unload-load, rename/move/remove và bảo đảm không trùng entity.
+- [ ] Thêm tương tác NPC và dialogue GUI; nối trainer/quest giver với skill book và quest flow.
+- [ ] Thêm tutorial waypoint, particle dẫn đường và kiểm thử gameplay bằng Paper.
 
 ## 12. Rủi ro và quyết định cốt lõi
 

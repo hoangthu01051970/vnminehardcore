@@ -124,6 +124,10 @@ commands:
     description: Tạo và quản lý các portal dịch chuyển RPG
     usage: /vnportal <wand|pos1|pos2|create|setspawn|link|unlink|enable|disable|remove|info|list|validate>
     permission: vnmine.command.portal.admin
+  vnnpc:
+    description: Tạo và quản lý các NPC RPG
+    usage: /vnnpc <create|rename|move|remove|info|list>
+    permission: vnmine.command.npc.admin
   vnmenu:
     description: Mở menu chức năng của VnMineHardcore
     usage: /vnmenu
@@ -214,7 +218,10 @@ permissions:
     description: Cho phép cấp sách kỹ năng bằng /vnskillbook
     default: op
   vnmine.command.portal.admin:
-    description: Cho phép tạo và quản lý portal RPG bằng /vnportal
+    description: Cho phép tạo và quản lý portal RPG
+    default: op
+  vnmine.command.npc.admin:
+    description: Cho phép tạo, đổi tên, di chuyển và xóa NPC RPG bằng /vnportal
     default: op
   vnmine.spawnprotection.bypass:
     description: Cho phép người chơi phá hoặc đặt block trong vùng spawn protection

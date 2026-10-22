@@ -1,0 +1,43 @@
+# [VI] Phiên bản schema NPC; mặc định 1, chỉ hỗ trợ phiên bản 1.
+# [EN] NPC schema version; defaults to 1 and only version 1 is supported.
+schema-version: 1
+
+npc-definitions:
+  tutorial-guide:
+    # [VI] Loại NPC; một trong tutorial, quest-giver, trainer, merchant, story, gatekeeper, healer.
+    # [EN] NPC role; one of tutorial, quest-giver, trainer, merchant, story, gatekeeper, healer.
+    type: tutorial
+    # [VI] Tên hiển thị; bắt buộc, không rỗng, tối đa 64 ký tự.
+    # [EN] Display name; required, non-empty, maximum 64 characters.
+    display-name: "Người dẫn đường"
+    # [VI] Thoại GUI mẫu; cần từ 1 đến 20 dòng, mỗi dòng tối đa 256 ký tự.
+    # [EN] Sample GUI dialogue; requires 1 to 20 lines, each at most 256 characters.
+    dialogue:
+      - "Chào mừng đến với Nhân giới, lữ khách."
+      - "Hãy mở nhật ký nhiệm vụ và tìm điểm spawn an toàn để bắt đầu hành trình."
+
+  class-trainer:
+    # [VI] Loại vai trò NPC; giá trị hợp lệ được liệt kê trong phần hướng dẫn.
+    # [EN] NPC role; valid values are listed in the field documentation.
+    type: trainer
+    # [VI] Tên hiển thị; tối đa 64 ký tự.
+    # [EN] Display name; maximum 64 characters.
+    display-name: "Huấn luyện sư"
+    # [VI] Nội dung thoại; từ 1 đến 20 dòng, mỗi dòng tối đa 256 ký tự.
+    # [EN] Dialogue content; 1 to 20 lines, each at most 256 characters.
+    dialogue:
+      - "Muốn học kỹ năng, hãy tìm sách phù hợp với class của mình."
+      - "Dùng /vnskills tree để xem kỹ năng và phân bổ skill point."
+
+  story-keeper:
+    # [VI] Loại vai trò NPC; giá trị hợp lệ được liệt kê trong phần hướng dẫn.
+    # [EN] NPC role; valid values are listed in the field documentation.
+    type: story
+    # [VI] Tên hiển thị; tối đa 64 ký tự.
+    # [EN] Display name; maximum 64 characters.
+    display-name: "Người giữ ký ức"
+    # [VI] Nội dung thoại; từ 1 đến 20 dòng, mỗi dòng tối đa 256 ký tự.
+    # [EN] Dialogue content; 1 to 20 lines, each at most 256 characters.
+    dialogue:
+      - "Mỗi cánh cổng đều dẫn tới một câu chuyện chưa kể."
+      - "Hãy ghi nhớ những gì đã xảy ra; lịch sử của đại lục nằm trong tay các ngươi."

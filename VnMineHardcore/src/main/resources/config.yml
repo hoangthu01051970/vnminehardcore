@@ -91,6 +91,10 @@ rpg:
     # [VI] Bật/tắt mục nhật ký nhiệm vụ trong menu chính; mặc định true.
     # [EN] Enable/disable the quest journal entry in the main menu; default true.
     enabled: true
+  npc:
+    # [VI] Số NPC runtime tối đa có thể quản lý; mặc định 100, hợp lệ 1-100.
+    # [EN] Maximum number of managed runtime NPCs; defaults to 100, valid range 1-100.
+    max-runtime-npcs: 100
   world-map:
     # [VI] Bật/tắt mục Bản đồ đại lục trong menu chính; mặc định true.
     # [EN] Enable/disable the continent map entry in the main menu; default true.
