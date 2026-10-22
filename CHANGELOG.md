@@ -9,7 +9,7 @@
 ## [Unreleased]
 
 ### Added
-- Mở rộng menu chính thành 45 ô, phân nhóm tiện ích máy chủ, chức năng RPG và trợ giúp/admin; giữ nguyên quyền truy cập và điều hướng hiện có.
+- Mở rộng menu chính thành 45 ô, phân nhóm tiện ích máy chủ, chức năng RPG và trợ giúp/admin; bổ sung header và separator cho menu admin, giữ nguyên quyền truy cập/điều hướng.
 - Thêm file `story/chapters.yml` với chapter có ID ổn định, thứ tự hiển thị và loader/kiểm tra cấu hình riêng; giữ nguyên danh sách artifact và `story-id` hiện có trong `story.yml`.
 - Kiểm thử và tách logic merge cấu hình YAML: chỉ thêm giá trị mặc định còn thiếu, không ghi đè cấu hình server; giữ nội dung story legacy, không tự động migration hoặc xóa dữ liệu `story.yml`.
 - Từ chối file story có khóa YAML trùng trước khi cấu hình map có thể ghi đè định nghĩa ID; lỗi được log và nội dung file đó không được nạp.
