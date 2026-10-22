@@ -20,6 +20,7 @@ public final class NpcDefinitionLoader {
     private static final int SUPPORTED_SCHEMA_VERSION = 1;
     private static final int MAX_DEFINITIONS = 100;
     private static final int MAX_DIALOGUE_LINES = 20;
+    private static final int MAX_ACTIONS = 4;
     private static final Set<String> SUPPORTED_TYPES = Set.of(
         "tutorial", "quest-giver", "trainer", "merchant", "story", "gatekeeper", "healer");
     private static final Pattern ID_PATTERN = Pattern.compile("[a-z0-9]+(?:-[a-z0-9]+)*");
@@ -94,9 +95,11 @@ public final class NpcDefinitionLoader {
             }
             List<String> dialogue = readDialogue(section, path, logger);
             if (dialogue == null) definitionValid = false;
+            List<NpcAction> actions = readActions(section, path, logger);
+            if (actions == null) definitionValid = false;
 
             if (definitionValid) {
-                definitions.put(id, new NpcDefinition(id, type, displayName, dialogue));
+                definitions.put(id, new NpcDefinition(id, type, displayName, dialogue, actions));
             } else {
                 valid = false;
             }
@@ -135,9 +138,61 @@ public final class NpcDefinitionLoader {
         return List.copyOf(dialogue);
     }
 
-    public record NpcDefinition(String id, String type, String displayName, List<String> dialogue) {
+    private static List<NpcAction> readActions(ConfigurationSection section, String path, Logger logger) {
+        Object value = section.get("actions");
+        if (value == null) return List.of();
+        if (!(value instanceof List<?> actions) || actions.size() > MAX_ACTIONS) {
+            logger.warning("[NPC] actions at " + path + " must contain at most " + MAX_ACTIONS + " entries.");
+            return null;
+        }
+
+        List<NpcAction> parsedActions = new java.util.ArrayList<>(actions.size());
+        for (int index = 0; index < actions.size(); index++) {
+            Object rawAction = actions.get(index);
+            if (!(rawAction instanceof Map<?, ?> action)) {
+                logger.warning("[NPC] Invalid action " + (index + 1) + " at " + path + ".");
+                return null;
+            }
+            Object rawType = action.get("type");
+            Object rawLabel = action.get("label");
+            Object rawBookId = action.get("book-id");
+            if (!(rawType instanceof String type)
+                    || !(rawLabel instanceof String label)
+                    || label.isBlank() || label.length() > 32) {
+                logger.warning("[NPC] Action " + (index + 1) + " at " + path
+                    + " requires a supported type and a label of 1-32 characters.");
+                return null;
+            }
+            String bookId = null;
+            if (type.equals("give-skill-book")) {
+                if (!(rawBookId instanceof String configuredBookId)
+                        || !ID_PATTERN.matcher(configuredBookId).matches()) {
+                    logger.warning("[NPC] give-skill-book action " + (index + 1) + " at " + path
+                        + " requires a valid book-id.");
+                    return null;
+                }
+                bookId = configuredBookId;
+            } else if (!type.equals("open-skill-tree") && !type.equals("open-quest-journal")) {
+                logger.warning("[NPC] Unsupported action type '" + type + "' at " + path + ".");
+                return null;
+            }
+            parsedActions.add(new NpcAction(type, label.trim(), bookId));
+        }
+        return List.copyOf(parsedActions);
+    }
+
+    public record NpcAction(String type, String label, String bookId) {
+    }
+
+    public record NpcDefinition(String id, String type, String displayName, List<String> dialogue,
+                                List<NpcAction> actions) {
+        public NpcDefinition(String id, String type, String displayName, List<String> dialogue) {
+            this(id, type, displayName, dialogue, List.of());
+        }
+
         public NpcDefinition {
             dialogue = List.copyOf(dialogue);
+            actions = List.copyOf(actions);
         }
     }
 }

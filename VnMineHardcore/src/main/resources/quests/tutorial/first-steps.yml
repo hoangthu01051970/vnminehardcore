@@ -45,6 +45,18 @@ quest:
     # [EN] Radius that counts as reaching the spawn; defaults to 8 blocks, valid range 1..64.
     radius-blocks: 8
 
+    # [VI] Bật action bar và particle dẫn tới spawn; mặc định true.
+    # [EN] Enable the action bar and particle trail to the spawn; defaults to true.
+    waypoint-enabled: true
+
+    # [VI] Khoảng cập nhật waypoint; mặc định 20 tick, giới hạn 5..200 tick.
+    # [EN] Waypoint update interval; defaults to 20 ticks, valid range 5..200 ticks.
+    waypoint-update-interval-ticks: 20
+
+    # [VI] Tầm tối đa vẽ particle; mặc định 48 block, giới hạn 8..64 block.
+    # [EN] Maximum distance for drawing particles; defaults to 48 blocks, valid range 8..64 blocks.
+    waypoint-particle-range-blocks: 48
+
     # [VI] Hướng dẫn khi quest tự bắt đầu; mặc định chỉ người chơi tới điểm spawn, không cần lệnh.
     # [EN] Guidance shown when the quest auto-starts; defaults to visiting the spawn, no command required.
     start-message: "Đi tới điểm spawn an toàn của Nhân giới để hoàn thành hướng dẫn."

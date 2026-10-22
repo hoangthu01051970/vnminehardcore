@@ -2,12 +2,16 @@
 
 ## [Unreleased]
 
+## [v2.2.0] - 2026-10-22
+
 ### Added
 - Thêm nội tại Tâm Kiếm cho kiếm sĩ đã học sách: tăng sát thương đánh thường/đánh quét lên quái theo rank, nâng rank bằng skill point theo cấp yêu cầu và cấu hình riêng; không áp dụng cho PvP, đạn hoặc sát thương skill chủ động.
 - Thêm nội tại Thành Đồng cho hộ vệ đã học sách: đòn đánh của quái thù địch cộng stack giảm sát thương theo rank, tự hết hạn sau thời gian cấu hình; hỗ trợ nâng rank bằng skill point.
 - Thêm nội tại Mạch Pháp cho pháp sư đã học sách: cast skill chủ động thành công liên tiếp hồi mana theo rank, với cửa sổ combo và lượng mana có thể cấu hình; hỗ trợ nâng rank bằng skill point.
 - Thêm registry định nghĩa và NPC runtime dạng villager bất tử, đứng yên; lưu/khôi phục vị trí, đổi tên/di chuyển/xóa/liệt kê bằng `/vnnpc`, giới hạn số NPC cấu hình được và quyền quản trị riêng.
 - Thêm tương tác nhấp phải NPC mở GUI thoại tối đa 20 dòng theo định nghĩa; khóa thao tác kéo/đổi vật phẩm trong GUI và nút đóng riêng.
+- Thêm nút hành động NPC cấu hình được để mở nhật ký quest/skill tree hoặc cấp skill book, giới hạn chống cấp trùng và sửa thứ tự khởi tạo NPC listener.
+- Thêm waypoint tutorial cấu hình được: action bar hiển thị vị trí/khoảng cách spawn và particle End Rod dẫn đường trong tầm gần, có giới hạn tần suất cập nhật.
 
 ## [v2.0.3] - 2026-10-21
 

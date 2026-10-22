@@ -557,6 +557,12 @@ spawn. The only supported objective type in this slice is
 `visit-realm-spawn`; its horizontal radius defaults to 8 blocks and can be
 configured from 1 to 64. The quest ID and objective ID are persisted in SQLite,
 so reconnecting does not restart or duplicate progress.
+While the objective is active, an action bar shows the resolved spawn location
+and distance; an End Rod particle trail is shown when the player is in the same
+world and within 48 blocks. Configure `quest.objective.waypoint-enabled`
+(default `true`), `waypoint-update-interval-ticks` (default `20`, range `5-200`),
+and `waypoint-particle-range-blocks` (default `48`, range `8-64`) in the quest
+definition. Older definitions that omit these fields use the defaults.
 
 The quest reward is configured with `quest.reward.type: character-exp` and
 `quest.reward.amount` (default `25`, valid range `0-100000`). It is recorded in
@@ -584,7 +590,21 @@ NPC dialogue templates are defined in
 The schema supports seven roles: `tutorial`, `quest-giver`, `trainer`,
 `merchant`, `story`, `gatekeeper`, and `healer`. Each definition has a stable
 lowercase ID, display name (up to 64 characters), and 1-20 dialogue lines
-(up to 256 characters each). The file can contain up to 100 definitions;
+(up to 256 characters each). Optional `actions` add up to four clickable GUI
+buttons: `open-quest-journal`, `open-skill-tree`, or `give-skill-book` with a
+configured `book-id`. For example:
+
+```yaml
+actions:
+  - type: open-skill-tree
+    label: "Xem skill tree"
+  - type: give-skill-book
+    label: "Nhận bí kíp"
+    book-id: blade-flare-manual
+```
+
+The book action does not grant another copy if that skill is learned or the
+same book is already in the player's inventory. The file can contain up to 100 definitions;
 duplicate YAML keys, unknown role types, and invalid definitions prevent the
 plugin from starting so the invalid data is not silently ignored. Runtime NPCs
 are stored separately in `plugins/VnMineHardcore/npcs.yml`; their entity UUID,
@@ -609,17 +629,18 @@ title-cased role. Names are limited to 64 characters and support `&` color
 codes. Create and move require a player location; other commands may be run
 from console. Runtime NPCs are stationary, silent, invulnerable vanilla
 villagers and are protected from the custom villager-trade system. Right-click
-opens a 54-slot dialogue GUI showing up to 20 configured lines; its controls
-are decorative except for the close button, so this slice does not yet start
-quests, teach skills, or sell items. Dialogue lookup first tries a definition
+opens a 54-slot dialogue GUI showing up to 20 configured lines and configured
+action buttons. Quest journal and skill tree buttons open their existing RPG
+interfaces; a skill-book button grants the configured book for learning.
+Dialogue lookup first tries a definition
 whose ID matches the runtime NPC ID and role, then uses the first definition of
 the same role. Add role-specific definition entries to provide distinct
 dialogue. NPC roles without a matching definition show a setup message instead
 of silently using unrelated dialogue.
 `rpg.npc.max-runtime-npcs` sets the runtime limit (default `100`, range `1-100`).
 The command requires `vnmine.command.npc.admin` (default: operators). Admin GUI,
-dialogue actions, trainer/quest integration, waypoint particles, and custom
-skins remain future work.
+quest acceptance/reward actions, waypoint particles, and custom skins remain
+future work.
 
 ### Death Section
 ```yaml
