@@ -493,7 +493,8 @@ Mỗi portal có dữ liệu:
 - [x] Nạp/validate registry khi plugin khởi động; file lỗi được log rõ và từ chối khởi động plugin.
 - [x] Tạo nhiều NPC runtime bằng villager vanilla có tag/UUID ổn định; lưu/khôi phục theo chunk, lệnh `/vnnpc create|rename|move|remove|info|list`, quyền admin và giới hạn cấu hình 1-100.
 - [ ] Kiểm thử Paper: tạo nhiều NPC, restart/chunk unload-load, rename/move/remove và bảo đảm không trùng entity.
-- [ ] Thêm tương tác NPC và dialogue GUI; nối trainer/quest giver với skill book và quest flow.
+- [x] Nhấp phải NPC mở dialogue GUI; hiển thị tối đa 20 dòng theo ID/role definition, chặn kéo vật phẩm và có nút đóng.
+- [ ] Nối trainer/quest giver với skill book, quest flow và các hành động trong GUI.
 - [ ] Thêm tutorial waypoint, particle dẫn đường và kiểm thử gameplay bằng Paper.
 
 ## 12. Rủi ro và quyết định cốt lõi

@@ -7,6 +7,7 @@
 - Thêm nội tại Thành Đồng cho hộ vệ đã học sách: đòn đánh của quái thù địch cộng stack giảm sát thương theo rank, tự hết hạn sau thời gian cấu hình; hỗ trợ nâng rank bằng skill point.
 - Thêm nội tại Mạch Pháp cho pháp sư đã học sách: cast skill chủ động thành công liên tiếp hồi mana theo rank, với cửa sổ combo và lượng mana có thể cấu hình; hỗ trợ nâng rank bằng skill point.
 - Thêm registry định nghĩa và NPC runtime dạng villager bất tử, đứng yên; lưu/khôi phục vị trí, đổi tên/di chuyển/xóa/liệt kê bằng `/vnnpc`, giới hạn số NPC cấu hình được và quyền quản trị riêng.
+- Thêm tương tác nhấp phải NPC mở GUI thoại tối đa 20 dòng theo định nghĩa; khóa thao tác kéo/đổi vật phẩm trong GUI và nút đóng riêng.
 
 ## [v2.0.3] - 2026-10-21
 
