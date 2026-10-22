@@ -1,834 +1,570 @@
-# Kế hoạch chi tiết: Xây dựng thế giới RPG hardcore VNMINE
+# Kế hoạch chi tiết mở rộng RPG VNMINE
 
-> Tài liệu thiết kế và lộ trình triển khai. Đây chưa phải cam kết về số liệu cân bằng cuối cùng; các con số gameplay phải được cấu hình, thử nghiệm và điều chỉnh trước khi phát hành. Người chơi thao tác các tính năng RPG qua GUI; các file YAML và công cụ quản trị là giao diện cấu hình dành cho chủ server.
+> Đây là kế hoạch thiết kế, chưa phải mô tả tính năng đã được triển khai. Các con số chiến đấu trong tài liệu là giá trị khởi điểm để playtest; khi đưa vào code phải cấu hình được, validate và cân bằng bằng kiểm thử. Tài liệu được xây dựng trên nền source hiện có: 15 class trong `player-classes.yml`, profile SQLite, hub F, quest hướng dẫn, journal, realm map và luồng teleport realm.
 
-## 1. Tầm nhìn và mục tiêu sản phẩm
+## 1. Mục tiêu và trạng thái nền
 
-VNMINE là một thế giới Minecraft RPG có cốt truyện, gồm nhiều đại lục/world liên kết bằng cổng. Người chơi tạo nhân vật, chọn chủng tộc và class riêng, khám phá, nhận nhiệm vụ, chiến đấu với boss, mở khóa khu vực và góp phần khám phá vũ trụ truyện VNMINE.
+### 1.1 Mục tiêu
 
-Trải nghiệm phải giữ chất **hardcore sinh tồn**: tài nguyên có giá trị, môi trường nguy hiểm, chiến đấu đòi hỏi chuẩn bị và quyết định sai có hậu quả. Độ khó không được biến thành bất khả thi: nguy hiểm cần được báo hiệu, cơ chế cần được dạy, thất bại phải cho cơ hội phục hồi và tiến trình không được phụ thuộc vào vật phẩm quá hiếm hoặc nhóm đông người bắt buộc.
+Hoàn thiện trải nghiệm RPG theo vòng chơi:
 
-### 1.1 Mục tiêu bắt buộc
+1. Người chơi chọn race/class và được hướng dẫn bởi NPC.
+2. Nhận skill book, học kỹ năng dành cho class.
+3. Tích lũy character EXP, lên level, nhận skill point và phân phối trong giao diện skill.
+4. Gán skill vào quickbar, dùng Q mở bảng cast rồi cast bằng số hoặc click.
+5. Nhận quest, mở chapter/realm và đi qua những portal được xây dựng, định danh, liên kết rõ ràng.
+6. Tương tác với nhiều NPC có tên, vai trò, hội thoại, skin tùy khả năng kỹ thuật và GUI phù hợp.
 
-1. Có vòng chơi RPG hoàn chỉnh: tạo nhân vật → được hướng dẫn → nhận nhiệm vụ → khám phá/chiến đấu → nhận thưởng → mở nội dung mới.
-2. Có nhiều đại lục riêng, mỗi đại lục gắn với một Minecraft world hoặc cấu hình world rõ ràng.
-3. Có chủng tộc và class dành cho người chơi; không dùng nhầm class lính đánh thuê làm class nhân vật.
-4. Có cốt truyện và nhiệm vụ được chia nhỏ, tham chiếu bằng ID ổn định và có thể mở rộng mà không biến một YAML thành kho chứa mọi loại dữ liệu.
-5. Có lưu tiến trình riêng cho từng người chơi, an toàn qua restart và nâng cấp.
-6. Người chơi sử dụng GUI làm phương thức tương tác chính; menu được điều hướng rõ ràng, có xác nhận cho lựa chọn khó đảo ngược.
-7. Tất cả thông số gameplay mới có cấu hình mặc định hợp lý, có chú thích tiếng Việt và tiếng Anh, có giới hạn hợp lệ và được kiểm tra.
-8. Các thay đổi không phá hỏng boss, loot, `story-id`, menu F, lính đánh thuê hoặc dữ liệu hiện hữu.
+### 1.2 Đã có trong source; không làm lại như tính năng mới
 
-### 1.2 Ngoài phạm vi của đợt đầu
+- 15 class và 5 race được khai báo trong `VnMineHardcore/src/main/resources/player-classes.yml` và `races.yml`.
+- SQLite đã lưu `level`, `exp`, quest progress, world unlock và portal progress. Reward tutorial hiện cộng character EXP; chưa có hệ thống tự tính level-up/skill point/skill.
+- Có GUI tạo nhân vật, hub mở bằng F, journal quest và chapter, realm map, điều kiện unlock và teleport an toàn theo realm.
+- Có quest tutorial `first-steps`; hiện mục tiêu là tới điểm spawn, chưa có chuỗi quest/NPC hội thoại đầy đủ.
+- ProtocolLib là dependency bắt buộc và code có packet listeners; nhưng chưa có hệ thống packet keybind cho người chơi.
+- Chưa tìm thấy player skill book/progression, quản lý portal do admin tự đánh dấu/tạo/link, hoặc hệ NPC RPG tổng quát.
 
-- Không xây ngay toàn bộ các đại lục và hàng chục class trước khi vòng chơi đầu tiên được kiểm chứng.
-- Không bắt buộc xóa nhân vật/permadeath chỉ vì sản phẩm có nhãn hardcore.
-- Không xây trình biên tập nhiệm vụ trong game ở phiên bản nền tảng; quản trị viên có thể định nghĩa nội dung bằng YAML.
-- Không tạo hệ thống kinh tế, đấu giá, bang hội, PvP xếp hạng hoặc crafting riêng nếu chúng chưa phục vụ trực tiếp vòng chơi cốt lõi.
-- Không chuyển mọi dữ liệu sang cơ sở dữ liệu lớn ngay lập tức; chọn lưu trữ theo quy mô và yêu cầu nhất quán.
+Khi bắt đầu mỗi phase phải kiểm tra lại trạng thái code và tái sử dụng manager/service hiện có thay vì giả định kế hoạch này luôn phản ánh source mới nhất.
 
-## 2. Hiện trạng mã nguồn và các ràng buộc
+## 2. Quyết định thiết kế đề xuất
 
-Đây là cơ sở thiết kế rút ra từ mã nguồn đang có; cần đối chiếu lại ở đầu mỗi giai đoạn triển khai vì code có thể đã thay đổi:
+1. **Dữ liệu tiến trình người chơi:** tiếp tục dùng SQLite hiện có; mở rộng bằng migration có backup/rollback, không lưu tiến trình người chơi vào YAML.
+2. **Định nghĩa nội dung:** YAML có version riêng cho skills, skill books, portals, NPCs, dialogue và quests. ID ổn định, lowercase kebab-case.
+3. **Level:** tái sử dụng `level`/`exp` trong profile; phân biệt rõ character EXP với vanilla XP và XP của mercenary.
+4. **Skill unlock và skill upgrade là hai việc khác nhau:** sách/NPC/quest mở khóa skill; skill point dùng nâng rank của skill đã học.
+5. **Quick cast giai đoạn đầu:** bấm Q mở GUI skill bar; số 1–9 chọn/cast slot trong khi GUI đang mở, click chuột là đường dự phòng. Chỉ triển khai bắt phím số toàn cục bằng packet sau khi xác minh client packet và tương thích ProtocolLib.
+6. **Portal quản trị:** dùng selection bằng rìu gỗ kiểu WorldEdit làm tiện ích chọn vùng, nhưng plugin tự xử lý event, không phụ thuộc WorldEdit. Lệnh quản trị là nguồn thao tác rõ ràng và có thể kiểm thử.
+7. **NPC giai đoạn đầu:** nhiều NPC được khai báo bằng ID riêng; NPC vật lý dùng entity Paper ổn định với PDC. Custom player skin là pha sau vì cần fake player/profile packet; không giả định villager có thể mang skin người chơi.
+8. **Gameplay người chơi:** dùng GUI, NPC và tương tác trong world; lệnh xây dựng/quản trị chỉ dành cho permission quản trị viên.
 
-- Plugin nằm trong `VnMineHardcore/`, dùng Paper API và Java 25; các hệ thống được khởi tạo/đăng ký trong `VnMineHardcore/src/main/java/com/vnmine/hardcore/VnMineHardcore.java`.
-- `MercenaryManager` có nhiều menu GUI, tiến trình lính đánh thuê và xử lý `PlayerSwapHandItemsEvent` để chặn phím F, mở menu chính khi cấu hình `menus.main.enabled` và `menus.main.intercept-f-key` bật.
-- `DeathHistoryManager` cho thấy mẫu GUI có holder riêng, định danh người xem, phân trang và xử lý click.
-- `ConfigManager` đang nạp cấu hình, tạo/mở rộng tài nguyên YAML và nạp `story.yml`.
-- `story.yml` hiện có `universe`, `chapters` và `artifacts`. Loader thực tế sử dụng `artifacts` cho lore item/giáp; chưa có tiến trình truyện hay nhiệm vụ dùng `universe`/`chapters`.
-- Các file boss liên kết loot/giáp tới `story.yml` bằng `story-id`. Những ID đó là hợp đồng tương thích cần giữ hoặc di trú có kiểm soát.
-- Plugin đã có boss theo cấp, loot boss, leaderboard, hình phạt tử vong, thirst/hunger, thiên tai, lính đánh thuê và các GUI quản trị/chơi hiện có. Đây là tài sản cần tích hợp có chủ đích, không thay thế đồng loạt.
-- `plugin.yml` hiện mô tả các lệnh plugin; lệnh quản trị có thể giữ lại. Yêu cầu “chỉ qua GUI” áp dụng cho gameplay của người chơi, không buộc quản trị viên cấu hình mọi thứ bằng GUI.
-- Cấu hình mặc định phải được hợp nhất mà không ghi đè giá trị do chủ server sửa. Cách merge hiện hữu cần được kiểm tra với cấu hình dạng danh sách và nhiều file trước khi mở rộng.
+## 3. Hệ thống level và skill point
 
-## 3. Nguyên tắc thiết kế gameplay
+### 3.1 Nguồn EXP và nguyên tắc lên cấp
 
-### 3.1 Hardcore nhưng công bằng
+- Dùng character EXP trong profile; không gọi `Player.giveExp()` và không trộn với EXP của lính đánh thuê.
+- Nguồn EXP của MVP: quest đã validate, chapter/boss reward có điều kiện tham gia. Không thưởng EXP lặp theo mỗi hit; mob farm vô hạn chưa là nguồn mặc định.
+- Hoàn tất quest và cộng EXP phải cùng transaction/idempotency như cơ chế quest reward hiện có.
+- Level-up tự động khi EXP đạt ngưỡng; xử lý nhiều level nếu nhận reward lớn. Báo số level và skill point mới trong GUI/action bar.
+- Level/EXP hiện có phải được migration/đọc tương thích; không reset profile.
 
-- Khó do lựa chọn, chuẩn bị, môi trường, tài nguyên và cơ chế boss; không khó do thông tin bị giấu hoặc ngẫu nhiên không thể phản ứng.
-- Cảnh báo nguy hiểm trước khi gây sát thương lớn: âm thanh, hiệu ứng, vùng đánh dấu, hoạt ảnh hoặc thông báo GUI phù hợp.
-- Có độ khó tăng theo đại lục/chương và đường lui hợp lý; vùng đầu tiên không được đòi trang bị endgame.
-- Tử vong gây tổn thất có ý nghĩa nhưng có cơ chế quay lại trận, lấy lại vật phẩm/tiến trình hoặc hồi phục theo chính sách server.
-- Không cộng dồn vô hạn các hình phạt hiện tại với phạt RPG. Phải mô phỏng tác động giữa death penalty, đồ rơi/mộ, thirst, boss và các hiệu ứng class.
-- Cân bằng riêng cho chơi solo và tổ đội; không bắt buộc phải có healer/tank hoặc đội hình hoàn hảo để hoàn thành cốt truyện chính.
-- Thử thách cuối game có thể cực khó, nhưng phải có tín hiệu học hỏi và khả năng thử lại.
+### 3.2 Đường cong MVP đề xuất
 
-### 3.2 Tân thủ có khả năng tiếp cận
+- Level khởi điểm: 1; cap vertical slice: 30, sau này cấu hình mở rộng.
+- EXP cần cho level kế tiếp: `100 + 50 × (level hiện tại - 1)`, tính theo cấu hình; mỗi lần lên 1 level nhận 1 skill point.
+- Level 1 chưa có điểm miễn phí; chạm level 2 nhận điểm đầu tiên.
+- Công thức và cap là mặc định playtest, không phải cân bằng cuối. Loader kiểm tra số dương, cap hợp lệ và không làm tràn số.
+- Một lần nhận EXP có thể lên nhiều cấp; transaction lưu level, EXP, điểm chưa tiêu và lịch sử reward nguyên tử.
 
-- Nhân giới là điểm khởi đầu mặc định, có khu an toàn/hướng dẫn và nhiệm vụ nhập môn ngắn.
-- Hướng dẫn chỉ dạy một khái niệm mỗi bước: di chuyển, sinh tồn, chiến đấu, dùng GUI, nhận nhiệm vụ, cổng.
-- Chủng tộc/class hiển thị điểm mạnh, điểm yếu, vai trò, độ phức tạp và kỹ năng trước khi xác nhận.
-- Nêu rõ lựa chọn nào khóa vĩnh viễn, lựa chọn nào đổi được và chi phí/điều kiện đổi.
-- Có nhắc lại hướng dẫn từ menu Sổ tay; không ép người chơi phải đọc một đoạn hội thoại dài.
-- Phần thưởng đầu game tạo cảm giác tiến triển, nhưng không làm mất thử thách hoặc khiến class khác kém giá trị.
+### 3.3 Skill point dùng ở đâu?
 
-### 3.3 Tiến trình dễ hiểu
+- Mở **Hồ sơ RPG → Kỹ năng → Cây kỹ năng** từ hub F hoặc `/vnskills`.
+- Skill đã học hiển thị rank hiện tại, rank tối đa, điểm nâng cấp cần, tác dụng ở rank kế tiếp và điều kiện còn thiếu.
+- Click skill → trang chi tiết; click “Nâng 1 rank” → xác nhận nếu thao tác không thể hoàn tác; chỉ trừ điểm khi DB update thành công.
+- Skill point chỉ nâng rank skill đã học; không thay sách để mở skill, không dùng cho race/class/mercenary.
+- MVP không hoàn tiền điểm. Thiết kế reset build chỉ sau này, qua NPC chuyên biệt, chi phí rõ ràng, xác nhận hai lần và audit.
+- GUI luôn hiển thị tổng điểm đã nhận / đã dùng / còn lại; lỗi DB phải báo thất bại, không giả vờ đã nâng.
 
-- Mỗi nhiệm vụ có mục tiêu cụ thể, trạng thái hiện tại và chỉ dẫn bước tiếp theo.
-- Mỗi đại lục có bảng mô tả độ nguy hiểm, đề xuất chuẩn bị và điều kiện mở khóa.
-- Tài nguyên, XP, cấp nhân vật, cấp boss và cấp lính phải là các khái niệm khác nhau, có tên/GUI riêng để tránh nhầm.
-- Hệ thống phải giải thích vì sao điều kiện chưa đạt thay vì chỉ khóa nút.
+### 3.4 Dữ liệu cần lưu
 
-## 4. Mô hình thế giới và vũ trụ VNMINE
+- Profile hiện tại cần được rà soát: `level`, `exp` đã tồn tại nhưng chưa chứng minh có điểm skill.
+- Migration dự kiến thêm `unspent_skill_points` vào profile hoặc bảng progression tương đương; lưu rank/unlock theo `(uuid, skill_id)`; lưu slot theo `(uuid, slot)`.
+- Ràng buộc unique, foreign key, giới hạn rank, idempotency và transaction phải được kiểm tra bằng test SQLite.
+- Không lưu cooldown dài hạn mặc định; cooldown runtime được dọn khi logout/death/restart. Chỉ persistence nếu thiết kế sau này yêu cầu rõ.
 
-### 4.1 Khái niệm
+## 4. Danh sách class và kỹ năng đề xuất
 
-- **Vũ trụ (universe):** lớp cốt truyện tổng thể, ví dụ “Biên Niên Rạn Nứt”.
-- **Chương (chapter):** một phần của cốt truyện, có ID, thứ tự, điều kiện mở/hoàn tất và liên kết tới đại lục/nhiệm vụ.
-- **Đại lục (continent/realm):** vùng nội dung có bản đồ, world, cổng, độ nguy hiểm, NPC, nhiệm vụ và boss.
-- **World:** Minecraft world kỹ thuật. Một đại lục có thể dùng một world hoặc nhiều world; cấu hình phải phân biệt ID nội dung với tên world trong server.
-- **Khu vực (region/area):** địa điểm trong đại lục, có điểm đến, mức nguy hiểm, nhiệm vụ/boss liên quan. Giai đoạn đầu chỉ cần metadata và điểm đến; chưa cần hệ region phức tạp.
-- **Cổng (portal):** điểm GUI/điểm tương tác cho phép di chuyển giữa các đại lục theo điều kiện.
-- **Nhân vật (character):** hồ sơ gameplay gắn với UUID người chơi ở phiên bản đầu; nếu về sau cho phép nhiều nhân vật trên một tài khoản thì phải thêm `characterId` vào mọi khóa dữ liệu.
+Danh sách dưới đây bám 15 ID class đang có. Tên tiếng Việt, hiệu ứng và lore là nội dung đề xuất, chưa phải cam kết cân bằng. Mỗi class MVP có 2 skill chủ động + 1 nội tại; skill thứ ba/ultimate mở ở phase mở rộng. Chỉ triển khai 3 class đầu trong vertical slice, sau đó lần lượt các class còn lại.
 
-### 4.2 Đại lục đề xuất theo tiến trình
+| ID class (race) | Vai trò | Kỹ năng chủ động A | Kỹ năng chủ động B | Nội tại |
+|---|---|---|---|---|
+| `swordsman` (human) | Cận chiến cân bằng | **Kiếm Khí**: chém một đường ngắn theo hướng nhìn, gây sát thương vật lý lên tối đa số mục tiêu cấu hình; không xuyên tường. | **Thế Thủ**: giảm damage nhận trong thời gian ngắn, đổi lại giảm tốc di chuyển; không cộng dồn với chính nó. | **Luyện Kiếm**: bonus nhỏ cho đòn đánh thường sau khi chủ động giao chiến; không kích hoạt từ damage môi trường. |
+| `guardian` (human) | Đỡ đòn, bảo vệ | **Khiên Chấn**: đánh bật mob gần trước mặt, làm chậm ngắn; không stun dài lên boss. | **Hộ Vệ**: tạo lớp giảm sát thương ngắn cho bản thân và đồng minh trong bán kính, giới hạn mục tiêu. | **Che Chắn**: khi đứng gần đồng đội được chọn, chia sẻ một phần damage theo cấu hình; tránh vòng lặp chia sẻ. |
+| `ranger` (human) | Đánh xa, kiểm soát | **Mũi Tên Đánh Dấu**: projectile đánh dấu một mục tiêu hợp lệ, hiện dấu vết trong thời hạn. | **Bước Lùi**: lùi/né theo hướng an toàn, không xuyên block và không dịch chuyển vào vùng cấm. | **Ngắm Bắn**: bonus nhỏ sau khi đứng yên ngắm một khoảng tối thiểu; mất hiệu lực khi bị đánh. |
+| `assassin` (elf) | Cơ động, burst | **Bóng Lướt**: dash ngắn theo hướng nhìn, không xuyên tường; có kiểm tra vùng bảo vệ và chống rơi vào void. | **Đòn Kết Liễu**: đòn đánh cận chiến mạnh hơn nếu mục tiêu bị đánh dấu/đang thấp máu; không one-shot boss. | **Ẩn Ảnh**: sau khi né thành công có cửa sổ ngắn tăng cơ động, không tàng hình vô hạn. |
+| `archer` (elf) | Xạ kích chính xác | **Liên Xạ**: bắn loạt mũi tên skill với damage giảm theo từng mũi, có giới hạn số đạn. | **Tên Trói Chân**: projectile làm chậm mục tiêu thường; boss kháng/giảm thời lượng. | **Dây Cung**: tăng nhẹ hiệu quả bắn tầm xa sau khi nạp cung đủ lâu; không cộng dồn với enchant vượt trần. |
+| `mage` (elf) | Phép thuật diện rộng | **Hỏa Cầu**: projectile có particle lửa, gây damage và burn ngắn; không phá block, không đốt công trình. | **Dịch Chuyển Tia Chớp**: blink tầm ngắn tới vị trí trống trong line-of-sight; thất bại an toàn nếu điểm đến bị chặn. | **Tiết Kiệm Mana**: giảm nhỏ resource cost theo rank, có mức sàn để không cast miễn phí. |
+| `knight` (dwarf) | Kỵ sĩ, áp sát | **Xung Phong**: lao tới mục tiêu trong tầm, dừng trước vật cản và gây knockback giới hạn. | **Lời Thề Hộ Vệ**: giảm damage nhận và tăng chống knockback ngắn; không miễn nhiễm damage. | **Kỷ Luật Kỵ Sĩ**: bonus phòng thủ khi không dùng skill tấn công trong một khoảng thời gian. |
+| `smith` (dwarf) | Hỗ trợ trang bị | **Tôi Luyện**: tạm tăng độ bền chiến đấu/giảm damage nhận cho bản thân hoặc đồng minh; không sửa độ bền vật phẩm vĩnh viễn trong combat. | **Búa Chấn Địa**: đánh vùng nhỏ quanh người chơi, gây damage thấp và làm chậm. | **Thợ Rèn Lão Luyện**: tăng nhẹ hiệu quả phòng thủ từ giáp, có cap và không cộng tuyến tính vô hạn. |
+| `brute` (dwarf) | Cận chiến nặng | **Nện Đất**: đập vùng trước mặt, damage/knockback thấp lên boss hơn mob thường. | **Cơn Cuồng Nộ**: tăng damage trong thời gian ngắn nhưng giảm phòng thủ hoặc tiêu hao resource cao. | **Sức Nặng**: giảm knockback nhận vào, đổi lại giảm nhẹ tốc độ. |
+| `berserker` (demon) | Đánh đổi máu lấy damage | **Huyết Trảm**: đòn đánh mạnh tiêu hao một lượng máu/resource có giới hạn; không thể tự gây chết do cost. | **Cuồng Chiến**: tăng tốc đánh/damage ngắn khi HP thấp, có cooldown và không kích hoạt lặp dây chuyền. | **Ý Chí Cuồng Nộ**: bonus có giới hạn khi HP thấp; không cộng thêm nếu nhiều nguồn cùng kích hoạt. |
+| `warlock` (demon) | Sát thương/khống chế phép | **Hút Hồn**: projectile gây damage và hồi lượng nhỏ cho caster nếu trúng mục tiêu hợp lệ. | **Ấn Nguyền**: đặt debuff lên một mục tiêu trong thời gian ngắn; boss có thời lượng giảm. | **Dư Âm Hắc Thuật**: cast thành công có xác suất thấp hồi một phần resource, không reset cooldown. |
+| `cultist` (demon) | Hỗ trợ, suy yếu | **Khế Ước Hắc Ám**: đổi một lượng resource/HP an toàn để tạo buff nhóm ngắn. | **Lời Nguyền**: giảm damage hoặc tốc độ mục tiêu; chọn một hiệu ứng làm MVP. | **Tụng Niệm**: khi ở gần đồng minh, tăng nhẹ hiệu quả hỗ trợ, không cộng dồn theo số cultist. |
+| `sage` (spirit) | Hồi phục, support | **Linh Khí Hồi Phục**: hồi lượng máu cấu hình cho một mục tiêu đồng minh trong tầm, có diminishing/cap. | **Thanh Tẩy**: gỡ một số potion effect được whitelist; không xóa mọi debuff/boss mechanic. | **Tâm An**: tăng nhẹ hồi phục nhận được sau một khoảng không bị tấn công. |
+| `seer` (spirit) | Trinh sát, cảnh báo | **Mắt Linh Giới**: reveal dấu vết/định hướng tới objective hoặc mục tiêu hợp lệ; không tiết lộ người chơi qua tường. | **Lời Báo Trước**: cảnh báo đòn đánh/vùng nguy hiểm gần đó bằng âm thanh/particle; không hủy damage. | **Trực Giác**: cảnh báo gần mob nguy hiểm theo bán kính/cooldown, không theo dõi toàn server mỗi tick. |
+| `spirit-blade` (spirit) | Đấu kiếm linh hoạt | **Trảm Ảnh**: dash/chém ngắn, particle linh thể và damage đơn mục tiêu. | **Kiếm Trận**: tạo một vùng chém nhỏ theo hướng, số hit và thời gian đều giới hạn. | **Lưỡi Kiếm Linh**: sau skill thành công, đòn thường kế tiếp được bonus nhỏ; tiêu hao trạng thái sau một hit. |
 
-Danh sách dưới đây là khung nội dung để viết truyện và thiết kế thử nghiệm; tên, vai trò, thứ tự và cốt truyện cuối cùng cần được chủ dự án duyệt. Không triển khai tất cả cùng lúc.
+### 4.1 Phân kỳ class
 
-| Thứ tự đề xuất | Đại lục/giới | Vai trò gameplay | Tình trạng mở khóa gợi ý |
-|---|---|---|---|
-| 0 | Nhân giới | Khởi đầu, hướng dẫn, điểm an toàn, nhiệm vụ nhập môn | Mặc định |
-| 1 | Yêu giới | Khám phá sinh vật/quy luật tự nhiên khác thường, thiên về thám hiểm | Sau chương nhập môn và nhiệm vụ mở cổng |
-| 2 | Linh giới | Bí ẩn, dấu tích, cơ chế trạng thái/linh hồn và manh mối truyện | Sau một tuyến nhiệm vụ điều tra |
-| 3 | Ma giới | Môi trường nguy hiểm, thử thách chiến đấu và quản lý tài nguyên | Sau khi người chơi chứng minh khả năng chuẩn bị |
-| 4 | Thần giới | Nội dung endgame, boss/chương cao trào | Sau khi hoàn tất các mốc truyện trước |
+- **Vertical slice:** `swordsman`, `mage`, `sage` để kiểm thử cận chiến, projectile/utility và hồi phục. Class hiện có không bị xóa hoặc đổi ID.
+- **Wave 2:** `guardian`, `ranger`, `assassin`, `archer`, `knight`, `brute`.
+- **Wave 3:** `smith`, `berserker`, `warlock`, `cultist`, `seer`, `spirit-blade`.
+- Một class chỉ được bật kỹ năng khi skill definition hợp lệ và class ID tồn tại. Loader báo lỗi chính xác nếu tham chiếu sai.
+- Mỗi skill cần thử solo, party, boss, PvP policy, safe zone, spawn protection, death/respawn, world change và combat tag.
+- Tất cả phạm vi, damage, cooldown, resource, duration, giới hạn mục tiêu và particle count có cấu hình song ngữ VI/EN, default và valid range.
 
-Không khóa cổng chỉ theo cấp số. Dùng kết hợp trạng thái nhiệm vụ, cảnh báo độ khó, khả năng chuẩn bị và quyền truy cập. Tất cả các điều kiện cần hiển thị trong GUI.
+## 5. Skill book và lore
 
-### 4.3 Quy tắc world
+### 5.1 Vật phẩm và cách học
 
-- Mỗi cấu hình đại lục dùng `id` nội dung ổn định; `world-name` là tên world Paper đang tải.
-- Hệ thống phải xác thực world tồn tại, điểm đến hợp lệ và thế giới không bị cấu hình nhầm.
-- Không tự tạo/xóa world hoặc thay đổi cấu hình server rộng nếu chưa có yêu cầu quản trị rõ ràng.
-- World chưa tải/không tồn tại phải được báo cho người chơi bằng thông báo thân thiện, ghi log quản trị và không làm mất nhiệm vụ/cổng.
-- Cổng có điểm đến mặc định, điểm đến hồi hương và hành vi khi người chơi không có quyền vào.
-- Cần định nghĩa chính sách giữ inventory, XP, hiệu ứng, cooldown, vị trí chết và hình phạt khi chuyển world.
-- Teleport phải kiểm tra world/điểm đến trước khi cập nhật trạng thái tiến trình; thất bại giữa chừng không được đánh dấu cổng đã dùng hoặc nhiệm vụ đã hoàn thành.
+- Sách là `ENCHANTED_BOOK` hoặc material cấu hình, có tên/lore hiển thị và dấu hiệu phát sáng tùy chọn.
+- Định danh thật dùng PersistentDataContainer: namespace plugin + `skill_book_id`, `skill_id`, schema version; không tin tên/lore/material do người chơi tự đặt.
+- Tác vụ học mặc định: người chơi cầm sách rồi **chuột phải**; UI xác nhận tên skill, class yêu cầu, level tối thiểu, mô tả và hậu quả tiêu thụ sách. Có thể học từ GUI nếu mở bằng NPC.
+- Khi xác nhận, DB unlock skill trước; chỉ consume item sau kết quả thành công. Đảm bảo không nhân đôi khi double click, lag, reconnect hoặc DB exception.
+- Sách không hợp class/đã học/thiếu level: không mất sách, trả thông báo giải thích.
+- Skill book có thể là quest/NPC reward hoặc loot có xác suất cấu hình; không đặt sách class-specific hiếm đến mức khóa main quest.
+- Sách chuyển nhượng hay bind người chơi là lựa chọn cấu hình; MVP đề xuất sách tradeable trước khi học, còn skill đã học gắn vĩnh viễn với UUID profile.
 
-## 5. Kiến trúc cấu hình và dữ liệu
+### 5.2 Định nghĩa và lược đồ
 
-### 5.1 Cấu trúc thư mục đích
-
-Đây là cấu trúc mục tiêu; có thể điều chỉnh theo convention hiện hành nhưng phải giữ phân tách trách nhiệm:
-
-```text
-VnMineHardcore/src/main/resources/
-  config.yml
-  worlds/
-    _settings.yml
-    human-realm.yml
-    ...
-  story.yml
-  story/
-    universe.yml
-    chapters.yml
-    artifacts/
-      ...
-  quests/
-    _settings.yml
-    main/
-      ...
-    side/
-      ...
-    tutorial/
-      ...
-  races/
-    _settings.yml
-    ...
-  player-classes/
-    _settings.yml
-    ...
-  portals/
-    _settings.yml
-    ...
-```
-
-`dialogues/` chỉ tách riêng khi hội thoại đủ lớn hoặc cần nhiều nhánh. Mẫu cấu hình chung đặt `_settings.yml` nếu có thiết lập dùng chung. Mọi file mặc định phải có chú thích tiếng Việt và tiếng Anh về công dụng, giá trị mặc định và giới hạn hợp lệ.
-
-Runtime data nằm ngoài resources/JAR, trong thư mục dữ liệu plugin:
-
-```text
-plugins/VnMineHardcore/
-  players/
-    <uuid>.yml
-  backups/
-    ...
-```
-
-Không đặt trạng thái hoàn thành nhiệm vụ của người chơi vào file nội dung mặc định.
-
-### 5.2 Trách nhiệm từng nhóm cấu hình
-
-- `story/universe.yml`: tên vũ trụ, premise, thứ tự chapter, glossary/nội dung chung.
-- `story/chapters.yml`: chapter dạng map theo ID, thứ tự, tiêu đề và tóm tắt; bổ sung prerequisite/quest link sau khi có schema quest.
-- `story.yml` hiện tại: catalog artifact/lore boss; không đổi các `story-id` đã được phát hành trong giai đoạn tương thích.
-- `story/artifacts/*.yml` chỉ cân nhắc khi catalog artifact lớn đến mức cần tách file; không di chuyển ở giai đoạn hiện tại.
-- `worlds/*.yml`: world-name, tên GUI, mức nguy hiểm, spawn/điểm đến, chapter và cổng liên quan.
-- `quests/**/*.yml`: mục tiêu, bước, điều kiện, phần thưởng, chuỗi tiên quyết và liên kết nội dung.
-- `races/*.yml`: ưu/nhược, kỹ năng và điều kiện áp dụng.
-- `player-classes/*.yml`: vai trò, kỹ năng, cooldown, scaling, giới hạn.
-- `portals/*.yml`: điểm tương tác, điểm đến, điều kiện, chi phí nếu có và quyền quản trị.
-- `config.yml`: bật/tắt tính năng tích hợp, menu/keybind, chính sách chung, giới hạn hiệu năng và fallback.
-
-### 5.3 Định danh và tham chiếu
-
-- ID mới dùng biểu thức `[a-z0-9]+(?:-[a-z0-9]+)*`: chữ thường ASCII, chữ số và dấu gạch nối đơn giữa các đoạn; không dùng tên hiển thị làm khóa.
-- ID duy nhất trong từng loại dữ liệu (chapter, quest, world, race, class, skill, portal); tham chiếu phải ghi đúng trường/loại, không giả định ID giữa các loại là toàn cục.
-- Không tái sử dụng hoặc đổi ý nghĩa ID đã phát hành. Nếu cần đổi ID, phải có alias/migration và giữ tương thích dữ liệu đã lưu.
-- ID boss/artifact legacy có thể dùng quy ước cũ (ví dụ boss dùng `_`); không chuẩn hóa hoặc đổi `story-id` chỉ để khớp quy ước ID mới.
-- Tham chiếu chéo dùng ID có kiểu rõ ràng, không sao chép lặp nội dung quan trọng.
-- Mỗi loại nội dung có loader/validator riêng dựa trên schema đã chốt; không dựng registry tổng quát trước khi có nhiều loại dữ liệu cần dùng chung.
-- Validator kiểm tra ID, kiểu dữ liệu, giới hạn, tham chiếu mồ côi, chuỗi prerequisite và vòng lặp mở khóa phù hợp với từng loại.
-- Với cấu trúc map keyed-by-ID, phải kiểm tra parser có phát hiện khóa YAML bị lặp hay không; không giả định map sau parse còn giữ được thông tin duplicate.
-- Lỗi cấu hình nội dung cần nêu tên file và đường dẫn YAML; không silently skip cả hệ thống.
-- Có chính sách lỗi: cấu hình sai của một nhiệm vụ không làm crash server, nhưng nhiệm vụ đó phải bị vô hiệu hóa có log rõ; cấu hình cốt lõi như player data phải có fallback/backup an toàn.
-
-### 5.3.1 Schema chapter đã chốt
-
-- File nội dung: `story/chapters.yml`; mỗi chapter là một key dưới `chapters`, ví dụ `chapter-01`.
-- `schema-version` nằm ở cấp cao nhất của file, hiện là số nguyên `1`. Mỗi loại file nội dung quản lý version độc lập.
-- Một chapter v1 có đúng các trường cần thiết hiện tại: `order` (số nguyên dương, duy nhất trong file), `title` (chuỗi không rỗng) và `summary` (chuỗi không rỗng).
-- `order` không cần liên tục; đây là thứ tự hiển thị, không phải ID hay điều kiện mở khóa.
-- Loader sắp xếp theo `order`, kiểm tra ID/field và chỉ nạp các chapter hợp lệ; lỗi phải nêu đường dẫn cấu hình.
-- Thay đổi cấu trúc không tương thích phải tăng `schema-version` và có kế hoạch migration; bổ sung tùy chọn tương thích ngược có thể giữ version. Loader hiện tại từ chối version không hỗ trợ thay vì diễn giải sai.
-- `story.yml:universe.chapters` được giữ lại như văn bản legacy; dữ liệu chapter có ID trong `story/chapters.yml` là nguồn định nghĩa runtime mới. Artifact và `story-id` không bị di chuyển.
-
-### 5.3.2 Chiến lược loader/validator
-
-- Dùng loader riêng theo từng loại định nghĩa khi schema của loại đó được duyệt; hiện tại artifact có `StoryArtifactValidator`, chapter có `StoryChapterLoader`.
-- Loader trả về dữ liệu đã validate theo model riêng của loại đó và log lỗi có file/path; dữ liệu sai bị loại khỏi registry của loại tương ứng, không làm sập plugin.
-- Chỉ trích xuất helper chung khi có ít nhất hai schema thực sự dùng chung cùng một quy tắc; không tạo framework registry tổng quát cho world/quest/race/class trước khi các schema ấy tồn tại.
-- ID map có thể bị YAML parser ghi đè nếu cùng key xuất hiện nhiều lần; phải có test/biện pháp strict parsing trước khi tuyên bố đã phát hiện duplicate key.
-
-### 5.4 Lưu tiến trình người chơi
-
-Schema sơ bộ cho một nhân vật:
+Tách `skills.yml` (skill gameplay) khỏi `skill-books.yml` (item, nguồn nhận và lore). Các ID không phụ thuộc vào tên hiển thị.
 
 ```yaml
-schema-version: 1
-player-id: "<uuid>"
-character:
-  race: "<race-id>"
-  player-class: "<class-id>"
-  level: 1
-  experience: 0
-  home-continent: human-realm
-progress:
-  unlocked-continents: [human-realm]
-  completed-chapters: []
-  active-quests: {}
-  completed-quests: []
-  choices: {}
-cooldowns: {}
+skill-books:
+  book-mage-fireball:
+    skill-id: mage-fireball
+    class-id: mage
+    display-name: "Bút Tích Tro Tàn"
+    material: ENCHANTED_BOOK
+    min-level: 1
+    consume-on-learn: true
+    lore:
+      - "Một nét mực đỏ nằm sâu dưới lớp bụi."
+      - "Khi đọc lên, tro tàn nhớ lại hình dạng của lửa."
+      - "Dạy kỹ năng: Hỏa Cầu"
+    source:
+      type: quest
+      id: first-ember
 ```
 
-Schema chỉ là ví dụ, không phải định dạng đã cố định. Cần quyết định:
+### 5.3 Tuyển tập lore sách mẫu
 
-- Đã chốt một nhân vật trên mỗi UUID; runtime profile không có slot hay `characterId`.
-- XP/cấp nhân vật có thực sự cần trong vertical slice hay tiến trình mở khóa dựa vào quest/gear.
-- Trạng thái nào phải đồng bộ ngay và trạng thái nào có thể ghi theo batch.
-- Làm sao đảm bảo nhận thưởng chỉ một lần, kể cả khi server restart giữa lúc hoàn thành.
-- Cách xử lý người chơi offline và UUID/name thay đổi.
-- Giới hạn kích thước file, backup, phục hồi file lỗi và dọn dữ liệu theo chính sách.
+- **Hỏa Cầu — Bút Tích Tro Tàn (mage):** “Một nét mực đỏ nằm sâu dưới lớp bụi. Khi đọc lên, tro tàn nhớ lại hình dạng của lửa.” Mở kỹ năng projectile Hỏa Cầu; lore nói rõ đây là phép gây cháy, không hứa phá hủy địa hình.
+- **Thế Thủ — Sổ Tay Người Gác Cổng (swordsman):** “Trang giấy dày mùi sắt. Người viết không dạy cách thắng nhanh; ông dạy cách còn đứng vững sau nhát chém.” Mở kỹ năng phòng thủ Thế Thủ.
+- **Linh Khí Hồi Phục — Thi Kệ Mạch Nguồn (sage):** “Nước không chống lại vết thương. Nó tìm khe nứt, rồi dẫn sự sống trở về.” Mở skill hồi phục; healer có giới hạn mục tiêu/cooldown.
+- Lore là tài nguyên riêng theo book ID, cho phép dịch/localize; giới hạn số dòng và độ dài để GUI/inventory không vỡ.
 
-Ban đầu YAML per-player có thể đủ nếu lượng trạng thái nhỏ và lưu trên main thread có kiểm soát. Trước khi chọn, cần đánh giá kỹ tính nguyên tử, tần suất ghi và số người chơi đồng thời. Nếu dùng SQLite, thao tác I/O nặng phải chạy async, còn thay đổi Bukkit API vẫn trên main thread. Không triển khai hai backend cùng lúc ở đợt đầu.
+### 5.4 Kiểm thử skill book
 
-### 5.5 Nâng cấp và tương thích
+- Đổi tên sách vanilla không tạo được skill book.
+- Copy item/shift-click/double click/relog không cho unlock hoặc tiêu thụ nhiều lần.
+- DB lỗi không mất sách; lỗi được log kèm UUID/skill ID ở mức không lộ dữ liệu nhạy cảm.
+- Migration giữ nguyên inventory; không âm thầm xóa sách cũ.
 
-- Mỗi schema có `schema-version`; migration phải chạy theo thứ tự, có thể lặp an toàn và tạo backup trước khi chuyển đổi.
-- Config defaults mới được merge mà không ghi đè tùy chỉnh của quản trị viên; cần kiểm thử riêng hành vi với map, list và file cấu hình sai.
-- Giữ `story.yml`/các `story-id` hiện tại tương thích trong giai đoạn chuyển đổi. Có thể hỗ trợ đọc legacy rồi ghi cảnh báo, sau đó mới có migration tool hoặc giai đoạn ngừng hỗ trợ được thông báo.
-- Không xóa file cũ tự động.
-- Các ID nhiệm vụ/cổng/race/class đã lưu phải còn hợp lệ sau cập nhật; nếu bị bỏ phải có mapping hoặc fallback được ghi log.
+## 6. Quick cast, phím Q và phím khác
 
-## 6. Hệ thống nhân vật: chủng tộc và class
+### 6.1 Sự kiện bàn phím: giới hạn cần tôn trọng
 
-### 6.1 Chủng tộc
+- Bukkit/Paper không cung cấp một event tổng quát cho mọi phím người chơi bấm.
+- **Q** thường được server quan sát qua `PlayerDropItemEvent`; không phải `PlayerSwapHandItemsEvent`. Có thể hủy drop khi Q được cấu hình làm phím RPG, nhưng sẽ chiếm chức năng thả vật phẩm.
+- **F** trong plugin hiện được nhận qua `PlayerSwapHandItemsEvent` và dùng mở hub; giữ tương thích mặc định.
+- Trong inventory GUI, phím số có thể sinh `InventoryClickEvent` loại `NUMBER_KEY` khi con trỏ đang ở slot. Bắt buộc hủy thao tác chuyển vật phẩm trước khi dùng hotbar button làm lựa chọn skill.
+- Đọc packet đổi hotbar ngoài GUI là hướng nâng cao, phụ thuộc ProtocolLib/client packet và có thể xung đột với thao tác hotbar thường. Chỉ chọn sau spike kỹ thuật trên đúng Paper/API/ProtocolLib đang hỗ trợ; không tuyên bố Q+1..9 toàn cục hoạt động chỉ dựa vào Bukkit.
 
-Mỗi chủng tộc khai báo:
+### 6.2 UX quick cast MVP đề xuất
 
-- ID và thông tin GUI: tên, biểu tượng, mô tả ngắn/dài, độ phức tạp.
-- Nội tại tích cực và giới hạn/điểm yếu tương ứng.
-- Kỹ năng chủng tộc, điều kiện dùng, cooldown/tài nguyên và phản hồi GUI.
-- Tương tác lore/quest nếu cần; không cho phép chủng tộc phá khóa nội dung chính.
-- Chính sách chọn lại: khóa vĩnh viễn, đổi qua quest hoặc đổi trả phí; giá trị phải cấu hình và xác nhận trước khi áp dụng.
+1. Người chơi bấm Q; listener nhận `PlayerDropItemEvent`, chỉ xử lý nếu cấu hình quick cast bật, profile đang active và người chơi không ở trạng thái bị chặn.
+2. Hủy drop item và mở **Quick Cast** dạng inventory 9 slot. Nếu không đủ điều kiện hoặc đang ở giao diện không thể thay thế, không nuốt input âm thầm: giữ hành vi drop hoặc thông báo theo setting.
+3. Mỗi slot hiển thị số, tên skill, icon, rank, resource, cooldown, class requirement và trạng thái “chưa gán/khóa/đang hồi”.
+4. Người chơi rê chuột lên slot rồi nhấn số 1–9 hoặc click; listener nhận đúng holder/viewer, hủy mọi move/swap/drag và cast slot tương ứng. Click là fallback rõ ràng, không yêu cầu cài client mod.
+5. Cast service xác thực lại profile, skill learned, slot binding, class, level, resource, cooldown, target, world/protection/PvP và combat state. GUI chỉ là input, không phải quyền xác thực.
+6. Nếu đang dùng kỹ năng mất thời gian, GUI đóng sau cast thành công; thất bại giữ UI nếu phù hợp, hiển thị lý do và không tiêu hao cooldown/resource.
+7. Cung cấp `/vnskills` và hub F như đường mở menu thay thế; nếu người chơi cần giữ Q để thả đồ, có cấu hình tắt intercept và dùng GUI/command.
 
-Nguyên tắc cân bằng: một lợi thế có ý nghĩa phải có giới hạn tương ứng; không nên tạo race “tối ưu mọi tình huống”. Chủng tộc nên đổi cách chơi hoặc lợi thế tình huống, không biến thành yêu cầu bắt buộc cho một class.
+### 6.3 Gán skill vào slot và UI
 
-### 6.2 Class người chơi
+- Menu **Kỹ năng → Quickbar** hiển thị slot 1–9; chọn một skill đã học để gán, chọn “Gỡ” để xóa.
+- Lưu mapping theo UUID và số slot; khi class đổi (nếu tính năng đổi class được bật), skill không hợp class chuyển sang trạng thái inactive, không xóa binding.
+- GUI Skill Tree, Quickbar và Cast Bar là các màn hình riêng, có back/close, phân trang nếu cần, holder định danh và kiểm tra viewer.
+- Không thay đổi inventory/hotbar vật phẩm thật để giả lập thanh kỹ năng.
 
-Class nhân vật là subsystem riêng, không liên quan đến class lính đánh thuê:
+### 6.4 Phím có thể tận dụng
 
-- Mỗi class có archetype/role, độ khó, ưu/nhược và kỹ năng.
-- Kỹ năng có trigger, cooldown, phạm vi, mục tiêu hợp lệ, scaling, feedback, persistence/cancel behavior.
-- Cooldown và hiệu ứng cần dọn đúng khi logout, death, world change, reload và plugin disable.
-- Kỹ năng area damage phải tái sử dụng luật thân thiện/địch, PvP, vùng bảo vệ và giới hạn mục tiêu hiện có.
-- Nếu có tài nguyên riêng (mana/stamina), chỉ thêm sau khi xác định rõ nguồn hồi, giới hạn, GUI hiển thị và tương tác với hunger/thirst.
-- Không để skill bỏ qua cơ chế nguy hiểm môi trường hoặc boss mà không có đánh đổi.
-
-### 6.3 Tương tác giữa race và class
-
-- Race và class được cân bằng độc lập trước, sau đó kiểm thử ma trận tổ hợp.
-- Kỹ năng race không được nhân đôi vô hạn với kỹ năng class, đồ boss và buff mercenary.
-- Mô tả GUI phải chỉ rõ hiệu ứng cộng dồn hay không cộng dồn.
-- Cho người mới xem build mẫu như gợi ý, không khóa họ vào lựa chọn sai.
-- Cơ chế đổi class/race cần tránh tạo vòng lặp đổi để khai thác cooldown, nhiệm vụ hoặc phần thưởng.
-
-### 6.4 Phạm vi nội dung ban đầu
-
-Để tránh nổ phạm vi, vertical slice chỉ cần một số lượng race/class nhỏ, đủ minh họa các vai trò khác nhau. Số lượng, tên và số liệu cụ thể được chốt sau khi:
-
-1. Có mô tả lore cho từng lựa chọn.
-2. Thiết kế được một tuyến quest nhập môn.
-3. Kiểm tra khả năng biểu đạt kỹ năng bằng Paper API và kiến trúc hiện hành.
-4. Có test cân bằng theo solo/party.
-
-## 7. Quest, chapter và cốt truyện
-
-### 7.1 Mô hình quest
-
-Một quest nên hỗ trợ tối thiểu:
-
-- `id`, tên, mô tả, chapter/continent và NPC/nguồn nhận.
-- Điều kiện nhận: quest trước, race/class nếu thực sự cần, cổng/đại lục, trạng thái boss hoặc vật phẩm.
-- Các bước có `id` và loại mục tiêu.
-- Tiến độ: số hiện tại/tổng, trạng thái, vị trí/gợi ý bước tiếp theo.
-- Điều kiện hoàn thành và phần thưởng.
-- Điều kiện fail/abandon nếu có; mặc định không bắt buộc quest chính phải fail vĩnh viễn.
-- Hành vi khi nhận lại, từ chối, bỏ dở, logout, death và server restart.
-- Cờ mở khóa chapter/world/portal.
-
-Mục tiêu ban đầu nên giới hạn ở các loại mà plugin xác nhận và có thể theo dõi tin cậy, chẳng hạn nói chuyện/nhận vật phẩm, tiêu diệt loại boss/mob có tag, thu thập vật phẩm có định danh, khám phá khu vực được cấu hình và hoàn thành quest khác. Không dùng tên hiển thị vật phẩm/mob làm định danh.
-
-### 7.2 Phần thưởng và chống khai thác
-
-- Quest reward chỉ cấp một lần theo idempotency key người chơi + quest + lần hoàn thành.
-- Nếu completion và save không thể xảy ra nguyên tử, thiết kế trạng thái `reward-pending`/transaction để retry an toàn.
-- Kiểm tra inventory đủ chỗ trước khi trao vật phẩm hoặc dùng mailbox/reward claim GUI.
-- XP, vật phẩm, quyền mở khóa và teleport được trao theo một thứ tự có thể phục hồi.
-- Không cấp vật phẩm quan trọng để tiếp tục quest theo cách có thể mất vĩnh viễn nếu người chơi chết; có thể có cơ chế nhận lại hạn chế/chi phí.
-
-### 7.3 Nội dung cốt truyện
-
-- `universe` và `chapters` hiện tại cần được chuyển thành dữ liệu có ID, không chỉ là danh sách dòng văn bản.
-- Cốt truyện có thể chia thành lore được tìm thấy, hội thoại ngắn, journal update và sự kiện boss.
-- Phân biệt lore tham khảo với dữ kiện gameplay: câu văn không được là nguồn duy nhất quyết định trạng thái mở khóa.
-- Quest chính dẫn đường cho cốt truyện; quest phụ mở rộng nhân vật/đại lục và không khóa campaign chính.
-- Hỗ trợ placeholder an toàn và giới hạn độ dài để GUI không tràn.
-- Lựa chọn phân nhánh chỉ lưu khi có ý nghĩa thật; không tạo lựa chọn giả hoặc khiến người chơi mới khóa nội dung thiết yếu mà không cảnh báo.
-
-## 8. Cổng, dịch chuyển và bản đồ
-
-### 8.1 UX cổng
-
-Menu Cổng/Bản đồ hiển thị:
-
-- Danh sách đại lục theo thứ tự truyện.
-- Trạng thái: đã mở, chưa mở, đang nguy hiểm/bảo trì.
-- Mô tả, mức nguy hiểm, gợi ý chuẩn bị, quest cần hoàn thành.
-- Điểm đến và xác nhận khi rời party/khu an toàn nếu có hệ party.
-- Nút “Đi tới”, “Quay về Nhân giới” và “Xem điều kiện”.
-
-Tương tác với cổng vật lý mở đúng trang đại lục; mọi thao tác cuối cùng thực hiện bằng GUI. Dùng `PersistentDataContainer`/ID nội bộ thay vì nhận dạng cổng qua tên item hoặc lore.
-
-### 8.2 Chính sách gameplay cần quyết định
-
-- Dịch chuyển có miễn phí hay tiêu tốn tài nguyên/vật phẩm.
-- Cooldown cổng, giới hạn teleport khi combat, đang chết, đang làm boss hoặc đang ở menu.
-- Có thể dịch chuyển party cùng nhau hay không.
-- Người chơi có giữ trạng thái quest/party khi chuyển world.
-- Cổng có hồi hương khẩn cấp không, và khi nào bị hạn chế.
-- World boss/event có trạng thái chung hay cá nhân.
-
-Thiết kế mặc định đề xuất: không cho thoát ngay khỏi combat/boss nếu điều đó phá luật chiến đấu, nhưng luôn có lối phục hồi sau khi chết hoặc khi teleport lỗi; GUI phải giải thích lý do bị từ chối.
-
-## 9. GUI và phím tắt
-
-### 9.1 Bản đồ menu
-
-Menu F hiện là lối vào nhanh theo cấu hình; phát triển thành hub chính thay vì thêm hàng loạt phím nóng:
-
-```text
-Menu chính (F)
-├── Nhân vật
-│   ├── Hồ sơ / race / class / chỉ số
-│   ├── Kỹ năng
-│   └── Đổi class/race (nếu được phép)
-├── Nhiệm vụ
-│   ├── Đang làm
-│   ├── Có thể nhận
-│   └── Đã hoàn thành
-├── Bản đồ & Cổng
-│   ├── Đại lục
-│   ├── Điều kiện mở khóa
-│   └── Đi tới / hồi hương
-├── Sổ truyện
-│   ├── Chapter
-│   ├── Lore đã tìm thấy
-│   └── Hướng dẫn
-└── Thiết lập
-    ├── Phím tắt bật/tắt
-    └── Thông báo/feedback
-```
-
-Các trang con có back button, phân trang, nút đóng và trạng thái rõ. Nút bị khóa phải giải thích điều kiện. Các thao tác nguy hiểm hoặc khó đảo ngược cần GUI xác nhận lần hai.
-
-### 9.2 Chuẩn kỹ thuật cho GUI
-
-- Mỗi loại menu có `InventoryHolder`/menu model riêng, không định danh bằng title.
-- Holder chứa viewer UUID, menu type, page, target ID và context cần thiết; không giữ tham chiếu stale lâu dài.
-- Chỉ xử lý click ở inventory plugin sở hữu; ngăn drag/shift-click/number-key/offhand exploit theo pattern hiện có.
-- Revalidate điều kiện khi click; không tin trạng thái cũ chỉ vì nút đã hiển thị.
-- Dùng service chung nếu có thể để chuẩn hóa item icon, trang, back, close, xác nhận, lore và quyền.
-- GUI phải hiển thị nội dung an toàn khi cấu hình thiếu, nhưng log nguyên nhân cho quản trị viên.
-- Có giới hạn tần suất mở menu và xử lý đóng menu khi logout/reload.
-
-### 9.3 Phím F và các phím khác
-
-- F tiếp tục mở menu chính theo `menus.main.enabled` và `menus.main.intercept-f-key`; giữ tùy chọn để người chơi/server không muốn mất swap tay phụ có thể tắt.
-- Không chiếm thêm phím nóng toàn cục ngay từ đầu. Menu F là hub; người chơi có thể mở các phần từ GUI.
-- Nếu sau này có phím tắt bổ sung, phải kiểm tra API/ProtocolLib thực tế, tính tương thích client, remapping và accessibility; không giả định server có thể đọc mọi phím tùy ý.
-- Có fallback không cần phím nóng: vật phẩm/điểm tương tác/GUI menu có thể mở được hub.
-- Không để F mở GUI khi đang thao tác inventory, trong trạng thái chết/respawn grace, hoặc bị chặn bởi một menu khác nếu hành vi đó gây xung đột; định nghĩa và test thứ tự listener.
-- Cần test tương tác giữa F, offhand mercenary gear, respawn grace, GUI đang mở và các plugin khác.
-
-## 10. Tích hợp với hệ thống hiện có
-
-| Hệ thống hiện hữu | Quyết định tích hợp |
-|---|---|
-| BossEventManager | Gắn boss với đại lục/chapter/quest theo ID; giữ cơ chế boss/loot đang có, bổ sung event tiến trình qua API nội bộ |
-| Boss loot và `story-id` | Không đổi nghĩa ID; tách lore khỏi trạng thái quest; kiểm tra tham chiếu khi khởi động |
-| Boss leaderboard/reward | Giữ cách nhận reward hiện tại; không cho quest thưởng trùng leaderboard nếu không được cấu hình |
-| MercenaryManager | Giữ class/XP lính độc lập; không dùng cấp lính làm cấp nhân vật; menu lính là một tính năng dưới hub nếu phù hợp |
-| DeathPenaltyManager/DeathListener/GraveManager | Thiết kế chung chính sách chết và phục hồi; quest objective/reward không bị nhân đôi hoặc mất khi death |
-| Thirst/Hunger/Environment | Dùng làm chất liệu hardcore theo đại lục nhưng tránh chồng sát thương không báo trước; cân bằng tutorial |
-| PermissionManager | Quyền admin/debug tách khỏi quyền gameplay; người chơi không cần permission đặc biệt để dùng quest GUI |
-| ConfigManager | Mở rộng theo loader/service rõ trách nhiệm; tránh nhồi toàn bộ world/quest/race vào một manager |
-| TooltipManager/GUI hiện có | Tái sử dụng pattern chung nếu an toàn; tránh giao diện chồng và hướng dẫn trùng lặp |
-
-Nên tạo event/domain API nội bộ có type safety, ví dụ `QuestObjectiveProgressEvent`, `ChapterUnlockedEvent`, `PortalTravelEvent`, thay vì để manager gọi trực tiếp lẫn nhau theo chuỗi phụ thuộc vòng. Chỉ trích xuất abstraction khi có nhiều consumer thực tế; không xây framework quá mức trước vertical slice.
-
-## 11. Kiến trúc Java gợi ý
-
-Cấu trúc package có thể bắt đầu gọn:
-
-```text
-com.vnmine.hardcore.rpg/
-  RpgManager.java                 # vòng đời và wiring cấp tính năng
-  config/
-    RpgConfigLoader.java          # load + validate nội dung
-  player/
-    PlayerProfile.java
-    PlayerProfileStore.java
-    PlayerProfileService.java
-  quest/
-    QuestDefinition.java
-    QuestService.java
-    QuestObjectiveTracker.java
-  world/
-    ContinentDefinition.java
-    ContinentService.java
-    PortalService.java
-  character/
-    RaceDefinition.java
-    PlayerClassDefinition.java
-    CharacterService.java
-  gui/
-    RpgMenuListener.java
-    ... holders/menu builders ...
-```
-
-Đây là gợi ý phân trách nhiệm, không yêu cầu tạo mọi lớp trước khi cần:
-
-- Definition là dữ liệu cấu hình bất biến sau khi load.
-- Service xử lý luật gameplay và xác thực điều kiện.
-- Store chịu trách nhiệm đọc/ghi/migration/backup.
-- Listener nhận sự kiện Bukkit, chuyển thành lệnh/domain action và không chứa toàn bộ business logic.
-- Manager cấp cao đăng ký listener, task và đóng tài nguyên trong lifecycle plugin.
-- Bukkit API chỉ gọi trên main thread; không serialize file lớn hoặc chặn server thread.
-
-## 12. Lộ trình triển khai theo phase và cổng nghiệm thu
-
-### Phase 0 — Chốt thiết kế và baseline
-
-**Mục tiêu:** giảm quyết định mơ hồ trước khi code.
-
-**Công việc**
-
-1. Xác nhận định nghĩa hardcore: mất gì khi chết, khả năng lấy lại đồ, giới hạn hồi sinh và tương tác death penalty.
-2. Xác nhận một/many character mỗi UUID.
-3. Chốt đại lục đầu tiên, cốt truyện nhập môn, boss và điểm quay về.
-4. Chốt có XP/cấp nhân vật ngay vertical slice hay chưa.
-5. Chốt đổi race/class và quyền lựa chọn tân thủ.
-6. Chốt solo-first hay party-required; đề xuất mặc định là solo có thể tiến triển, party chỉ cải thiện trải nghiệm.
-7. Ghi baseline build/test hiện có trước khi sửa code; ghi nhận lỗi baseline riêng, không quy lỗi cũ cho tính năng mới.
-
-**Nghiệm thu**
-
-- Có sơ đồ vòng chơi và quyết định các câu hỏi trên.
-- Không bắt đầu thêm nhiều race/class/world trước khi scope MVP được giới hạn.
-
-### Phase 1 — Nền tảng cấu hình và validation
-
-**Mục tiêu:** load nội dung RPG theo ID, phát hiện lỗi sớm, không phá config cũ.
-
-**Công việc**
-
-1. Thiết kế naming convention, schema version và thư mục resources.
-2. Viết model bất biến cho world/chapter/quest/race/class/portal cần trong MVP.
-3. Loader đọc từng file, validate type/range/ID/reference, tạo thông báo lỗi chỉ rõ đường dẫn.
-4. Xác định cách merge default an toàn cho cấu trúc mới; test file cũ/tùy chỉnh/list.
-5. Giữ loader hiện tại của `story.yml` và các ID artifact như adapter tương thích.
-6. Thêm mẫu cấu hình song ngữ; mọi tham số có default và giới hạn.
-
-**Nghiệm thu**
-
-- File mặc định hợp lệ được load.
-- Trùng ID, thiếu reference, world name sai, giá trị ngoài phạm vi được báo rõ; server không crash do một quest phụ sai.
-- Không ghi đè thiết lập người quản trị.
-- Nội dung artifact/loot hiện hữu vẫn resolve đúng.
-
-### Phase 2 — Hồ sơ người chơi và lựa chọn nhân vật
-
-**Mục tiêu:** có dữ liệu nhân vật bền vững và luồng tạo nhân vật GUI.
-
-**Công việc**
-
-1. Chọn YAML hoặc SQLite dựa trên đánh giá dữ liệu/tần suất ghi và concurrency.
-2. Thiết kế profile schema, version, backup, migration, corruption recovery.
-3. Implement load/save, cache theo UUID, save khi thay đổi quan trọng, quit và shutdown; tránh ghi lặp không cần thiết.
-4. Tạo onboarding GUI: race → class → trang xác nhận → tạo profile.
-5. Chống tạo profile lặp, click nhanh, disconnect giữa các bước và lỗi lưu.
-6. Tạo GUI hồ sơ nhân vật hiển thị race/class/level (nếu có)/kỹ năng/quest count.
-
-**Nghiệm thu**
-
-- Người chơi mới hoàn tất lựa chọn, reconnect vẫn giữ lựa chọn.
-- Người chơi có dữ liệu lỗi không bị reset im lặng; có backup/log/feedback phù hợp.
-- GUI xác nhận các lựa chọn khó đổi.
-- Chưa có quest/portal vẫn không làm menu nhân vật lỗi.
-
-### Phase 3 — Vertical slice Nhân giới
-
-**Mục tiêu:** hoàn thành một trải nghiệm từ spawn tới mở cổng.
-
-**Công việc**
-
-1. Khai báo Nhân giới và điểm vào/an toàn/hướng dẫn.
-2. Tạo một chuỗi tutorial ngắn gồm sinh tồn, combat, GUI và một mục tiêu khám phá.
-3. Tạo một quest chính với nhiều loại objective đã xác thực, lưu checkpoint.
-4. Thêm NPC/điểm tương tác nhận và nộp quest qua GUI; không cần chat command cho người chơi.
-5. Thêm journal/quest tracker trong menu hub.
-6. Tạo phần thưởng đầu game hữu ích nhưng không bỏ qua độ khó.
-7. Kiểm tra trường hợp death/relog/đổi world trong mỗi bước.
-
-**Nghiệm thu**
-
-- Người thử mới có thể biết mục tiêu tiếp theo mà không cần xem tài liệu ngoài.
-- Quest không reset hoặc cấp thưởng lặp sau restart.
-- Người chơi solo hoàn thành được.
-- Death penalty/đói/khát không tạo soft-lock trong tutorial.
-
-### Phase 4 — GUI hub và điều khiển thống nhất
-
-**Mục tiêu:** biến menu F thành điểm truy cập gameplay RPG.
-
-**Công việc**
-
-1. Thiết kế menu chính và menu con theo sơ đồ mục 9.
-2. Tích hợp các menu RPG mà không làm mất chức năng menu/lính hiện tại.
-3. Chuẩn hóa holder, click validation, drag, pagination, back/close, confirmation và viewer ownership.
-4. Thêm bật/tắt F và fallback mở menu bằng tương tác GUI hợp lý.
-5. Xử lý xung đột F với offhand, mercenary gear, respawn grace, menu đang mở và plugin khác.
-6. Thêm feedback cho hành động bị từ chối và lý do điều kiện chưa đạt.
-
-**Nghiệm thu**
-
-- Mọi luồng gameplay mới đi được bằng GUI.
-- Không có thao tác GUI cho phép nhân bản item/nhận thưởng/mở khóa bằng shift-click, hotbar swap hoặc click ngoài holder.
-- Tắt intercept F trả lại hành vi swap tay theo thiết kế hiện hành.
-
-### Phase 5 — Đại lục thứ hai, portal và unlock
-
-**Mục tiêu:** chứng minh mô hình đa world và tiến trình mở khóa.
-
-**Công việc**
-
-1. Chọn đại lục thứ hai có tương phản gameplay với Nhân giới.
-2. Cấu hình world, spawn, mức nguy hiểm, quest/chapter và cổng.
-3. Tạo GUI bản đồ/cổng, trạng thái khóa/mở và điều kiện chi tiết.
-4. Implement teleport có xác thực world/điểm đến/combat/death/quest.
-5. Ghi nhận unlock idempotent chỉ sau khi hành động cần thiết thành công.
-6. Thêm quay về Nhân giới và fallback nếu điểm đến mất.
-7. Kiểm tra party/group nếu có; nếu chưa có hệ party, ghi rõ portal cá nhân.
-
-**Nghiệm thu**
-
-- Quest unlock cổng đúng một lần, kể cả restart tại thời điểm chuyển trạng thái.
-- World thiếu không làm mất unlock/quest; UI và log giải thích được.
-- Người mới không thể vô tình teleport vào vùng nguy hiểm mà không thấy cảnh báo.
-
-### Phase 6 — Hệ race/class và kỹ năng
-
-**Mục tiêu:** mở rộng lựa chọn nhân vật trong phạm vi cân bằng kiểm soát được.
-
-**Công việc**
-
-1. Xác nhận danh sách race/class ban đầu và fantasy/lore của từng lựa chọn.
-2. Định nghĩa kỹ năng với cooldown, scaling, target rules, PvP/protection rules, cleanup.
-3. Thực hiện một class/race trước; đo khả năng tích hợp kỹ năng với event/listener hiện có.
-4. Thêm các lựa chọn tiếp theo theo thứ tự ưu tiên, không nạp nội dung chưa được test.
-5. Tạo GUI xem skill, cooldown, phạm vi, mô tả và nút thực hành nếu có.
-6. Kiểm tra tương tác với boss, mercenary, armor set, potion, death penalty và world rules.
-
-**Nghiệm thu**
-
-- Skill không còn task/effect/cooldown sai sau death/logout/reload/disable.
-- Không gây damage lên đồng minh hoặc vi phạm protection/PvP policy.
-- Không có lựa chọn race/class thống trị rõ trong test nội dung cùng cấp.
-- Class người chơi không làm thay đổi dữ liệu/class lính đánh thuê.
-
-### Phase 7 — Mở rộng story, side quest, boss/chapter
-
-**Mục tiêu:** tăng chiều sâu VNMINE sau khi nền tảng ổn định.
-
-**Công việc**
-
-1. Chuyển `universe`/`chapters` thành định nghĩa có ID và kết nối quest.
-2. Phân loại quest chính, phụ, tutorial và sự kiện theo chapter/continent.
-3. Liên kết boss hiện có với chapter/quest và objective event qua API nội bộ.
-4. Thêm lore artifacts theo cách tương thích `story-id`.
-5. Thêm hội thoại/lựa chọn phân nhánh chỉ khi có kết quả gameplay/story rõ.
-6. Bổ sung journal cho lore đã tìm thấy và lịch sử quyết định.
-
-**Nghiệm thu**
-
-- Tắt/bật hoặc thiếu một quest phụ không chặn chapter chính.
-- Boss kill không bị ghi nhận nhầm cho người không tham gia/đạt điều kiện nếu luật cần contribution.
-- Artifact cũ vẫn có lore; chapter mới không cần sửa Java để khai báo.
-
-### Phase 8 — Cân bằng, thử nghiệm và phát hành
-
-**Mục tiêu:** đảm bảo hardcore công bằng, ổn định và vận hành được.
-
-**Công việc**
-
-1. Tạo test matrix: người mới/giàu kinh nghiệm, solo/party, từng race/class, từng world, death/reconnect.
-2. Đo thời gian tutorial, tỷ lệ tử vong, thời gian hồi phục, tỷ lệ hoàn thành boss/quest, mức sử dụng portal.
-3. Điều chỉnh theo config, ghi changelog và update README.
-4. Kiểm tra backup/migration trên bản sao dữ liệu cũ.
-5. Chạy thử trên server staging; phát hành theo một đại lục trước.
-6. Thu thập phản hồi và chỉ mở đại lục kế tiếp sau khi xử lý lỗi blocker.
-
-**Nghiệm thu**
-
-- Không có soft-lock quest/cổng hoặc mất profile trong các kịch bản kiểm thử.
-- Có thể khôi phục backup và migration không lặp thưởng.
-- Tài liệu cho biết file cấu hình, điều kiện, quyền admin và hành vi mặc định.
-- Không build JAR/phát hành khi chưa được yêu cầu; khi có yêu cầu build tính năng, tăng version đúng quy ước dự án.
-
-### 12.1 Backlog triển khai thành các phần nhỏ
-
-Mỗi đầu việc dưới đây nên được triển khai và kiểm chứng độc lập; không gộp nhiều hệ thống gameplay vào một thay đổi lớn. Các mục phụ thuộc chỉ bắt đầu khi prerequisite đã được chốt.
-
-#### A. Thiết kế và hợp đồng dữ liệu
-
-- [x] `DESIGN-01` Chốt chính sách tử vong, mất vật phẩm và phục hồi; ghi rõ tương tác với death penalty/grave hiện có.
-- [x] `DESIGN-02` Chốt một hay nhiều nhân vật trên mỗi UUID, quy tắc đổi race/class và tiến trình cá nhân/party.
-- [x] `SCHEMA-01` Chốt convention ID, cấu trúc chapter và version schema sau khi các quyết định Phase 0 hoàn tất.
-
-#### B. Story và cấu hình
-
-- [x] `STORY-01` Kiểm tra `artifacts.*.boss` trong `story.yml` có trỏ tới boss được cấu hình; giữ nguyên hành vi lore hiện có.
-- [x] `STORY-02` Kiểm tra slug ID, tên item và lore không rỗng của artifact; cảnh báo kèm đường dẫn YAML, không đổi hành vi nạp lore.
-- [x] `STORY-03` Thêm kiểm tra tự động cho artifact hợp lệ, boss không tồn tại và metadata tùy chọn bị thiếu/sai loại.
-- [x] `STORY-04` Định nghĩa chapter có ID ổn định trong `story/chapters.yml` và loader riêng; giữ nguyên văn bản cũ cùng artifact IDs trong `story.yml`.
-- [x] `CONFIG-01` Chốt chiến lược loader/validator riêng theo từng loại; artifact và chapter dùng loader/validator cụ thể, chưa dựng framework tổng quát.
-- [x] `CONFIG-02` Kiểm thử merge mặc định không ghi đè cấu hình server; chốt giữ story legacy và không migration/xóa dữ liệu tự động.
-- [x] `CONFIG-03` Kiểm tra parser và thêm strict handling cho duplicate YAML keys trong các map định nghĩa ID; loader từ chối file có khóa trùng trước khi nạp.
-
-#### C. Hồ sơ và tạo nhân vật
-
-- [x] `PROFILE-01` Chốt quyết định lưu hồ sơ người chơi bằng SQLite cho dữ liệu tiến trình, đồng thời giữ YAML cho nội dung tĩnh như race/class/world/portal definitions. Lý do: đây là game RPG có nhiều trạng thái theo thời gian, quest checkpoint, unlock đại lục, cooldown, progression cá nhân và khả năng mở rộng lên nhiều thế giới; YAML tốt cho config tĩnh nhưng không tối ưu cho update nhiều bản ghi theo thời gian và migration. Ở giai đoạn đầu, nếu server nhỏ/đơn giản, có thể dùng YAML tạm thời, nhưng với kế hoạch RPG dài hạn, SQLite là lựa chọn đúng để chuẩn bị cho nhiều player, nhiều world và nhiều loại tiến trình.
-- [x] `PROFILE-02` Định nghĩa schema version, backup, phục hồi file lỗi và kiểm thử migration; đã xác minh migration v1→v2, recovery, backup/WAL, retention, retry, world unlock idempotent và quest progress/completion không trùng.
-- [x] `CHARACTER-01` Tạo GUI chọn race/class có preview, xác nhận và chặn tạo/ghi đè hồ sơ lặp; race/class định nghĩa bằng YAML để quản trị viên tùy chỉnh.
-- [x] `CHARACTER-02` Nạp hồ sơ vào session khi join, xóa cache khi quit; xác minh reconnect/restart không mất hoặc nhân đôi dữ liệu. Đã kiểm thử nạp lặp, khởi động lại database manager và từ chối tạo profile trùng mà không thay đổi dữ liệu.
-
-##### 6.1.1 Quyết định lưu trữ hồ sơ
-
-- `data/` hoặc `database/` giữ `player_profiles.db` với SQLite, không lưu biến trạng thái cá nhân trong nhiều file YAML.
-- `player_profiles`: `uuid`, `player_name`, `selected_race`, `selected_class`, `level`, `exp`, `home_world`, `created_at`, `updated_at`, `is_active`.
-- `player_quest_progress`: `uuid`, `quest_id`, `status`, `current_step`, `started_at`, `completed_at`, `reward_claimed`.
-- `player_world_progress`: `uuid`, `world_id`, `unlocked`, `completed`, `last_visited`.
-- `player_portal_progress`: `uuid`, `portal_id`, `unlocked`, `last_used`.
-- Dữ liệu tĩnh như `races/*.yml`, `player-classes/*.yml`, `worlds/*.yml`, `quests/*.yml`, `portals/*.yml` vẫn ở YAML để dễ sửa nội dung bằng admin và không cần migration phức tạp.
-- Mỗi lần cập nhật schema phải tăng `schema_version`; nếu file hoặc DB lỗi, phục hồi từ backup và không xóa progress chưa lưu.
-- Trong môi trường nhỏ, mỗi UUID chỉ có một profile chính; nếu có nhiều nhân vật thì mỗi profile là một bản ghi độc lập với `profile_id`, nhưng không bắt đầu bằng nhiều character trong giai đoạn đầu.
-
-##### 6.1.2 Chi tiết PROFILE-02
-
-- `schema_version` đặt ở file/database cấp cao nhất. Với SQLite: thêm bảng `meta` với `key = 'schema_version'`, `value = '1'` hoặc hàng tương ứng.
-- Mỗi bảng có `created_at`, `updated_at` để hỗ trợ audit và debug; `uuid` là khóa chính hoặc khóa phụ lệ thuộc vào bảng tương ứng.
-- Mỗi lần thay đổi cấu trúc phải có migration function rõ ràng: `migrate_v1_to_v2`, không sửa dữ liệu bằng cách viết mặc định mù quáng.
-- Backup: mỗi lần save/commit state, copy file SQLite sang `player_profiles.db.bak` hoặc `player_profiles.db.<timestamp>`, tối thiểu một bản backup mỗi 6 giờ hoặc khi có thay đổi lớn.
-- Recovery: nếu DB lỗi hoặc bị corrupt, khôi phục bản backup gần nhất, nếu không có backup thì tạo profile mới với dữ liệu chặn lỗi hoặc giữ `player_profiles` cũ dạng read-only cho admin.
-- `failed=retry` strategy: write transaction với `BEGIN IMMEDIATE`, cập nhật đủ trường, commit; nếu thất bại, rollback và log rõ trước khi trả lỗi tới player.
-- Các test migration phải bao gồm: schema cũ không có cột `selected_class`, thêm world unlock mới, quest completed bị dupli, và lỗi giữa chừng khi save.
-- Tất cả profile data phải được lưu trong transaction riêng, không gộp với config YAML hoặc save world state vì sẽ tăng rủi ro corruption.
-- `PROFILE-02` hoàn tất: schema v2 và migration v1→v2 transactional; backup checkpoint WAL khi khởi động, trước khi ghi hồ sơ/migration và định kỳ; retention, retry lỗi SQLite busy/locked, recovery; transaction idempotent cho world unlock và quest start/step/completion. Mười lăm test manager bao phủ migration dữ liệu cũ, migration atomic khi lỗi, từ chối schema mới hơn, rollback, retry, retention, world unlock, quest completion trùng, recovery và đọc lại profile sau restart.
-- `JOURNAL-01` đã hoàn tất với GUI hiển thị trạng thái/checkpoint/chỉ dẫn/thời gian hoàn thành/reward từ SQLite, mở từ hub F/`/vnmenu`, có nút đồng bộ tiến trình và nút tạo nhân vật khi thiếu profile. Nút đồng bộ gọi khởi tạo quest nên có thể tạo tiến trình cho profile hợp lệ chưa có quest; GUI dùng holder riêng, xác thực viewer, chặn click/drag. Mục menu có thể tắt bằng `rpg.quest-journal.enabled`. Reward XP nhân vật của tutorial được cộng nguyên tử cùng quest completion; reward dạng item/inventory chưa triển khai vì cần một thiết kế giao nhận bền vững riêng.
-
-#### D. Vertical slice Nhân giới
-
-- [x] `HUMAN-01` Khai báo world Nhân giới, spawn, safe zone và fallback; đã thêm loader/validator YAML, không tự tạo world, fallback tới world đã nạp, vùng an toàn chặn sát thương/PvP/quái thù địch và phá hoại địa hình. Năm test mới xác minh cấu hình, tọa độ bắt buộc, bán kính và khóa YAML trùng.
-- [x] `QUEST-01` Implement quest tutorial tự bắt đầu cho profile đang hoạt động, objective `visit-realm-spawn` được validate và lưu active/completed trong SQLite; 5 test kiểm tra YAML, objective type, khóa trùng và biên bán kính. Reward và GUI được hoàn thiện lần lượt trong `QUEST-02` và `JOURNAL-01`.
-- [x] `QUEST-02` Lưu checkpoint, hoàn thành và trao reward XP đúng một lần qua reconnect/restart. Trạng thái hoàn thành, `reward_claimed` và XP nhân vật được cập nhật trong một SQLite transaction; nếu ghi XP lỗi thì rollback cả completion. Hỗ trợ claim bù một lần cho completion cũ chưa claim. Đã xác minh restart/checkpoint, chống claim/completion trùng và rollback khi cập nhật reward thất bại.
-- [x] `JOURNAL-01` Hiển thị quest đang làm, bước hiện tại, chỉ dẫn và trạng thái reward trong GUI; mở từ menu F/`/vnmenu`, có refresh/back và hướng dẫn tạo nhân vật nếu thiếu profile. Holder xác thực người xem, chặn thao tác inventory; mục menu có config bật/tắt. Có test định dạng lore cho quest active/completed.
-- [x] `DEATH-01` Kiểm thử death/recovery trong tutorial để không tạo soft-lock hoặc mất vật phẩm bắt buộc. 27 test profile/quest pass, xác nhận progress/reward bền vững qua restart và không lặp. Paper 26.3-209 harness dispatch `PlayerDeathEvent` và `PlayerRespawnEvent` qua event bus với `Player` proxy, chạy listener/grave/world/SQLite/scheduler thật: death count tăng đúng một lần; `IRON_INGOT x3` được lưu trong grave, vanilla drops được xóa; checkpoint `first-steps` vẫn active sau death; respawn tại realm spawn hoàn tất quest, ghi `reward_claimed=1`, cộng đúng 25 EXP và bật respawn grace chặn tương tác. Log sạch, server tự shutdown, full Maven suite 53/53 pass. Chưa xác minh packet/animation hoặc thao tác bằng client thật; bot 26.1 không parse được packet registry/tag của 26.3.
-
-#### E. Hub GUI, cổng và kiểm thử mở rộng
-
-- [x] `GUI-01` Hoàn thiện hub F thành điểm điều hướng RPG mà không làm thay đổi menu lính hiện tại: mục Nhân vật RPG mở trang hồ sơ cho profile hiện hữu hoặc flow tạo race/class cho người mới; hồ sơ liên kết nhật ký và hub; thêm Sổ truyện chapter read-only có thứ tự, back và phân trang. Không thêm mục bản đồ/cổng trước `PORTAL-01`; test lore profile mới và toàn bộ Maven suite 49/49 pass.
-- [x] `GUI-02` Kiểm thử trên Paper 26.3 qua `PluginManager.callEvent` với `Player` proxy: F mở hub khi bật và trả swap khi tắt; PDC soldier gear bị chặn khỏi offhand; left/right/shift/number-key/swap-offhand click, bottom shift-click và drag đều bị hủy trong menu plugin; respawn grace chặn interact, mở inventory và di chuyển quá bán kính. Harness tự shutdown sau assertion. Test này xác minh listener/event routing nhưng không thay thế thao tác client thật.
-- [x] `PORTAL-01` Hiển thị đại lục đã khóa/mở và điều kiện truy cập trong GUI: `RpgWorldManager` nạp các realm YAML đã validate, giữ API/safe-zone Nhân giới và resolve spawn theo ID. Nhân giới mở mặc định; Yêu giới dùng `completed-quest:first-steps`, trạng thái đọc từ profile active/quest SQLite. Map hiển thị condition, world/spawn/fallback, phân trang, toggle `rpg.world-map.enabled`; YAML realm cũ thiếu `access` mặc định vẫn mở. Yêu giới được chép mặc định nếu thiếu, không ghi đè file và không tự tạo world. Loader/locked-unlocked/legacy tests pass; full Maven suite 53/53 pass. Chưa làm teleport (thuộc `PORTAL-02`).
-- [x] `PORTAL-02` Card realm gọi `teleportAsync` sau khi revalidate profile/access, primary world/spawn, combat tag và death/respawn grace; không teleport vào fallback. Unlock SQLite chỉ commit khi future trả thành công, idempotent; thất bại không đổi unlock. Toggle `rpg.portal-travel.enabled` và `block-in-combat`; 53/53 Maven tests pass. Chưa chạy teleport live-player trên Paper vì không build JAR theo yêu cầu hiện tại.
-- [x] `BALANCE-01` Playtest Nhân giới solo bằng client thật Paper 26.3 qua Playit. Log xác nhận `hoanbh` đăng nhập hai lần, tạo profile active với race `human`/class `swordsman`, hoàn tất `first-steps` tại spawn và nhận đúng 25 character EXP (`reward_claimed=1`); người chơi di chuyển qua các biome và không có lỗi plugin khi vào/thoát. Safe-zone radius 32; objective radius 8; hunger drain 180s; thirst drain 120s. Không đổi cấu hình vì playtest không cung cấp phản hồi cần chỉnh cân bằng; cảm nhận chủ quan về nhịp đói/khát chưa được ghi nhận. Server Paper và Playit đã dừng sạch sau kiểm thử. Offline mode được bật tạm để client đăng nhập.
-
-`STORY-01` đến `STORY-04`, `DESIGN-01`, `DESIGN-02`, `SCHEMA-01`, `CONFIG-01`, `CONFIG-02`, `CONFIG-03`, `PROFILE-01`, `PROFILE-02`, `CHARACTER-01`, `CHARACTER-02`, `HUMAN-01`, `QUEST-01`, `QUEST-02`, `JOURNAL-01`, `GUI-01`, `GUI-02`, `PORTAL-01`, `PORTAL-02`, `DEATH-01` và `BALANCE-01` đã hoàn tất theo phạm vi đã xác minh. Portal dùng multi-realm loader tương thích YAML cũ, Yêu giới khóa bằng `first-steps`; async teleport kiểm tra guard và chỉ commit unlock sau success. Bộ `PlayerProfileDatabaseManagerTest` có 18 test pass (15 test profile và 3 test checkpoint/reward); QUEST-02 kiểm thử restart, chống trao XP lặp, claim bù và rollback nguyên tử. JOURNAL-01 kiểm thử lore cho quest active/completed. GUI-01 thêm test lore hồ sơ nhân vật. Toàn bộ Maven test suite chạy thành công trên bản source cô lập: 53/53 test pass. GUI-02 chạy trên Paper 26.3 qua event bus với click/drag/F/offhand/respawn-grace assertions; dùng Player proxy, chưa thay thế thao tác client thật. DEATH-01 chạy trên Paper 26.3-209 qua event bus: death tạo grave thật và lưu item, drops được chuyển khỏi vanilla, quest checkpoint còn nguyên rồi phục hồi/hoàn tất sau respawn; reward được ghi đúng một lần. BALANCE-01 đã playtest bằng client thật: profile human/swordsman hoạt động, tutorial hoàn tất và nhận reward; không có lỗi plugin, không thay đổi cấu hình vì chưa ghi nhận phản hồi cân bằng chủ quan. Reward hiện tại là RPG character XP lưu bền vững; item/inventory reward chưa hỗ trợ.
-
-## 13. Kế hoạch kiểm thử chi tiết
-
-### 13.1 Unit/logic tests
-
-- Parse và validate mỗi definition: trường thiếu, loại sai, giá trị biên, ID trùng, reference mồ côi.
-- Resolve dependency graph chapter/quest/portal; phát hiện cycle.
-- Quest progression: objective cập nhật, checkpoint, fail/abandon, complete, reward exactly-once.
-- Migration profile: schema cũ → mới, chạy lặp, lỗi giữa chừng, backup.
-- Điều kiện mở cổng và thứ tự transaction.
-- Cấu hình defaults được merge mà không ghi đè giá trị cũ.
-
-### 13.2 Kiểm thử tích hợp Paper
-
-- PlayerJoin/quit/death/respawn/world change và plugin reload/disable.
-- GUI click trái/phải/shift/number key/offhand/drag/click ngoài.
-- F key khi inventory đóng/mở, respawn grace, mercenary gear menu và keybind bị tắt.
-- Teleport world tồn tại, world không tải, location sai, combat, chết, quest khóa.
-- Damage/target rules với class skill, boss, PvP, protection và đồng minh.
-- Restart server giữa các điểm save/reward/portal unlock.
-
-### 13.3 Kiểm thử gameplay
-
-- Người chơi mới không biết plugin: có thể tạo nhân vật, hiểu nhiệm vụ đầu và quay lại khu an toàn.
-- Solo player hoàn thành được main path với chiến thuật hợp lý.
-- Nhóm không nhân reward/quest progress ngoài thiết kế.
-- Người chơi chết trước/sau khi nhận objective item không soft-lock.
-- Mọi boss/đại lục đều báo hiệu nguy hiểm và cung cấp gợi ý chuẩn bị.
-- So sánh các build race × class ở cùng gear/skill progression.
-
-### 13.4 Hiệu năng/độ tin cậy
-
-- Không quét mọi player/entity/world trên mỗi tick cho quest objective.
-- Listener chỉ theo dõi event cần thiết; lọc nhanh theo world/ID/quest active.
-- Hạn chế ghi file đồng bộ lặp lại; định lượng số lần save khi nhiều người cùng chơi.
-- Dọn task/listener/cache khi quit/reload/disable; không giữ UUID/profile/menu vô hạn.
-- Log không spam theo tick; phân cấp INFO/WARNING/SEVERE và có ngữ cảnh.
-
-## 14. Bảo mật gameplay và chống khai thác
-
-- Không tin dữ liệu từ tên/lore item hoặc inventory click; dùng PDC/ID và xác thực server-side.
-- Mỗi reward/unlock có idempotency guard.
-- Revalidate permission, quest state, inventory và world ngay khi thực hiện action.
-- Chặn item duplication qua menu, reconnect, double click, shift click, drag, crash/restart.
-- Không cho người chơi tự gửi command bắt buộc để tiến triển; mọi nút GUI gọi service đã xác thực.
-- Admin debug command/menu cần permission riêng và không được lộ reward progression cho người thường.
-- File YAML người chơi phải validate UUID, giới hạn collection/string và xử lý dữ liệu hỏng.
-- Chỉ ghi log thông tin cần thiết; không đưa dữ liệu nhạy cảm hoặc nội dung không cần thiết vào log.
-
-## 15. Tài liệu và quản trị server
-
-Khi mỗi phase thêm tính năng, cập nhật:
-
-- `README.md`: tổng quan RPG, luồng chơi, điều kiện, cấu hình, GUI và xử lý sự cố.
-- `CHANGELOG.md`: thay đổi gameplay, migration, tương thích và lỗi đã sửa.
-- `plugin.yml`: chỉ thêm command/permission quản trị khi thật cần; không tạo command người chơi làm đường bắt buộc thay GUI.
-- YAML mặc định: song ngữ VI/EN cho từng tham số, default và valid range.
-- Ví dụ cấu hình đại lục/quest/race/class/portal nhỏ, hợp lệ và kiểm thử được.
-- Hướng dẫn backup/restore/migration dữ liệu người chơi.
-
-## 16. Rủi ro chính và cách giảm thiểu
-
-| Rủi ro | Tác động | Giảm thiểu |
+| Phím/đầu vào | Cơ chế hiện có/khả thi | Quyết định đề xuất |
 |---|---|---|
-| Scope quá lớn, thêm nhiều world/class trước khi loop đầu ổn định | Không hoàn tất hoặc khó cân bằng | Vertical slice Nhân giới + một cổng trước |
-| `ConfigManager` phình to, liên kết manager vòng | Khó bảo trì và reload lỗi | Loader/service theo domain; chỉ trích xuất khi dùng thực tế |
-| Migration config ghi đè tùy chỉnh | Mất cấu hình server | Test merge trên fixture cũ; backup; không ghi đè |
-| Save player state không nguyên tử | Mất quest/reward hoặc nhận trùng | Schema version, backup, transaction/idempotency, restart tests |
-| Chọn race/class vĩnh viễn làm tân thủ hối tiếc | Bỏ chơi hoặc yêu cầu admin reset | Preview đầy đủ, xác nhận, lựa chọn đổi có kiểm soát |
-| Hardcore chồng phạt hiện có | Soft-lock, không thể phục hồi | Mô phỏng death/thirst/grave/quest; giới hạn penalty |
-| GUI bị exploit hoặc khó dùng | Duplication, UX kém | Holder riêng, revalidation server-side, test mọi kiểu click |
-| World/cổng cấu hình sai | Mất người chơi hoặc kẹt world | Validate lúc startup, safe return, không commit unlock khi teleport lỗi |
-| Phụ thuộc API/client cho phím nóng | Không nhất quán giữa người chơi | Ưu tiên F hiện có, có config và fallback GUI |
-| Lore tách khỏi gameplay | Người chơi không hiểu mục tiêu | Journal/quest link, nội dung ngắn, objective có ID |
-| Mở rộng story phá `story-id` hiện có | Loot mất lore hoặc config không load | Legacy adapter, giữ ID, migration có cảnh báo |
-| Nhiệm vụ dựa vào event không đáng tin | Progress sai hoặc không tăng | Objective types giới hạn, test tích hợp từng loại |
+| F | Đang là hub qua swap tay phụ | Giữ hub; không gán skill trực tiếp |
+| Q | Drop event Bukkit | Mặc định mở quick cast có thể bật/tắt; cảnh báo xung đột thả đồ |
+| 1–9 | Number-key trong GUI; packet hotbar ngoài GUI cần spike | Dùng chọn skill khi quick cast GUI mở; ngoài GUI là phase nâng cao |
+| Click trái/phải | InventoryClickEvent | Gán, xem chi tiết, xác nhận cast; hủy move item trong menu |
+| Shift-click/drag/offhand | InventoryClick/Drag/Swap events | Hủy trong mọi GUI RPG |
+| Sneak/Interact | Có Bukkit events nhưng ngữ cảnh dễ xung đột gameplay | Chưa gán skill mặc định; chỉ skill chuyên biệt sau thiết kế |
+| Phím tùy chỉnh bất kỳ | Server không tự biết keybind tùy ý nếu client không gửi input chuyên dụng | Không cam kết; GUI/command là fallback chính thức |
 
-## 17. Chỉ số thành công
+### 6.5 Spike packet trước tính năng “Q rồi bấm số khi không cần rê chuột”
 
-Các mục tiêu số cụ thể được chốt sau playtest; cần theo dõi ít nhất:
+- Tạo prototype chỉ đọc/ghi nhận packet, không cast skill và không chặn input ngoài GUI.
+- Xác minh packet nhận được trong game thật khi GUI mở/đóng, người chơi đổi hotbar, chết, reconnect và có ProtocolLib hiện tại.
+- Đối chiếu `pom.xml` (khai báo 5.4.0) với kiểm tra version lúc runtime (đang yêu cầu 5.5.0-SNAPSHOT); giải quyết mismatch tương thích trước khi dựa thêm vào packet API.
+- Nếu không chứng minh được độ tin cậy, giữ UX “mở GUI + rê chuột + phím số/click”; không thêm dependency hoặc client mod chỉ để đạt key chord.
 
-- Tỷ lệ người chơi mới hoàn tất onboarding.
-- Thời gian trung vị tới khi hiểu được quest tracker/menu.
-- Tỷ lệ hoàn thành quest chính đầu tiên và lý do dừng.
-- Tỷ lệ tử vong theo khu vực/boss và thời gian trung bình phục hồi.
-- Tỷ lệ người chơi bị soft-lock hoặc cần admin hỗ trợ.
-- Tỷ lệ dùng class/race và hiệu quả theo cùng cấp gear/nội dung.
-- Số lần lỗi config, reference thiếu, migration fail và save failure.
-- Số lần portal teleport thất bại và nguyên nhân.
-- Hiệu năng: thời gian tick/CPU, số lần save profile, log warning mỗi phiên.
+## 7. Thiết kế hành vi skill
 
-Không tối ưu chỉ theo tỷ lệ thắng boss; một boss quá dễ hoặc quá khó đều có thể làm giảm trải nghiệm. Kết hợp telemetry tối thiểu, phản hồi người chơi và quan sát playtest.
+- `SkillDefinition`: ID, class, display name, icon, lore, category, trigger, target type, range, cooldown, resource cost, max rank, scaling, requirements, effect handler.
+- Chỉ dùng effect handler đã được code/allowlist; YAML không chứa lệnh Java, Skript hoặc arbitrary command.
+- MVP resource: không thêm mana/stamina mới ngay. Skill dùng cooldown và điều kiện rõ; sau playtest mới cân nhắc resource để không chồng hunger/thirst.
+- Skill cast được xác thực ở service một lần, tiêu hao cooldown/resource nguyên tử theo thứ tự đã định; lỗi target hoặc protected zone không gây mất tài nguyên nếu không cast thành công.
+- Friendly-fire, allies, PvP, boss resistance, spawn protection, safe zone và damage attribution dùng cùng policy hiện có; không bypass bằng skill.
+- Projectile/area skill đặt PDC lên projectile hoặc state server-side; giới hạn entity count, bán kính, particle count và lifetime.
+- Dọn task/projectile/effect/cooldown runtime khi death, quit, world change, reload và plugin disable.
+- Passive không tạo task mỗi tick cho mỗi người chơi nếu có thể biểu diễn bằng event; mọi scheduled task phải có lifecycle/limit rõ.
 
-## 18. Quyết định cần chốt trước khi triển khai
+## 8. Portal: xây dựng, đánh dấu và liên kết
 
-### 18.1 Đã chốt
+### 8.1 Mô hình portal
 
-- **Tử vong:** giữ hệ thống hiện tại: người chơi chết sẽ drop inventory; nếu Graves bật, vật phẩm được giữ trong mộ theo các giới hạn/thời hạn cấu hình hiện có; death penalty vẫn tích lũy và hồi phục theo thời gian sống sót. Không thêm phạt RPG chồng lên các cơ chế này nếu chưa được duyệt riêng.
-- **Hồ sơ nhân vật:** một nhân vật trên mỗi UUID người chơi; profile không cần `characterId`/slot ở phiên bản đầu.
-- **Đổi race/class:** được phép có giới hạn qua quest hoặc vật phẩm; điều kiện, chi phí và số lần đổi sẽ thiết kế trước khi triển khai, có preview/xác nhận và chống khai thác.
-- **Tiến trình:** quest và mở khóa là cá nhân. Người chơi có thể hỗ trợ nhau trong nhóm, nhưng điều kiện mở khóa được ghi nhận cho từng người chơi theo quy tắc tham gia sẽ thiết kế cùng hệ quest.
+- Một **portal ID** đại diện một đầu cổng tại một world. Hai đầu cổng có hai ID ổn định và `link` tới nhau; có thể cấu hình một chiều hoặc liên kết hai chiều.
+- Mỗi đầu có: ID, tên hiển thị, world, vùng kích hoạt/frame, điểm đến chính xác, yaw/pitch, quyền bật/tắt, điều kiện quest/level, pair ID và policy combat.
+- Điểm đến là tọa độ đứng an toàn, không chỉ là tọa độ khối cổng. Khi teleport phải tìm/kiểm tra feet/head space, world đã load, border, void, protection và respawn/combat guard.
+- Portal RPG do quản trị viên tạo không thay thế realm map/unlock hiện có. Cổng có thể trỏ tới realm đã biết hoặc điểm khác trong realm; điều kiện unlock realm vẫn do RPG access service kiểm tra.
 
-### 18.2 Còn cần chốt
+### 8.2 Rìu gỗ kiểu WorldEdit: có, nhưng là selection tool nội bộ
 
-1. XP/cấp nhân vật có cần trong MVP hay chỉ dùng quest/chapter/gear?
-2. Đại lục nào sẽ là nội dung đầu tiên sau Nhân giới, và cốt truyện chương đầu được duyệt ra sao?
-3. Người chơi có thể teleport khi ở combat/boss không? Cơ chế hồi hương khẩn cấp là gì?
-4. Server dự kiến có bao nhiêu người chơi đồng thời và mức dữ liệu cần lưu để chọn YAML hay SQLite?
-5. F có tiếp tục mặc định chặn swap tay phụ hay mặc định tắt và để người chơi tự bật?
-6. Có party/co-op trong MVP không, hay phiên bản đầu solo-first?
+- Lệnh `/vnportal wand` cấp hoặc đánh dấu một WOODEN_AXE bằng PDC là công cụ chọn vùng; không dựa vào material/name để cấp quyền.
+- Chuột trái lên block chọn `pos1`, chuột phải chọn `pos2`; thao tác chọn bị hủy để không phá/đặt block.
+- Selection lưu tạm theo UUID, có world binding; xóa khi quit, reload, đổi world hoặc hủy thao tác. GUI/chat báo tọa độ và kích thước vùng.
+- Kiểm tra permission, world, giới hạn cạnh/diện tích/cuboid và vùng bảo vệ/spawn-protection. Không cho chọn vùng vô hạn hoặc vùng của world khác.
+- Đây chỉ là trải nghiệm tương tự WorldEdit, không tương thích lệnh/selection của WorldEdit và không cần dependency WorldEdit.
+- Ngoài chọn vùng bằng rìu, có thể dùng `/vnportal pos1` và `/vnportal pos2` tại vị trí người chơi làm fallback không cần vật phẩm.
 
-## 19. Thứ tự ưu tiên rút gọn
+### 8.3 Quy trình khởi tạo portal cho admin
 
-1. Chốt các quyết định ở Phase 0 và kiểm tra baseline.
-2. Làm loader/validator và bảo toàn `story-id`.
-3. Làm profile + chọn race/class bằng GUI.
-4. Hoàn thành vertical slice Nhân giới: onboarding, quest, death recovery và journal.
-5. Chuẩn hóa menu hub/F và kiểm thử tương tác GUI hiện có.
-6. Làm một đại lục thứ hai cùng portal/unlock.
-7. Cân bằng race/class/skill trên nội dung thật.
-8. Liên kết boss, artifact và chapter; thêm quest phụ.
-9. Playtest, sửa migration/soft-lock/duplication, phát hành theo từng đợt.
-10. Mở rộng Yêu giới, Linh giới, Ma giới, Thần giới theo dữ liệu và kết quả playtest.
+Ví dụ xây hai đầu tại `world` và `yeu`, ID `human-gate` và `yeu-gate`:
 
-## 20. Tiêu chuẩn hoàn thành tổng thể
+```text
+/vnportal wand
+<chuột trái block góc thứ nhất, chuột phải block góc đối diện của vùng cổng>
+/vnportal create human-gate "Cổng Nhân Giới"
+/vnportal setspawn human-gate
+<đến vị trí đứng an toàn ở đầu bên kia>
+/vnportal wand
+<đánh dấu vùng cổng thứ hai>
+/vnportal create yeu-gate "Cổng Yêu Giới"
+/vnportal setspawn yeu-gate
+/vnportal link human-gate yeu-gate --both
+/vnportal info human-gate
+/vnportal validate
+```
 
-Nền tảng RPG VNMINE chỉ được coi là sẵn sàng mở rộng khi:
+Quy ước lệnh đề xuất:
 
-- Một người chơi mới dùng GUI tạo nhân vật, hiểu lựa chọn và bắt đầu chơi mà không cần hướng dẫn ngoài.
-- Người chơi hoàn thành một tuyến quest, chết/relog/restart và tiếp tục đúng tiến độ.
-- Quest thưởng đúng một lần; mở cổng đúng điều kiện.
-- Có ít nhất hai đại lục/world kết nối được, có đường quay về và trạng thái khóa rõ.
-- Race/class tạo khác biệt dễ hiểu nhưng không có lựa chọn bắt buộc để hoàn thành nội dung.
-- Các luồng F/GUI không phá menu lính đánh thuê, respawn grace hoặc inventory.
-- Cấu hình lỗi được báo cụ thể, dữ liệu người chơi có version/backup/migration, `story-id` cũ còn hoạt động.
-- Kiểm thử solo, nhóm, death, reconnect, reload và plugin disable không gây soft-lock, mất dữ liệu hoặc reward duplication.
-- README/changelog/config phản ánh chính xác hành vi; thay đổi được kiểm thử trước khi triển khai production.
+| Lệnh | Tác dụng |
+|---|---|
+| `/vnportal wand` | Lấy selection tool có PDC |
+| `/vnportal pos1`, `/vnportal pos2` | Đánh dấu vùng tại vị trí người quản trị nếu không dùng rìu |
+| `/vnportal create <id> <tên...>` | Tạo portal từ selection hợp lệ; chưa tạo nếu ID trùng |
+| `/vnportal setspawn <id>` | Lưu vị trí/yaw/pitch hiện tại làm destination an toàn |
+| `/vnportal link <id-a> <id-b> [--both]` | Link một chiều hoặc hai chiều; hai chiều là mặc định đề xuất |
+| `/vnportal unlink <id>` | Gỡ liên kết, có xác nhận nếu cổng đang hoạt động |
+| `/vnportal list [page]`, `/vnportal info <id>` | Xem danh sách/thông tin, trạng thái validate và điều kiện |
+| `/vnportal enable <id>`, `/vnportal disable <id>` | Bật/tắt không xóa định nghĩa |
+| `/vnportal remove <id>` | Xóa sau xác nhận; từ chối nếu còn link hoặc cho biết hậu quả |
+| `/vnportal validate` | Báo ID trùng, vùng sai, world/điểm đến thiếu, link mồ côi/cycle |
+
+Tên có khoảng trắng phải được parse đúng; ID tuân thủ slug ổn định. Mỗi subcommand kiểm tra permission riêng hoặc permission quản trị portal chung. Lệnh không cung cấp cách teleport người chơi tùy ý để bypass access rule.
+
+### 8.4 Trải nghiệm dùng portal trong game
+
+- Khi người chơi đi vào vùng kích hoạt hoặc tương tác block trung tâm (phương án sẽ chốt sau prototype), portal hiện tên và điểm đến; tương tác lần hai/GUI xác nhận tránh teleport nhầm.
+- Có particle/âm thanh nhẹ trong vùng, không spawn entity/block portal giả không giới hạn.
+- Portal GUI hiển thị tên đầu đến, realm/world, yêu cầu level/quest, trạng thái đã mở/đang khóa và nút đi.
+- Từ chối teleport trong combat/death/respawn grace theo policy cấu hình; chỉ ghi last-used/unlock sau teleport thành công.
+- Một đầu chưa link, world chưa load hoặc destination lỗi sẽ hiện trạng thái disable kèm log; không silently teleport tới fallback sai.
+
+### 8.5 Lưu trữ và an toàn portal
+
+- Định nghĩa server-owned đặt trong `portals/<id>.yml` hoặc registry được quản lý theo cùng pattern loader; không ghi vào file cấu hình default người chơi sửa tùy ý.
+- Mọi thao tác create/edit/write dùng validate trước, file tạm + atomic move/backup khi khả thi; không xóa dữ liệu nếu save thất bại.
+- Loader kiểm tra duplicate ID/key, tọa độ hữu hạn, block/world height, volume tối đa, destination an toàn, link tham chiếu tồn tại và access condition.
+- Dữ liệu `player_portal_progress` hiện có được đánh giá tái sử dụng cho unlock/last-used cá nhân, không nhầm với định nghĩa cổng vật lý.
+
+## 9. NPC: loại, số lượng, GUI, tên và skin
+
+### 9.1 Có thể tạo nhiều NPC không?
+
+- Có. Mỗi NPC có ID duy nhất trong `npcs.yml`/`npcs/*.yml`; một server có nhiều NPC cùng loại, cùng template hoặc khác nhau.
+- Template định nghĩa vai trò/hội thoại; instance định nghĩa display name, world/location, skin/entity profile, dialogue ID và các quest/shop/trainer links.
+- Giới hạn runtime cấu hình `max-loaded-npcs-per-world` (mặc định đề xuất 100, range có validate); có thể tạo nhiều định nghĩa nhưng chỉ spawn trong world được phép. Cần đo hiệu năng trước khi nâng giới hạn.
+- NPC gắn PDC `npc_id` và schema/version; interaction resolve ID từ PDC, không dựa vào custom name hay entity type đơn lẻ.
+
+### 9.2 Bảy loại NPC đề xuất
+
+Một NPC có thể mang nhiều capability (ví dụ quest giver kiêm gatekeeper); “loại” là bộ chức năng, không phải giới hạn một vai trò duy nhất.
+
+1. **Hướng dẫn viên (tutorial):** hướng dẫn cơ chế, waypoint, menu và quest mở đầu.
+2. **Người giao nhiệm vụ (quest giver):** nhận/hoàn tất quest, hiển thị prerequisite và reward.
+3. **Huấn luyện viên (trainer):** giới thiệu class/skill; mở skill hoặc bán/trao skill book theo luật.
+4. **Thương nhân/thợ rèn (merchant):** shop/đổi vật phẩm, upgrade; giao dịch phải có kiểm tra inventory và chống nhân đôi.
+5. **Người giữ ký ức (lore keeper):** dialogue, chapter, artifact và nhật ký truyện.
+6. **Người gác cổng (gatekeeper):** giải thích điều kiện và mở portal/realm; không tự bypass world access.
+7. **Người chữa trị (healer):** dịch vụ hồi phục/giải trạng thái có giá/giới hạn, không xóa hardcore penalty trái luật.
+
+### 9.3 Tạo, đổi tên và quản trị NPC
+
+Lệnh admin dự kiến:
+
+```text
+/vnnpc create <id> <type> [template]
+/vnnpc select
+/vnnpc rename <id> <tên...>
+/vnnpc move <id>
+/vnnpc dialogue <id> <dialogue-id>
+/vnnpc skin <id> <player-name|uuid>
+/vnnpc info <id>
+/vnnpc list [page]
+/vnnpc despawn <id>
+/vnnpc remove <id>
+```
+
+- `/vnnpc create` tạo instance tại vị trí admin nhìn/đứng, ghi định nghĩa bền vững; không cho duplicate ID.
+- `/vnnpc select` hoặc chuột phải NPC mở admin editor khi có permission; người thường chỉ thấy tương tác gameplay.
+- `/vnnpc rename` đổi tên hiển thị độc lập ID; escaping/color code/độ dài được validate để tránh nameplate abuse.
+- `/vnnpc move` cập nhật vị trí; cleanup entity cũ trước khi respawn, không để clone sau reload.
+- Có `NPC Manager GUI` cho admin: list, page, preview, enable/disable, edit name/dialogue/location/skin, remove có confirm. Lệnh vẫn là fallback và dùng được khi GUI lỗi.
+
+### 9.4 Entity type và skin
+
+- **MVP:** dùng Villager/vanilla entity an toàn theo loại NPC, AI được cấu hình/đóng băng phù hợp; display name đổi được. Có thể chọn mob model từ whitelist nếu type hỗ trợ.
+- Skin người chơi **không áp trực tiếp lên Villager**. Muốn skin player phải tạo NPC dạng fake player/player profile và gửi spawn/metadata packet; cần xử lý tab-list cleanup, entity interaction/hitbox, skin profile texture, reconnect, plugin disable và version compatibility.
+- Đề xuất triển khai skin player ở phase riêng bằng username/UUID/profile hợp lệ; cache kết quả, không nhận URL/texture tùy ý từ chat, không lưu secret/session token. Skin có thể trễ do client tải texture; tên hiển thị vẫn hoạt động nếu skin không resolve.
+- Trước khi chốt fake-player implementation, làm spike so sánh ProtocolLib hiện có với Citizens/giải pháp chính thức tương thích. Ưu tiên không thêm dependency bắt buộc; nếu không ổn định, phát hành MVP không skin player và nêu rõ fallback, thay vì giả vờ đã hỗ trợ.
+- Thay skin không đổi NPC ID, dialogue, quest hay vị trí; lỗi skin không được làm mất NPC hoặc crash plugin.
+
+### 9.5 GUI người chơi
+
+- Chuột phải NPC mở trang hội thoại có portrait/icon, tên, câu thoại ngắn và lựa chọn dạng nút.
+- Quest giver có tab “Nhận”, “Đang làm”, “Hoàn tất”; nút hiển thị điều kiện/reward và trạng thái đã nhận.
+- Trainer mở catalog skill phù hợp class; giải thích sách, level và cost trước khi giao dịch.
+- Merchant dùng giao dịch server-side với confirm, kiểm tra chỗ túi/giá/stock atomically.
+- Gatekeeper mở portal GUI có access status; lore keeper mở story/journal; tutorial NPC mở chỉ dẫn và waypoint.
+- Mọi menu có holder riêng, UUID viewer, revalidation lúc click; chặn shift-click, hotbar swap, drag và stale menu. Có text/chat fallback nếu GUI bị tắt.
+
+## 10. Tutorial, quest chain và particle waypoint
+
+### 10.1 Hành trình tutorial đề xuất
+
+Thời lượng mục tiêu 10–15 phút; có thể bỏ qua/hide sau khi hiểu cơ chế, không ép đọc hội thoại dài.
+
+1. **Tỉnh giấc ở Nhân giới:** Tutorial Guide giới thiệu safe zone, hub F và journal. Tạo/kiểm tra profile; không reset nhân vật cũ.
+2. **Chọn con đường:** người chơi xem lại class/race đã chọn và mở hồ sơ; NPC không cho đổi class miễn phí ngoài luật hiện có.
+3. **Nhận sổ kỹ năng:** trainer trao skill book tương thích class, giải thích tên/lore, class restriction và cách học; nếu chưa có sách cho class thì dùng sách tutorial chung.
+4. **Học và xem kỹ năng:** chuột phải sách; mở GUI Skill Tree, chỉ vị trí skill và điểm hiện có. Level đầu chưa cấp điểm cho tới khi đạt ngưỡng.
+5. **Thử quick cast:** mở bằng Q, gán hoặc xác nhận slot, cast vào dummy/mục tiêu an toàn; kiểm tra cooldown và feedback. Nếu key conflict, hướng dẫn mở từ hub `/vnskills`.
+6. **Tìm dấu mốc:** nhận objective đi tới NPC/địa điểm gần đó; waypoint particle/compass tùy bật. Objective hiện khoảng cách và hướng dẫn ngắn.
+7. **Mở cổng đầu tiên:** quest yêu cầu tương tác gatekeeper/portal; giải thích điều kiện realm và combat restriction.
+8. **Kết thúc tuyến nhập môn:** thưởng character EXP có exactly-once, cập nhật journal, mở quest/chapter kế tiếp và không cấp skill point trùng.
+
+Quest hiện `first-steps` đang là objective tới spawn; mở rộng bằng quest ID/step mới có migration/data tương thích, không đổi nghĩa ID cũ hoặc nhân đôi reward.
+
+### 10.2 Hướng dẫn đường bằng particle
+
+- Có. Particle đánh dấu điểm đích hoặc tạo chuỗi waypoint ngắn từ vị trí người chơi, chỉ hiện với người đang làm quest.
+- Config per quest/NPC: bật/tắt, particle type whitelist, màu nếu hỗ trợ, khoảng cách cập nhật, tối đa khoảng cách hiển thị, bán kính objective, thời gian/nhịp, sound và fallback text/compass.
+- Mặc định chỉ hiện khi objective đang active, người chơi trong cùng world và chưa tới đích; không broadcast cho cả server.
+- Không spawn particle mỗi tick cho mọi người chơi. Dùng scheduled update theo interval giới hạn hoặc PlayerMoveEvent có throttle; dọn task/cache khi quest complete, quit, đổi world, death/disable.
+- Nếu đích bị khóa/không có trong world hiện tại, không chỉ sai hướng qua dimension; hiển thị yêu cầu mở cổng trước.
+- Khi tới điểm, dừng marker, phát hiệu ứng hoàn tất một lần, cập nhật quest idempotently. Cho người chơi tắt particle trong settings; journal vẫn có chỉ dẫn chữ.
+- Chống lộ vị trí bí mật: waypoint chỉ bật khi quest đã mở objective và điều kiện khám phá cho phép.
+
+## 11. Kiến trúc và dữ liệu đề xuất
+
+### 11.1 Bounded modules
+
+```text
+rpg/skill/
+  SkillDefinitionLoader
+  PlayerSkillService
+  SkillCastService
+  SkillBookListener
+  QuickCastMenu
+rpg/portal/
+  PortalDefinitionLoader
+  PortalAdminCommand
+  PortalSelectionListener
+  PortalTravelService
+rpg/npc/
+  NpcDefinitionLoader
+  NpcRegistry
+  NpcInteractionListener
+  NpcDialogueService
+  NpcAdminCommand
+  NpcManagerMenu
+rpg/tutorial/
+  TutorialWaypointService
+```
+
+Không bắt buộc tạo toàn bộ package/class ngay; giữ validation, persistence, domain rules, GUI và listener có trách nhiệm rõ. Wire vào lifecycle plugin, reload và disable có cleanup.
+
+### 11.2 File nội dung
+
+- `skills.yml`: skill ID, class ID, mô tả, rank, cost, cooldown, target/effect allowlisted.
+- `skill-books.yml`: item template, lore, class/level restriction, consume policy và source ID.
+- `portals/<id>.yml`: mỗi portal endpoint, region, destination, link và access policy.
+- `npcs/<id>.yml` hoặc một registry có version: NPC instance/template, vị trí, display name, entity/skin, dialogue/capability IDs.
+- `dialogues/*.yml`: node ID, text, choice, next node và quest condition; validate graph/cycle/target.
+- `quests/*.yml`: objective/reward; reuse progression SQLite hiện tại.
+- Mọi tham số mặc định phải có comment VI/EN nêu công dụng, default, valid range theo quy định dự án.
+
+### 11.3 Dữ liệu SQLite
+
+Các bảng/schema cần thiết kế sau khi đối chiếu version hiện tại:
+
+- `player_skill_progress(uuid, skill_id, rank, unlocked_at)` – duy nhất theo player+skill.
+- `player_skill_loadout(uuid, slot, skill_id)` – slot 1..9, unique player+slot; kiểm tra skill đã học.
+- Skill points/level-up lưu trong profile hoặc bảng character progression transaction-safe.
+- Tái dùng `player_quest_progress`, `player_world_progress`, `player_portal_progress` nếu ngữ nghĩa khớp; không nhân đôi bảng tương đương.
+- Migration version mới phải backup, transaction, rollback nếu lỗi; test database cũ có profile/quest/world/portal data.
+
+## 12. Lộ trình có thứ tự và nghiệm thu
+
+### Phase 0 — Chốt hợp đồng thiết kế và kiểm tra API
+
+- Xác nhận danh sách class/race, 3 class đầu, skill names/lore, policy PvP/boss, Q conflict và level curve.
+- Xem lại event/persistence hiện có; xác định `level`/`exp` semantics.
+- Làm spike packet cho number-key/quick cast và fake player skin; không triển khai gameplay trong spike.
+- Chốt storage portal/NPC, permission node, config, reload behavior.
+
+**Nghiệm thu:** tài liệu/fixture có schema mẫu hợp lệ; không có giả định API chưa xác minh; test compatibility ProtocolLib 5.4.0/5.5.0 mismatch đã được giải quyết hoặc tính năng packet bị giới hạn theo fallback.
+
+### Phase 1 — Level-up, point và migration
+
+- Migration SQLite an toàn, điểm chưa tiêu và level/EXP threshold.
+- Tích hợp reward EXP quest hiện có, chống reward lặp và xử lý lên nhiều cấp.
+- Hồ sơ GUI hiển thị level, thanh EXP và điểm skill còn.
+
+**Nghiệm thu:** profile cũ giữ nguyên; transaction/rollback/restart tests pass; EXP không cộng trùng; cap và overflow được kiểm tra.
+
+### Phase 2 — Skill registry, book và ba class đầu
+
+- Loader/validator `skills.yml`/`skill-books.yml`; PDC skill book; học sách idempotent.
+- Implement MVP `swordsman`, `mage`, `sage` theo section 4; test PvP/protection/boss/death.
+- GUI Skill Tree, detail, nâng rank bằng point và xác nhận.
+
+**Nghiệm thu:** class sai/skill ID sai bị báo cụ thể; không thể giả sách bằng rename; không mất sách/point khi DB lỗi; từng skill dọn state đúng lifecycle.
+
+### Phase 3 — Quick cast
+
+- Q mở Quick Cast qua drop event có config on/off; hotbar drop conflict được thông báo.
+- Quickbar GUI 9 slot, bind/unbind, cooldown/resource/status, click và number key trong GUI.
+- Prototype packet độc lập quyết định có làm direct number input ngoài GUI hay không; GUI/click/command vẫn hoạt động nếu packet không tương thích.
+
+**Nghiệm thu:** không mất item khi Q mở menu; không swap item trong GUI; F vẫn mở hub; quickbar không cast skill chưa học/class sai; người chơi có fallback accessible.
+
+### Phase 4 — Portal admin tool và endpoint linking
+
+- Selection rìu gỗ PDC, pos1/pos2, giới hạn diện tích/world/protection.
+- Commands create/setspawn/link/unlink/list/info/enable/disable/remove/validate và permissions.
+- Loader, storage/backup, GUI quản trị tối thiểu, access conditions và travel guard.
+
+**Nghiệm thu:** chọn vùng không phá block; không duplicate ID/link mồ côi; round-trip reload giữ nguyên; teleport chỉ hoàn tất và ghi progress sau success; không bypass realm/quest/combat.
+
+### Phase 5 — NPC registry và GUI tương tác
+
+- Tạo/lưu nhiều NPC ID, spawn/cleanup/reload, đổi tên/di chuyển, quota.
+- Bắt đầu bằng NPC entity Paper; dialogue GUI và capabilities tutorial/quest/trainer/gatekeeper.
+- Admin list/editor GUI và commands; merchant/lore keeper/healer trong các phase mở rộng.
+
+**Nghiệm thu:** restart không clone NPC; interaction đúng ID; NPC disabled/missing dialogue không crash; click exploit không nhân reward/item.
+
+### Phase 6 — Tutorial waypoint và quest/story chain
+
+- Tutorial nhiều bước tích hợp skill book, level/point, quick cast, NPC, portal.
+- Waypoint particle có throttle, config, per-player visibility, shutdown cleanup và text fallback.
+- Liên kết chapter/quest/boss/portal, reward exactly-once.
+
+**Nghiệm thu:** người mới tự hoàn thành trong 10–15 phút theo playtest; không soft-lock nếu bỏ sách/death/reconnect; waypoint dừng đúng lúc; không spam task/particle.
+
+### Phase 7 — Mở rộng class, NPC skin và cân bằng
+
+- Thêm class theo wave và kiểm thử ma trận build.
+- Fake-player skin spike thành feature chỉ khi API/ProtocolLib được xác nhận; username/UUID skin, cache, fallback và cleanup.
+- Side quests, merchants, lore chains, healer, boss/story integration.
+
+**Nghiệm thu:** không có class áp đảo hoặc skill bỏ qua protection; NPC skin không làm mất entity khi texture fetch lỗi; server staging ổn định.
+
+## 13. GUI và điều hướng tổng thể
+
+- Hub F: Hồ sơ, Kỹ năng, Quickbar, Nhật ký nhiệm vụ, Bản đồ/Cổng, Cốt truyện, Thiết lập.
+- `/vnskills` mở thẳng Skill UI; command là fallback, không thay UX GUI.
+- Quick Cast riêng với Skill Tree: cast bar chỉ gọi skill; Skill Tree học/nâng/xem; Quickbar menu gán slot.
+- Player Portal GUI là giao diện xem/đi portal; admin Portal Manager tạo/sửa/validate.
+- NPC Dialogue GUI chỉ mở từ NPC tương ứng; NPC Admin GUI chỉ cho permission admin.
+- Mọi GUI revalidate UUID, item/PDC, profile, quest, portal access và quyền lúc click; title không dùng làm định danh.
+- Có nút back/close/page, lore trạng thái khóa và lý do; xử lý null DB/config errors bằng thông báo rõ, không success-shaped fallback.
+
+## 14. Quyền và lệnh dự kiến
+
+| Permission dự kiến | Dành cho | Ghi chú |
+|---|---|---|
+| `vnmine.rpg.skills.use` | Người chơi | Có thể mặc định true; dùng skill đã học |
+| `vnmine.rpg.skills.admin` | Admin | Reload/inspect skill runtime nếu thật cần |
+| `vnmine.rpg.portal.admin` | Admin | Wand, create/link/edit/remove/validate portal |
+| `vnmine.rpg.npc.admin` | Admin | Tạo/đổi tên/di chuyển/skin/despawn NPC |
+| `vnmine.rpg.debug` | Developer/admin tin cậy | Debug riêng, mặc định không cấp |
+
+Names/nodes chính thức chỉ chốt khi implementation và `plugin.yml` được sửa. Người chơi không cần permission admin để học skill, mở GUI, làm quest hay dùng portal đã mở. README cần cập nhật cú pháp, permission, ID, cấu hình và ví dụ.
+
+## 15. Kiểm thử và playtest
+
+### Skill/level
+
+- EXP threshold, lên nhiều cấp, point exactly-once, cap, rollback/overflow.
+- Sách thật PDC, sách giả rename, class mismatch, already learned, double click, inventory full, restart.
+- Skill cast/target/cooldown/scaling/point allocation theo mọi rank.
+- Damage attribution, đồng minh/PvP, boss, safe zone, spawn protection, respawn grace.
+- Death/logout/world-change/reload/disable dọn projectile, tasks, effects và cooldown.
+
+### Input/GUI
+
+- Q bật/tắt, drop thật khi disabled, drop cancellation, Q trong combat/death/open inventory.
+- F/hub và Q không xung đột; number-key, click, shift-click, drag, offhand, bottom inventory, stale holder.
+- Protocol packet test đúng client/protocol version; nếu không đạt thì xác minh GUI fallback.
+
+### Portal/NPC/tutorial
+
+- Wand pos1/pos2, vùng quá lớn, cross-world, protected block, permissions.
+- Portal ID/link một chiều/hai chiều, missing world/spawn, safe destination, combat/death, teleport failure.
+- NPC tạo nhiều ID, quota, rename/skin/move/restart/despawn, duplicate cleanup, entity click exploit.
+- Dialogue graph thiếu node/cycle, quest reward lặp, item/reward inventory full, offline/reconnect.
+- Waypoint mỗi-player, world mismatch, toggle off, task cleanup và performance khi nhiều người.
+- Paper integration test ở `TEST/` nếu user yêu cầu; không commit JAR/server/world/log/cache.
+
+### Playtest
+
+- Người mới hoàn thành tutorial solo, biết mở skill, cast, tiêu point và đi cổng.
+- Kiểm tra 3 class MVP ở cùng gear/cấp, sau đó từng wave; đo tỷ lệ skill use, tử vong, cooldown downtime và thời gian hoàn thành.
+- Chỉ tăng giới hạn NPC/particle/skill target sau benchmark trên server staging.
+
+## 16. Rủi ro và giảm thiểu
+
+| Rủi ro | Giảm thiểu |
+|---|---|
+| Bắt Q/số không đúng API | Dùng Drop event + GUI số/click; packet là spike có fallback |
+| Q chiếm thả vật phẩm | Có config tắt intercept, menu/command thay thế và hướng dẫn |
+| ProtocolLib runtime/maven version lệch | Giải quyết mismatch trước packet feature; pin version đã kiểm thử |
+| Skill tạo damage/task quá nhiều | Allowlist effect, target cap, throttle, cleanup và stress test |
+| Skill point/EXP bị cộng trùng | SQLite transaction, idempotency, integration tests/restart tests |
+| Rìu selection phá block hoặc vượt region | Hủy event, PDC, permission, volume/world/protection validation |
+| Portal destination unsafe | Validate feet/head, border, world, void, protection, teleport success |
+| NPC fake player/skin không ổn định | Tách phase, cache, fallback vanilla entity; không phụ thuộc skin để quest chạy |
+| NPC/dialogue/quest tăng scope | Vertical slice 1 NPC guide + trainer + gatekeeper, mở thêm sau |
+| Particle gây lag hoặc lộ nội dung | Per-player, interval/throttle, quest gate, giới hạn và cleanup |
+
+## 17. Ưu tiên thực hiện
+
+1. Phase 0: chốt gameplay và spike input/skin; đối chiếu source hiện tại.
+2. Phase 1: level, EXP, point, migration, profile GUI.
+3. Phase 2: registry/book và 3 class MVP.
+4. Phase 3: quick cast Q + GUI/number key/click.
+5. Phase 4: portal wand/commands/link và travel an toàn.
+6. Phase 5–6: NPC, dialogue, tutorial quest và particle waypoint.
+7. Phase 7: mở rộng class, skin player NPC, side story và cân bằng.
+
+## 18. Điều kiện hoàn thành vertical slice
+
+- Người chơi hiện hữu không mất profile/quest/realm unlock khi migration.
+- Người chơi đạt level, nhận point đúng một lần, học skill book đúng class và nâng skill bằng GUI.
+- Q mở quick cast mà không làm rơi item khi bật; người chơi cast qua number key trong GUI hoặc click; có fallback nếu tắt Q.
+- Có tối thiểu ba class với hai skill chủ động + một passive mỗi class; skill không bypass protection/PvP/boss rule.
+- Admin dùng rìu gỗ chọn vùng, tạo hai portal ID, đặt destination, link hai chiều và validate; người chơi đi qua theo điều kiện mà không teleport sai.
+- Có nhiều NPC ID, ít nhất guide/trainer/gatekeeper; NPC có GUI và đổi display name; NPC không clone sau restart.
+- Tutorial dẫn người chơi từ NPC qua học/cast skill, waypoint particle tới mục tiêu và portal đầu; particle có thể tắt và có text fallback.
+- README/changelog/config/permissions cập nhật khi tính năng được triển khai; test unit/integration liên quan pass; chưa đánh dấu phase hoàn thành trước khi có bằng chứng.
