@@ -17,6 +17,7 @@ import org.yaml.snakeyaml.error.YAMLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.logging.Level;
 
 public final class VnMineHardcore extends JavaPlugin {
@@ -28,6 +29,8 @@ public final class VnMineHardcore extends JavaPlugin {
     private CharacterSelectionManager characterSelectionManager;
     private RpgWorldManager rpgWorldManager;
     private TutorialQuestManager tutorialQuestManager;
+    private Map<String, NpcDefinitionLoader.NpcDefinition> npcDefinitions = Map.of();
+    private NpcManager npcManager;
     private SkillManager skillManager;
     private LogManager logManager;
     private ThirstManager thirstManager;
@@ -106,6 +109,26 @@ public final class VnMineHardcore extends JavaPlugin {
         }
         this.rpgWorldManager = new RpgWorldManager(this);
         this.tutorialQuestManager = new TutorialQuestManager(this);
+        try {
+            java.io.File npcDirectory = new java.io.File(getDataFolder(), "npcs");
+            if (!npcDirectory.isDirectory() && !npcDirectory.mkdirs()) {
+                throw new java.io.IOException("Could not create NPC data directory.");
+            }
+            java.io.File npcDefinitionsFile = new java.io.File(npcDirectory, "npc-definitions.yml");
+            if (!npcDefinitionsFile.isFile()) {
+                try {
+                    saveResource("npcs/npc-definitions.yml", false);
+                } catch (IllegalArgumentException exception) {
+                    throw new java.io.IOException("Bundled NPC definitions are missing.", exception);
+                }
+            }
+            this.npcDefinitions = NpcDefinitionLoader.load(npcDefinitionsFile, getLogger()).orElseThrow(
+                () -> new java.io.IOException("NPC definitions are invalid; see the log for details."));
+        } catch (java.io.IOException exception) {
+            getLogger().log(Level.SEVERE, "Failed to initialize NPC definitions.", exception);
+            Bukkit.getPluginManager().disablePlugin(this);
+            return;
+        }
         this.timeControlManager = new TimeControlManager(this, configManager);
         this.timeControlManager.reload();
 
@@ -136,6 +159,7 @@ public final class VnMineHardcore extends JavaPlugin {
         Bukkit.getPluginManager().registerEvents(characterSelectionManager, this);
         Bukkit.getPluginManager().registerEvents(rpgWorldManager, this);
         Bukkit.getPluginManager().registerEvents(tutorialQuestManager, this);
+        Bukkit.getPluginManager().registerEvents(npcManager, this);
         Bukkit.getPluginManager().registerEvents(skillManager, this);
         this.deathListener = new DeathListener(this, configManager, deathRenameManager, deathPenaltyManager);
         this.combatListener = new CombatListener(this, deathListener, configManager);
@@ -147,6 +171,13 @@ public final class VnMineHardcore extends JavaPlugin {
         this.villagerTradeManager = new VillagerTradeManager(this, configManager, villagerDataManager);
         this.oreControlListener = new OreControlListener(this, configManager);
         this.graveListener = new GraveListener(this, graveManager);
+        try {
+            this.npcManager = new NpcManager(this, npcDefinitions);
+        } catch (java.io.IOException | InvalidConfigurationException | YAMLException exception) {
+            getLogger().log(Level.SEVERE, "Failed to initialize NPC runtime data.", exception);
+            Bukkit.getPluginManager().disablePlugin(this);
+            return;
+        }
 
         // Register listeners
         Bukkit.getPluginManager().registerEvents(deathListener, this);
@@ -174,6 +205,7 @@ public final class VnMineHardcore extends JavaPlugin {
         }
         registerCommand("vnskills", skillManager, skillManager);
         registerCommand("vnskillbook", skillManager, skillManager);
+        registerCommand("vnnpc", npcManager, npcManager);
         registerCommand("vngroup", permissionManager, permissionManager);
         registerCommand("vnuser", permissionManager, permissionManager);
         registerCommand("vnarmy", mercenaryManager, mercenaryManager);
@@ -1099,6 +1131,13 @@ public final class VnMineHardcore extends JavaPlugin {
     public static VnMineHardcore getInstance() { return instance; }
     public ConfigManager getConfigManager() { return configManager; }
     public PlayerProfileDatabaseManager getPlayerProfileDatabaseManager() { return playerProfileDatabaseManager; }
+    public Map<String, NpcDefinitionLoader.NpcDefinition> getNpcDefinitions() {
+        return npcDefinitions;
+    }
+
+    public NpcManager getNpcManager() {
+        return npcManager;
+    }
     public CharacterSelectionManager getCharacterSelectionManager() { return characterSelectionManager; }
     public RpgWorldManager getRpgWorldManager() { return rpgWorldManager; }
     public TutorialQuestManager getTutorialQuestManager() { return tutorialQuestManager; }

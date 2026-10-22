@@ -576,6 +576,34 @@ public class PlayerProfileDatabaseManager {
         });
     }
 
+    public Optional<ManaRestoreResult> restoreMana(String uuid, int amount, int maxMana,
+                                                    int regenerationPerSecond, long nowMillis)
+        throws SQLException {
+        if (amount < 0 || amount > 1000) {
+            throw new IllegalArgumentException("Mana restore amount must be between 0 and 1000.");
+        }
+        validateManaSettings(maxMana, regenerationPerSecond, nowMillis);
+        return executeWriteTransaction(connection -> {
+            ManaState current = refreshMana(connection, uuid, maxMana, regenerationPerSecond, nowMillis);
+            if (current == null) return Optional.empty();
+            int restored = Math.min(amount, maxMana - current.currentMana());
+            if (restored > 0) {
+                try (PreparedStatement update = connection.prepareStatement(
+                        "UPDATE player_profiles SET mana = mana + ? " +
+                            "WHERE uuid = ? AND is_active = 1 AND mana = ?")) {
+                    update.setInt(1, restored);
+                    update.setString(2, uuid);
+                    update.setInt(3, current.currentMana());
+                    if (update.executeUpdate() != 1) {
+                        throw new SQLException("Mana changed during restore; transaction was rolled back.");
+                    }
+                }
+            }
+            return Optional.of(new ManaRestoreResult(
+                new ManaState(current.currentMana() + restored, maxMana), restored));
+        });
+    }
+
     private ManaState refreshMana(Connection connection, String uuid, int maxMana,
                                   int regenerationPerSecond, long nowMillis) throws SQLException {
         int storedMana;
@@ -868,6 +896,9 @@ public class PlayerProfileDatabaseManager {
     }
 
     public record ManaState(int currentMana, int maxMana) {
+    }
+
+    public record ManaRestoreResult(ManaState state, int restoredAmount) {
     }
 
     public record PlayerProfile(String uuid, String playerName, String selectedRace, String selectedClass,

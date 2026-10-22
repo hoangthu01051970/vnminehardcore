@@ -41,6 +41,12 @@ public class ConfigManager {
    public int characterProgressionSkillPointsPerLevel = CharacterProgression.DEFAULT_SKILL_POINTS_PER_LEVEL;
    public int rpgMaxMana = 100;
    public int rpgManaRegenerationPerSecond = 5;
+   public double rpgBattleFocusDamageBonusPerRank = 0.03;
+   public double rpgFortifyDamageReductionPerStackPerRank = 0.02;
+   public int rpgFortifyMaxStacks = 3;
+   public int rpgFortifyStackDurationSeconds = 5;
+   public int rpgManaFlowManaPerChainCastPerRank = 1;
+   public int rpgManaFlowChainWindowSeconds = 5;
    // Death
    public boolean broadcastDeath;
    public boolean playSound;
@@ -328,6 +334,20 @@ public class ConfigManager {
       this.rpgMaxMana = readBoundedInt("rpg.skills.mana.max-mana", 100, 1, 1000);
       this.rpgManaRegenerationPerSecond =
           readBoundedInt("rpg.skills.mana.regeneration-per-second", 5, 0, 100);
+      this.rpgBattleFocusDamageBonusPerRank =
+          readBoundedDouble(this.config, "rpg.skills.passives.battle-focus.damage-bonus-per-rank",
+              0.03, 0.0, 0.10);
+      this.rpgFortifyDamageReductionPerStackPerRank =
+          readBoundedDouble(this.config, "rpg.skills.passives.fortify.damage-reduction-per-stack-per-rank",
+              0.02, 0.0, 0.05);
+      this.rpgFortifyMaxStacks =
+          readBoundedInt("rpg.skills.passives.fortify.max-stacks", 3, 1, 3);
+      this.rpgFortifyStackDurationSeconds =
+          readBoundedInt("rpg.skills.passives.fortify.stack-duration-seconds", 5, 1, 30);
+      this.rpgManaFlowManaPerChainCastPerRank =
+          readBoundedInt("rpg.skills.passives.mana-flow.mana-per-chain-cast-per-rank", 1, 0, 10);
+      this.rpgManaFlowChainWindowSeconds =
+          readBoundedInt("rpg.skills.passives.mana-flow.chain-window-seconds", 5, 1, 30);
       this.broadcastDeath = this.config.getBoolean("death.broadcast-death", true);
       this.playSound = this.config.getBoolean("death.play-sound", true);
       this.respawnProtectionEnabled = this.config.getBoolean("death.respawn-protection.enabled", true);

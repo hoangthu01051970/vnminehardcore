@@ -279,6 +279,33 @@ public class PlayerProfileDatabaseManagerTest {
     }
 
     @Test
+    public void battleFocusUpgradeRequiresNextLevelAndSpendsOneSkillPoint() throws Exception {
+        PlayerProfileDatabaseManager manager = newManager();
+        manager.initialize();
+        String uuid = "11111111-2222-3333-4444-555555666666";
+        manager.createPlayerProfile(uuid, "Ares", "human", "swordsman", 3, 0,
+            "human-realm", "2026-10-21T00:00:00Z");
+        manager.learnSkill(uuid, "battle-focus", "swordsman", 3, "learned");
+        try (Connection connection = open(manager.getDatabaseFile());
+             Statement statement = connection.createStatement()) {
+            statement.execute("UPDATE player_profiles SET skill_points = 1 WHERE uuid = '" + uuid + "'");
+        }
+
+        assertEquals(PlayerProfileDatabaseManager.SkillUpgradeResult.REQUIREMENTS_NOT_MET,
+            manager.upgradeSkill(uuid, "battle-focus", "swordsman", 3, 5));
+        assertEquals(1, manager.getPlayerProfile(uuid).orElseThrow().unspentSkillPoints());
+        try (Connection connection = open(manager.getDatabaseFile());
+             Statement statement = connection.createStatement()) {
+            statement.execute("UPDATE player_profiles SET level = 4 WHERE uuid = '" + uuid + "'");
+        }
+
+        assertEquals(PlayerProfileDatabaseManager.SkillUpgradeResult.UPGRADED,
+            manager.upgradeSkill(uuid, "battle-focus", "swordsman", 3, 5));
+        assertEquals(2, manager.getLearnedSkills(uuid).getFirst().rank());
+        assertEquals(0, manager.getPlayerProfile(uuid).orElseThrow().unspentSkillPoints());
+    }
+
+    @Test
     public void manaRegeneratesOverTimeAndCannotBeOverspent() throws Exception {
         PlayerProfileDatabaseManager manager = newManager();
         manager.initialize();
@@ -297,6 +324,30 @@ public class PlayerProfileDatabaseManagerTest {
             manager.spendMana(uuid, 101, 100, 5, now + 6_000));
         assertEquals(new PlayerProfileDatabaseManager.ManaState(90, 100),
             manager.getManaState(uuid, 100, 0, now + 6_000).orElseThrow());
+    }
+
+    @Test
+    public void manaRestoreIsTransactionalAndCannotExceedMaximum() throws Exception {
+        PlayerProfileDatabaseManager manager = newManager();
+        manager.initialize();
+        String uuid = "11111111-2222-3333-4444-555555666666";
+        manager.createPlayerProfile(uuid, "Ares", "human", "mage", 1, 0,
+            "human-realm", "created");
+        long now = System.currentTimeMillis();
+        manager.getManaState(uuid, 100, 0, now);
+        assertEquals(PlayerProfileDatabaseManager.ManaSpendResult.SPENT,
+            manager.spendMana(uuid, 90, 100, 0, now));
+
+        PlayerProfileDatabaseManager.ManaRestoreResult partial =
+            manager.restoreMana(uuid, 5, 100, 0, now).orElseThrow();
+        assertEquals(5, partial.restoredAmount());
+        assertEquals(new PlayerProfileDatabaseManager.ManaState(15, 100), partial.state());
+
+        PlayerProfileDatabaseManager.ManaRestoreResult capped =
+            manager.restoreMana(uuid, 100, 100, 0, now).orElseThrow();
+        assertEquals(85, capped.restoredAmount());
+        assertEquals(new PlayerProfileDatabaseManager.ManaState(100, 100), capped.state());
+        assertTrue(manager.restoreMana("missing", 1, 100, 0, now).isEmpty());
     }
 
     @Test

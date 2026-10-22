@@ -1,12 +1,20 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+- Thêm nội tại Tâm Kiếm cho kiếm sĩ đã học sách: tăng sát thương đánh thường/đánh quét lên quái theo rank, nâng rank bằng skill point theo cấp yêu cầu và cấu hình riêng; không áp dụng cho PvP, đạn hoặc sát thương skill chủ động.
+- Thêm nội tại Thành Đồng cho hộ vệ đã học sách: đòn đánh của quái thù địch cộng stack giảm sát thương theo rank, tự hết hạn sau thời gian cấu hình; hỗ trợ nâng rank bằng skill point.
+- Thêm nội tại Mạch Pháp cho pháp sư đã học sách: cast skill chủ động thành công liên tiếp hồi mana theo rank, với cửa sổ combo và lượng mana có thể cấu hình; hỗ trợ nâng rank bằng skill point.
+- Thêm registry định nghĩa và NPC runtime dạng villager bất tử, đứng yên; lưu/khôi phục vị trí, đổi tên/di chuyển/xóa/liệt kê bằng `/vnnpc`, giới hạn số NPC cấu hình được và quyền quản trị riêng.
+
 ## [v2.0.3] - 2026-10-21
 
 ### Added
 - Thêm nền tảng dữ liệu RPG bằng SQLite, GUI tạo nhân vật theo race/class có bước xác nhận, và cấu hình race/class riêng cho quản trị viên.
 - Thêm loader/validator chapter truyện, kiểm tra khóa YAML trùng và cơ chế merge mặc định không ghi đè cấu hình server.
 
-## [Unreleased]
+## [v2.1.0] - 2026-10-22
 
 ### Added
 - Mở rộng menu chính thành 45 ô, phân nhóm tiện ích máy chủ, chức năng RPG và trợ giúp/admin; bổ sung header và separator cho menu admin, giữ nguyên quyền truy cập/điều hướng.
@@ -39,6 +47,8 @@
 
 ### Fixed
 - Đồng bộ lại checkpoint và objective quest tutorial sau khi người chơi hồi sinh, tránh giữ trạng thái session cũ sau death/recovery.
+
+## [Unreleased]
 
 ## [v2.0.2] - 2026-10-21
 

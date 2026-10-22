@@ -75,6 +75,7 @@ public class VillagerTradeManager implements Listener {
         if (!config.villagerTradingEnabled) return;
 
         Villager villager = event.getEntity();
+        if (plugin.getNpcManager().isManagedNpc(villager)) return;
         Villager.Profession newProfession = event.getProfession();
 
         // Bỏ qua nếu là NONE hoặc NITWIT
@@ -110,6 +111,7 @@ public class VillagerTradeManager implements Listener {
     public void onPlayerInteractVillager(PlayerInteractEntityEvent event) {
         if (!config.villagerTradingEnabled) return;
         if (!(event.getRightClicked() instanceof Villager villager)) return;
+        if (plugin.getNpcManager().isManagedNpc(villager)) return;
 
         NamespacedKey armyUnitKey = new NamespacedKey(plugin, "army_unit");
         if (villager.getPersistentDataContainer().has(armyUnitKey, PersistentDataType.STRING)) {

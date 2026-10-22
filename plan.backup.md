@@ -429,9 +429,13 @@ Mỗi portal có dữ liệu:
 - Phase 1 đã hoàn thành: character EXP, level-up, skill point và hiển thị thông tin progression.
 - Phase 2 đã hoàn thành: registry skill/book YAML, học sách theo class/level và lưu learned skill trong SQLite.
 - Phase 3 đã triển khai phần code và test: quick-cast GUI, slot 1–9, sáu skill chủ động, cooldown, mana hồi theo thời gian và skill tree nâng rank bằng skill point.
+- Đã triển khai Tâm Kiếm cho swordsman: cộng sát thương đánh thường/đánh quét lên quái theo rank, mặc định +3% mỗi rank; học ở rank 1 và có thể nâng bằng skill point khi đạt cấp yêu cầu.
+- Đã triển khai Thành Đồng cho guardian: bị quái thù địch đánh cộng stack, tối đa 3; mỗi stack giảm 2% sát thương mỗi rank và hết hạn sau 5 giây không bị quái đánh.
+- Đã triển khai Mạch Pháp cho mage: sau cast chủ động thành công thứ hai trở đi trong chuỗi (tối đa 5 giây giữa cast), hồi thêm 1 mana mỗi rank; không vượt max mana.
 - SQLite hiện tại là schema v6; migration v4→v5 bổ sung bảng quick slots và v5→v6 bổ sung mana, đều được kiểm thử.
 - Phase 4 đã triển khai phần code và test: chọn vùng bằng rìu gỗ riêng, tạo/quản lý portal, đặt điểm đến, link hai chiều, kiểm tra điểm đến an toàn và particle marker.
 - Paper smoke test đã xác nhận plugin và ProtocolLib khởi động trên Paper 26.3, `/vnportal list` và `/vnportal validate` hoạt động qua RCON; tương tác trực tiếp của người chơi vẫn cần kiểm thử.
+- Đã chuẩn bị Playit agent chính thức và script `TEST/run.sh`; tunnel công khai chưa được claim/mở, Paper test server hiện đã dừng. Gameplay test từ client bên ngoài vẫn đang chờ.
 - Kiểm thử gameplay đầy đủ vẫn cần thực hiện để xác nhận Q/drop conflict, cast thực tế, portal travel, vùng bảo vệ và cân bằng chỉ số.
 
 ### Phase 0 – Cốt lõi dữ liệu và design lock
@@ -458,6 +462,19 @@ Mỗi portal có dữ liệu:
 - [x] Kiểm tra class, learned skill, cooldown, phạm vi tia và vật cản; damage áp dụng qua event Bukkit và skill chỉ nhắm quái thù địch.
 - [x] Thêm mana lưu bền vững, hồi theo thời gian có giới hạn max mana; không dùng vanilla XP/thanh đói thay thế.
 - [x] Thêm GUI skill tree/chi tiết skill, hiển thị rank/điều kiện/điểm và nâng rank bằng skill point trong transaction nguyên tử.
+- [x] Triển khai hiệu ứng passive `battle-focus` cho swordsman đã học sách: tăng sát thương đánh thường và sweep attack lên quái theo cấu hình mỗi rank; không ảnh hưởng PvP, projectile hoặc skill damage.
+- [x] Nạp rank passive vào cache khi người chơi vào server/plugin khởi động, cập nhật sau khi học sách và xóa cache khi thoát; lỗi tải hồ sơ được log/báo rõ.
+- [x] Hiển thị hiệu ứng Tâm Kiếm trong skill tree/chi tiết, cấu hình mức cộng ở `rpg.skills.passives.battle-focus.damage-bonus-per-rank` (mặc định 3%, giới hạn 0–10%).
+- [x] Thêm unit test cho công thức Tâm Kiếm/Thành Đồng/Mạch Pháp, điều kiện chuỗi và giới hạn mana restore; toàn bộ 86 Maven tests đạt.
+- [x] Cho phép nâng rank passive đã triển khai bằng skill point trong GUI theo điều kiện cấp tiếp theo; cập nhật cache rank sau transaction thành công.
+- [x] Kiểm thử điều kiện cấp và trừ đúng 1 skill point khi nâng Tâm Kiếm; focused suite 31 test đạt, toàn bộ suite 80 test đạt.
+- [x] Triển khai Thành Đồng cho guardian: chỉ nhận stack từ đòn của quái thù địch (kể cả projectile do quái bắn); stack hiện có giảm đòn tiếp theo, reset sau thời gian cấu hình; hỗ trợ nâng rank/cache.
+- [x] Thêm cấu hình song ngữ cho mức giảm sát thương, stack cap và thời gian hết hạn; giảm tối đa 90% để không vô hiệu hóa sát thương hoàn toàn.
+- [x] Thêm kiểm thử công thức giảm sát thương theo rank/stack và giới hạn an toàn; toàn bộ 83 Maven tests đạt.
+- [x] Triển khai Mạch Pháp cho mage đã học sách: hồi mana thêm theo rank sau các cast active thành công tiếp diễn trong cửa sổ combo; chuỗi không lưu khi logout/restart.
+- [x] Thêm thao tác khôi phục mana trong transaction SQLite, giới hạn ở max mana; lỗi DB được log và báo rõ sau cast.
+- [x] Cho phép nâng rank Mạch Pháp bằng skill point, cập nhật cache rank sau khi nâng và hiển thị hiệu ứng/cấu hình trong GUI.
+- [x] Thêm cấu hình song ngữ cho mana/cast/rank và cửa sổ chuỗi; kiểm thử helper và thao tác khôi phục mana; toàn bộ 86 Maven tests đạt.
 - [ ] Kiểm thử gameplay bằng Paper: Q/drop conflict, cast thực tế, bảo vệ vùng an toàn và cân bằng chỉ số.
 
 ### Phase 4 – Portal system (đã triển khai, chờ Paper gameplay test)
@@ -467,6 +484,7 @@ Mỗi portal có dữ liệu:
 - [x] Dịch chuyển khi người chơi đi vào vùng portal; chặn khi chết/respawn/combat, có cooldown và chống lặp nếu điểm đến nằm trong vùng nhận.
 - [x] Thêm particle ring cấu hình được, giới hạn số portal/kích thước vùng, quyền admin và hướng dẫn sử dụng.
 - [x] Paper smoke test: ProtocolLib 5.5.0-SNAPSHOT và VnMineHardcore 2.0.4 bật thành công; RCON xác nhận list/validate và chặn thao tác tạo portal từ console.
+- [x] Chuẩn bị launcher Paper + Playit trong `TEST/run.sh`, với agent chính thức và log riêng; chưa mở tunnel công khai.
 - [ ] Kiểm thử Paper: trigger theo vùng, teleport qua nhiều world/chunk, combat/death gate, particle và reload/restart persistence.
 
 ### Phase 5 – NPC + tutorial + quest flow
@@ -488,5 +506,5 @@ Hệ thống RPG của VNMINE nên đi theo hướng “vừa chơi được, d�
 
 Các phần quan trọng cần triển khai tiếp theo là:
 1. kiểm thử gameplay bằng Paper cho Quick Cast, skill cast và portal travel;
-2. hoàn thiện hiệu ứng gameplay cho passive skill và cân bằng rank/mana qua playtest;
+2. kiểm thử gameplay và cân bằng ba passive qua Paper playtest;
 3. tạo NPC tutorial đầu tiên, dialogue/quest flow và particle waypoint.
