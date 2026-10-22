@@ -458,9 +458,30 @@ mana state and its regeneration timestamp are stored in SQLite, including
 elapsed-time regeneration after a restart. Skill rank upgrades spend skill
 points; learning books and casting do not.
 
-Passive effects (`battle-focus`, `fortify`, `mana-flow`) are still not
-implemented. They remain visible in the skill tree but cannot be assigned or
-upgraded until their passive behavior is implemented.
+`battle-focus` is implemented for a swordsman who has learned its skill book:
+it increases direct melee and sweep-attack damage against hostile monsters by
+the configured percentage per rank. It does not affect PvP, projectile damage,
+or active-skill damage. Set
+`rpg.skills.passives.battle-focus.damage-bonus-per-rank` (default `0.03`,
+valid `0.0`-`0.10`) in `config.yml` to tune it. Its learned rank starts at 1;
+further ranks can be bought with one skill point each when the character meets
+the same next-rank level requirement shown in the skill details GUI.
+`fortify` is implemented for a guardian who learned its skill book: each
+hostile-mob hit adds a stack, up to three, and existing stacks reduce the next
+hostile-mob hit by 2% per stack per rank. Stacks expire after five seconds
+without a hostile-mob hit. The reduction, stack cap, and expiry duration are
+configurable under `rpg.skills.passives.fortify` in `config.yml`; stack count
+is capped at three and damage reduction is capped at 90%. Fortify ranks use
+skill points and the same next-rank level requirement as active skills.
+`mana-flow` is implemented for a mage who learned its skill book: the first
+successful active-skill cast starts a chain; each following successful cast
+within the configured window restores mana per rank, up to the character's
+maximum. A gap longer than the window starts a new chain, and chain state is
+not persisted across logout/restart. Configure
+`rpg.skills.passives.mana-flow.mana-per-chain-cast-per-rank` (default `1`,
+valid `0`-`10`) and `chain-window-seconds` (default `5`, valid `1`-`30`) in
+`config.yml`. Mana Flow ranks can be upgraded with skill points under the
+normal next-rank level requirement.
 
 ### RPG Portals
 

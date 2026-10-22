@@ -54,6 +54,28 @@ rpg:
       # [VI] Mana hồi mỗi giây; mặc định 5, hợp lệ 0-100.
       # [EN] Mana regenerated per second; defaults to 5, valid range 0-100.
       regeneration-per-second: 5
+    passives:
+      battle-focus:
+        # [VI] Sát thương đánh thường cộng thêm cho mỗi rank của Tâm Kiếm; mặc định 0.03 (3%), hợp lệ 0-0.10 (0-10%).
+        # [EN] Extra direct melee damage per Battle Focus rank; defaults to 0.03 (3%), valid range 0-0.10 (0-10%).
+        damage-bonus-per-rank: 0.03
+      fortify:
+        # [VI] Giảm sát thương mỗi stack cho mỗi rank Thành Đồng; mặc định 0.02 (2%), hợp lệ 0-0.05 (0-5%).
+        # [EN] Damage reduction per Fortify stack per rank; defaults to 0.02 (2%), valid range 0-0.05 (0-5%).
+        damage-reduction-per-stack-per-rank: 0.02
+        # [VI] Số stack Thành Đồng tối đa; mặc định 3, hợp lệ 1-3.
+        # [EN] Maximum Fortify stacks; defaults to 3, valid range 1-3.
+        max-stacks: 3
+        # [VI] Số giây không bị quái đánh trước khi stack bị xóa; mặc định 5, hợp lệ 1-30.
+        # [EN] Seconds without a hostile-mob hit before stacks expire; defaults to 5, valid range 1-30.
+        stack-duration-seconds: 5
+      mana-flow:
+        # [VI] Mana hồi thêm mỗi rank sau cast thành công thứ hai trở đi trong chuỗi; mặc định 1, hợp lệ 0-10.
+        # [EN] Mana restored per rank on each successful follow-up cast in a chain; defaults to 1, valid range 0-10.
+        mana-per-chain-cast-per-rank: 1
+        # [VI] Thời gian tối đa giữa hai cast thành công để nối chuỗi; mặc định 5 giây, hợp lệ 1-30.
+        # [EN] Maximum gap between successful casts to continue a chain; defaults to 5 seconds, valid range 1-30.
+        chain-window-seconds: 5
     quick-cast:
       # [VI] Bật giao diện quick cast; mặc định true.
       # [EN] Enable the quick-cast menu; defaults to true.

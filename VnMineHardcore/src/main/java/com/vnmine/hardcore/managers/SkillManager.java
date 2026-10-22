@@ -25,11 +25,15 @@ import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Monster;
 import org.bukkit.entity.Player;
+import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
+import org.bukkit.event.EventPriority;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.Projectile;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
@@ -49,6 +53,7 @@ public final class SkillManager implements Listener, CommandExecutor, TabComplet
     private static final String ADMIN_PERMISSION = "vnmine.command.skillbook.admin";
     private static final Set<String> CAST_HANDLERS = Set.of(
         "blade-flare", "guard-break", "shield-wall", "taunt", "fire-bolt", "arcane-field");
+    private static final Set<String> IMPLEMENTED_PASSIVES = Set.of("battle-focus", "fortify", "mana-flow");
 
     private final JavaPlugin plugin;
     private final PlayerProfileDatabaseManager database;
@@ -57,6 +62,11 @@ public final class SkillManager implements Listener, CommandExecutor, TabComplet
     private final NamespacedKey skillIdKey;
     private SkillDefinitionLoader.SkillRegistry registry;
     private final Map<UUID, Map<String, Long>> cooldowns = new HashMap<>();
+    private final Map<UUID, Integer> battleFocusRanks = new HashMap<>();
+    private final Map<UUID, Integer> fortifyRanks = new HashMap<>();
+    private final Map<UUID, FortifyState> fortifyStates = new HashMap<>();
+    private final Map<UUID, Integer> manaFlowRanks = new HashMap<>();
+    private final Map<UUID, Long> manaFlowLastCastAt = new HashMap<>();
 
     public SkillManager(JavaPlugin plugin, PlayerProfileDatabaseManager database, ConfigManager config) {
         this.plugin = plugin;
@@ -64,6 +74,10 @@ public final class SkillManager implements Listener, CommandExecutor, TabComplet
         this.config = config;
         this.bookIdKey = new NamespacedKey(plugin, "skill_book_id");
         this.skillIdKey = new NamespacedKey(plugin, "rpg_skill_id");
+    }
+
+    private String formatPercent(double fraction) {
+        return String.format(java.util.Locale.ROOT, "%.0f%%", fraction * 100);
     }
 
     @EventHandler(ignoreCancelled = true)
@@ -146,6 +160,143 @@ public final class SkillManager implements Listener, CommandExecutor, TabComplet
     @EventHandler
     public void onPlayerQuit(PlayerQuitEvent event) {
         cooldowns.remove(event.getPlayer().getUniqueId());
+        battleFocusRanks.remove(event.getPlayer().getUniqueId());
+        fortifyRanks.remove(event.getPlayer().getUniqueId());
+        fortifyStates.remove(event.getPlayer().getUniqueId());
+        manaFlowRanks.remove(event.getPlayer().getUniqueId());
+        manaFlowLastCastAt.remove(event.getPlayer().getUniqueId());
+    }
+
+    @EventHandler
+    public void onPlayerJoin(org.bukkit.event.player.PlayerJoinEvent event) {
+        refreshPassiveRanks(event.getPlayer());
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onBattleFocusDamage(EntityDamageByEntityEvent event) {
+        if (!(event.getDamager() instanceof Player player)
+                || !(event.getEntity() instanceof Monster)
+                || (event.getCause() != org.bukkit.event.entity.EntityDamageEvent.DamageCause.ENTITY_ATTACK
+                    && event.getCause() != org.bukkit.event.entity.EntityDamageEvent.DamageCause.ENTITY_SWEEP_ATTACK)) {
+            return;
+        }
+        int rank = battleFocusRanks.getOrDefault(player.getUniqueId(), 0);
+        if (rank > 0) {
+            event.setDamage(calculateBattleFocusDamage(
+                event.getDamage(), rank, config.rpgBattleFocusDamageBonusPerRank));
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onFortifyDamage(EntityDamageByEntityEvent event) {
+        if (!(event.getEntity() instanceof Player player) || !isHostileMobAttack(event.getDamager())) {
+            return;
+        }
+        int rank = fortifyRanks.getOrDefault(player.getUniqueId(), 0);
+        double damage = event.getDamage();
+        if (rank <= 0 || !Double.isFinite(damage) || damage <= 0) {
+            return;
+        }
+
+        long now = System.currentTimeMillis();
+        UUID playerId = player.getUniqueId();
+        FortifyState currentState = fortifyStates.get(playerId);
+        int activeStacks = currentState != null && currentState.expiresAtMillis() > now
+            ? currentState.stacks() : 0;
+        if (activeStacks > 0) {
+            event.setDamage(calculateFortifyDamage(
+                damage, rank, activeStacks, config.rpgFortifyDamageReductionPerStackPerRank));
+        }
+        int nextStacks = Math.min(config.rpgFortifyMaxStacks, activeStacks + 1);
+        long expiresAt = now + config.rpgFortifyStackDurationSeconds * 1000L;
+        fortifyStates.put(playerId, new FortifyState(nextStacks, expiresAt));
+    }
+
+    private boolean isHostileMobAttack(Entity damager) {
+        return damager instanceof Monster
+            || damager instanceof Projectile projectile && projectile.getShooter() instanceof Monster;
+    }
+
+    private void refreshPassiveRanks(Player player) {
+        UUID playerId = player.getUniqueId();
+        try {
+            Optional<PlayerProfileDatabaseManager.PlayerProfile> profile =
+                database.getPlayerProfile(playerId.toString());
+            if (profile.isEmpty() || !profile.get().active()) {
+                battleFocusRanks.remove(playerId);
+                fortifyRanks.remove(playerId);
+                fortifyStates.remove(playerId);
+                manaFlowRanks.remove(playerId);
+                manaFlowLastCastAt.remove(playerId);
+                return;
+            }
+            List<PlayerProfileDatabaseManager.SkillProgress> learned =
+                database.getLearnedSkills(playerId.toString());
+            setCachedPassiveRank(playerId, "battle-focus", "swordsman", profile.get().selectedClass(), learned);
+            setCachedPassiveRank(playerId, "fortify", "guardian", profile.get().selectedClass(), learned);
+            setCachedPassiveRank(playerId, "mana-flow", "mage", profile.get().selectedClass(), learned);
+        } catch (SQLException exception) {
+            battleFocusRanks.remove(playerId);
+            fortifyRanks.remove(playerId);
+            fortifyStates.remove(playerId);
+            manaFlowRanks.remove(playerId);
+            manaFlowLastCastAt.remove(playerId);
+            plugin.getLogger().log(Level.SEVERE, "Could not load RPG passive ranks for "
+                + player.getName() + ".", exception);
+            player.sendMessage("§cKhông thể tải nội tại RPG. Hãy thử vào lại sau.");
+        }
+    }
+
+    private void setCachedPassiveRank(UUID playerId, String skillId, String classId,
+                                      String selectedClass,
+                                      List<PlayerProfileDatabaseManager.SkillProgress> learned) {
+        Map<UUID, Integer> cache = switch (skillId) {
+            case "battle-focus" -> battleFocusRanks;
+            case "fortify" -> fortifyRanks;
+            default -> manaFlowRanks;
+        };
+        if (!classId.equals(selectedClass)) {
+            cache.remove(playerId);
+            if (skillId.equals("fortify")) fortifyStates.remove(playerId);
+            if (skillId.equals("mana-flow")) manaFlowLastCastAt.remove(playerId);
+            return;
+        }
+        int rank = learned.stream().filter(progress -> progress.skillId().equals(skillId))
+            .mapToInt(PlayerProfileDatabaseManager.SkillProgress::rank).findFirst().orElse(0);
+        if (rank > 0) cache.put(playerId, rank);
+        else {
+            cache.remove(playerId);
+            if (skillId.equals("fortify")) fortifyStates.remove(playerId);
+            if (skillId.equals("mana-flow")) manaFlowLastCastAt.remove(playerId);
+        }
+    }
+
+    static double calculateBattleFocusDamage(double baseDamage, int rank, double bonusPerRank) {
+        if (!Double.isFinite(baseDamage) || baseDamage <= 0
+                || rank <= 0 || !Double.isFinite(bonusPerRank) || bonusPerRank <= 0) {
+            return baseDamage;
+        }
+        return baseDamage * (1.0 + rank * bonusPerRank);
+    }
+
+    static double calculateFortifyDamage(double baseDamage, int rank, int stacks,
+                                         double reductionPerStackPerRank) {
+        if (!Double.isFinite(baseDamage) || baseDamage <= 0 || rank <= 0 || stacks <= 0
+                || !Double.isFinite(reductionPerStackPerRank) || reductionPerStackPerRank <= 0) {
+            return baseDamage;
+        }
+        double reduction = Math.min(0.9, rank * stacks * reductionPerStackPerRank);
+        return baseDamage * (1.0 - reduction);
+    }
+
+    static int calculateManaFlowRestore(int rank, int manaPerRank) {
+        if (rank <= 0 || manaPerRank <= 0) return 0;
+        return (int) Math.min(1000L, (long) rank * manaPerRank);
+    }
+
+    static boolean isManaFlowChain(long previousCastAt, long currentCastAt, int windowSeconds) {
+        return previousCastAt > 0 && currentCastAt >= previousCastAt
+            && windowSeconds > 0 && currentCastAt - previousCastAt <= windowSeconds * 1000L;
     }
 
     private void openQuickCast(Player player) {
@@ -257,7 +408,16 @@ public final class SkillManager implements Listener, CommandExecutor, TabComplet
             lore.add("§7" + skill.description());
             lore.add("§7Rank: " + rank + "/" + skill.maxRank());
             lore.add("§7Cấp yêu cầu học: " + skill.requiredLevel());
-            lore.add(skill.passive() ? "§dNội tại - hiệu ứng chưa triển khai"
+            lore.add(skill.id().equals("battle-focus")
+                ? "§dNội tại: +" + formatPercent(config.rpgBattleFocusDamageBonusPerRank)
+                    + " sát thương đánh thường/rank lên quái"
+                : skill.id().equals("fortify")
+                    ? "§dNội tại: -" + formatPercent(config.rpgFortifyDamageReductionPerStackPerRank)
+                        + " sát thương/stack/rank; tối đa " + config.rpgFortifyMaxStacks + " stack"
+                : skill.id().equals("mana-flow")
+                    ? "§dNội tại: +" + config.rpgManaFlowManaPerChainCastPerRank
+                        + " mana/rank mỗi cast nối chuỗi trong " + config.rpgManaFlowChainWindowSeconds + "s"
+                : skill.passive() ? "§dNội tại - hiệu ứng chưa triển khai"
                 : "§bMana: " + skill.manaCost() + " §8| §eHồi: " + skill.cooldownSeconds() + "s");
             if (rank == 0) lore.add("§8Sách: " + skill.bookId());
             else if (rank < skill.maxRank()) lore.add("§eNhấp để xem nâng cấp");
@@ -302,22 +462,47 @@ public final class SkillManager implements Listener, CommandExecutor, TabComplet
         if (rank > 0 && rank < skill.maxRank()) {
             details.add("§7Cấp yêu cầu rank kế: " + (skill.requiredLevel() + rank));
         }
-        details.add(skill.passive() ? "§dHiệu ứng nội tại chưa được triển khai."
+        details.add(skill.id().equals("battle-focus")
+            ? "§dNội tại: +" + formatPercent(config.rpgBattleFocusDamageBonusPerRank)
+                + " sát thương đánh thường/rank lên quái."
+            : skill.id().equals("fortify")
+                ? "§dNội tại: giảm " + formatPercent(config.rpgFortifyDamageReductionPerStackPerRank)
+                    + "/stack/rank; tối đa " + config.rpgFortifyMaxStacks + " stack, reset sau "
+                    + config.rpgFortifyStackDurationSeconds + "s không bị quái đánh."
+            : skill.id().equals("mana-flow")
+                ? "§dNội tại: +" + config.rpgManaFlowManaPerChainCastPerRank
+                    + " mana/rank mỗi cast nối chuỗi trong " + config.rpgManaFlowChainWindowSeconds + "s."
+            : skill.passive() ? "§dHiệu ứng nội tại chưa được triển khai."
             : "§bMana: " + skill.manaCost() + " §8| §eHồi chiêu: " + skill.cooldownSeconds() + "s");
         ItemStack skillItem = createSkillIcon(skill, "§e" + skill.displayName(), details);
         inventory.setItem(4, skillItem);
+        boolean upgradeSupported = !skill.passive() || IMPLEMENTED_PASSIVES.contains(skill.id());
         boolean canUpgrade = rank > 0 && rank < skill.maxRank()
-            && profile.unspentSkillPoints() > 0 && !skill.passive();
+            && profile.unspentSkillPoints() > 0
+            && profile.level() >= skill.requiredLevel() + rank && upgradeSupported;
         ItemStack upgrade = new ItemStack(canUpgrade ? Material.EMERALD : Material.BARRIER);
         ItemMeta upgradeMeta = upgrade.getItemMeta();
         upgradeMeta.setDisplayName(canUpgrade ? "§aNâng 1 rank (1 skill point)" : "§cChưa thể nâng");
         if (!canUpgrade) {
-            upgradeMeta.setLore(List.of(skill.passive() ? "§7Nội tại chưa có hiệu ứng nâng cấp."
-                : rank == 0 ? "§7Học skill bằng sách trước."
+            String unavailableReason = rank == 0 ? "§7Học skill bằng sách trước."
                 : rank >= skill.maxRank() ? "§7Đã đạt rank tối đa."
-                : "§7Bạn chưa có skill point."));
+                : profile.level() < skill.requiredLevel() + rank
+                    ? "§7Cần đạt cấp " + (skill.requiredLevel() + rank) + " để nâng."
+                : profile.unspentSkillPoints() < 1 ? "§7Bạn chưa có skill point."
+                : "§7Nội tại này chưa hỗ trợ nâng rank.";
+            upgradeMeta.setLore(List.of(unavailableReason));
         } else {
             upgradeMeta.setLore(List.of("§7Rank kế tiếp: " + (rank + 1) + "/" + skill.maxRank(),
+                skill.id().equals("battle-focus")
+                    ? "§7Thêm +" + formatPercent(config.rpgBattleFocusDamageBonusPerRank)
+                        + " sát thương đánh thường lên quái."
+                    : skill.id().equals("fortify")
+                        ? "§7Thêm -" + formatPercent(config.rpgFortifyDamageReductionPerStackPerRank)
+                            + " sát thương mỗi stack."
+                    : skill.id().equals("mana-flow")
+                        ? "§7Thêm +" + config.rpgManaFlowManaPerChainCastPerRank
+                            + " mana mỗi cast nối chuỗi."
+                    : "§7Cấp nhân vật yêu cầu: " + (skill.requiredLevel() + rank),
                 "§eNhấp để tiêu 1 skill point."));
         }
         upgrade.setItemMeta(upgradeMeta);
@@ -328,13 +513,16 @@ public final class SkillManager implements Listener, CommandExecutor, TabComplet
 
     private void upgradeSkill(Player player, String skillId) {
         SkillDefinitionLoader.SkillDefinition skill = registry.skills().get(skillId);
-        if (skill == null || skill.passive()) return;
+        if (skill == null || (skill.passive() && !IMPLEMENTED_PASSIVES.contains(skill.id()))) return;
         try {
             PlayerProfileDatabaseManager.SkillUpgradeResult result = database.upgradeSkill(
                 player.getUniqueId().toString(), skillId, skill.classId(),
                 skill.requiredLevel(), skill.maxRank());
             switch (result) {
                 case UPGRADED -> {
+                    if (skill.passive()) {
+                        refreshPassiveRanks(player);
+                    }
                     player.sendMessage("§aĐã nâng cấp §e" + skill.displayName() + "§a.");
                     openSkillDetails(player, skillId);
                 }
@@ -547,10 +735,45 @@ public final class SkillManager implements Listener, CommandExecutor, TabComplet
             player.sendMessage("§cKhông thể dùng mana. Kỹ năng chưa được cast.");
             return;
         }
-        applySkillEffect(player, skill, rank);
+        boolean castSucceeded = applySkillEffect(player, skill, rank);
+        long castAt = System.currentTimeMillis();
+        int manaFlowRank = manaFlowRanks.getOrDefault(player.getUniqueId(), 0);
+        long previousManaFlowCast = manaFlowLastCastAt.getOrDefault(player.getUniqueId(), 0L);
+        boolean manaFlowChain = castSucceeded && manaFlowRank > 0
+            && isManaFlowChain(previousManaFlowCast, castAt, config.rpgManaFlowChainWindowSeconds);
+        if (castSucceeded) {
+            manaFlowLastCastAt.put(player.getUniqueId(), castAt);
+        }
+        if (manaFlowChain) {
+            restoreManaFlow(player, manaFlowRank);
+        }
         cooldowns.computeIfAbsent(player.getUniqueId(), ignored -> new HashMap<>())
-            .put(skillId, System.currentTimeMillis() + skill.cooldownSeconds() * 1000L);
+            .put(skillId, castAt + skill.cooldownSeconds() * 1000L);
         player.sendMessage("§aĐã cast §e" + skill.displayName() + "§a §8| §b-" + skill.manaCost() + " mana");
+    }
+
+    private void restoreManaFlow(Player player, int rank) {
+        int restoreAmount = calculateManaFlowRestore(rank, config.rpgManaFlowManaPerChainCastPerRank);
+        if (restoreAmount == 0) return;
+        try {
+            Optional<PlayerProfileDatabaseManager.ManaRestoreResult> result = database.restoreMana(
+                player.getUniqueId().toString(), restoreAmount, config.rpgMaxMana,
+                config.rpgManaRegenerationPerSecond, System.currentTimeMillis());
+            if (result.isEmpty()) {
+                plugin.getLogger().warning("Mana Flow could not restore mana because the active profile "
+                    + "was not found for " + player.getName() + ".");
+                player.sendMessage("§cCast thành công nhưng Mạch Pháp không tìm thấy hồ sơ để hồi mana.");
+                return;
+            }
+            int restored = result.get().restoredAmount();
+            if (restored > 0) {
+                player.sendMessage("§dMạch Pháp: +" + restored + " mana.");
+            }
+        } catch (SQLException exception) {
+            plugin.getLogger().log(Level.SEVERE, "Could not restore Mana Flow mana for "
+                + player.getName() + ".", exception);
+            player.sendMessage("§cCast thành công nhưng Mạch Pháp không thể hồi mana lần này.");
+        }
     }
 
     private boolean hasValidCastTarget(Player player, SkillDefinitionLoader.SkillDefinition skill) {
@@ -696,6 +919,7 @@ public final class SkillManager implements Listener, CommandExecutor, TabComplet
             throw new IOException("Skill definitions or skill books are invalid; see the log for details.");
         }
         registry = loaded.get();
+        Bukkit.getOnlinePlayers().forEach(this::refreshPassiveRanks);
     }
 
     private void saveBundledIfMissing(String resourcePath) throws IOException {
@@ -756,6 +980,15 @@ public final class SkillManager implements Listener, CommandExecutor, TabComplet
             switch (result) {
                 case LEARNED -> {
                     consumeOneFromMainHand(player);
+                    if (skill.passive()) {
+                        if (skill.id().equals("battle-focus")) {
+                            battleFocusRanks.put(player.getUniqueId(), 1);
+                        } else if (skill.id().equals("fortify")) {
+                            fortifyRanks.put(player.getUniqueId(), 1);
+                        } else if (skill.id().equals("mana-flow")) {
+                            manaFlowRanks.put(player.getUniqueId(), 1);
+                        }
+                    }
                     player.sendMessage("§aBạn đã học kỹ năng §e" + skill.displayName() + "§a (Rank 1).");
                 }
                 case ALREADY_LEARNED ->
@@ -911,6 +1144,9 @@ public final class SkillManager implements Listener, CommandExecutor, TabComplet
                 .filter(id -> id.startsWith(prefix)).sorted(Comparator.naturalOrder()).toList();
         }
         return List.of();
+    }
+
+    private record FortifyState(int stacks, long expiresAtMillis) {
     }
 
     private enum QuickCastScreen {
