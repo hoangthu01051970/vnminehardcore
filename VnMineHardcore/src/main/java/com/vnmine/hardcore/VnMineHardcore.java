@@ -159,7 +159,6 @@ public final class VnMineHardcore extends JavaPlugin {
         Bukkit.getPluginManager().registerEvents(characterSelectionManager, this);
         Bukkit.getPluginManager().registerEvents(rpgWorldManager, this);
         Bukkit.getPluginManager().registerEvents(tutorialQuestManager, this);
-        Bukkit.getPluginManager().registerEvents(npcManager, this);
         Bukkit.getPluginManager().registerEvents(skillManager, this);
         this.deathListener = new DeathListener(this, configManager, deathRenameManager, deathPenaltyManager);
         this.combatListener = new CombatListener(this, deathListener, configManager);
@@ -178,6 +177,7 @@ public final class VnMineHardcore extends JavaPlugin {
             Bukkit.getPluginManager().disablePlugin(this);
             return;
         }
+        Bukkit.getPluginManager().registerEvents(npcManager, this);
 
         // Register listeners
         Bukkit.getPluginManager().registerEvents(deathListener, this);
@@ -1138,6 +1138,7 @@ public final class VnMineHardcore extends JavaPlugin {
     public NpcManager getNpcManager() {
         return npcManager;
     }
+    public SkillManager getSkillManager() { return skillManager; }
     public CharacterSelectionManager getCharacterSelectionManager() { return characterSelectionManager; }
     public RpgWorldManager getRpgWorldManager() { return rpgWorldManager; }
     public TutorialQuestManager getTutorialQuestManager() { return tutorialQuestManager; }

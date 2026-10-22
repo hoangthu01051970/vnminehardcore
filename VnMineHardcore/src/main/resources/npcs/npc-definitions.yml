@@ -15,6 +15,15 @@ npc-definitions:
     dialogue:
       - "Chào mừng đến với Nhân giới, lữ khách."
       - "Hãy mở nhật ký nhiệm vụ và tìm điểm spawn an toàn để bắt đầu hành trình."
+    # [VI] Các nút GUI tùy chọn; mặc định không có, tối đa 4 hành động thuộc danh sách hỗ trợ.
+    # [EN] Optional GUI buttons; defaults to none, maximum 4 supported actions.
+    actions:
+      # [VI] Loại hành động: open-quest-journal, open-skill-tree hoặc give-skill-book.
+      # [EN] Action type: open-quest-journal, open-skill-tree, or give-skill-book.
+      - type: open-quest-journal
+        # [VI] Nhãn nút; bắt buộc, từ 1 đến 32 ký tự.
+        # [EN] Button label; required, 1-32 characters.
+        label: "Mở nhật ký nhiệm vụ"
 
   class-trainer:
     # [VI] Loại vai trò NPC; giá trị hợp lệ được liệt kê trong phần hướng dẫn.
@@ -28,6 +37,15 @@ npc-definitions:
     dialogue:
       - "Muốn học kỹ năng, hãy tìm sách phù hợp với class của mình."
       - "Dùng /vnskills tree để xem kỹ năng và phân bổ skill point."
+    # [VI] Các nút GUI tùy chọn; mặc định không có, tối đa 4 hành động thuộc danh sách hỗ trợ.
+    # [EN] Optional GUI buttons; defaults to none, maximum 4 supported actions.
+    actions:
+      # [VI] Loại hành động: open-quest-journal, open-skill-tree hoặc give-skill-book.
+      # [EN] Action type: open-quest-journal, open-skill-tree, or give-skill-book.
+      - type: open-skill-tree
+        # [VI] Nhãn nút; bắt buộc, từ 1 đến 32 ký tự.
+        # [EN] Button label; required, 1-32 characters.
+        label: "Xem skill tree"
 
   story-keeper:
     # [VI] Loại vai trò NPC; giá trị hợp lệ được liệt kê trong phần hướng dẫn.

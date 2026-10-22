@@ -13,6 +13,7 @@ import java.util.logging.Level;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.Particle;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -32,6 +33,7 @@ public final class TutorialQuestManager implements Listener {
     private final VnMineHardcore plugin;
     private final File definitionFile;
     private final Map<UUID, Boolean> activeQuestSessions = new HashMap<>();
+    private final Map<UUID, Long> lastWaypointAtMillis = new HashMap<>();
     private TutorialQuestDefinitionLoader.TutorialQuestDefinition definition;
 
     public TutorialQuestManager(VnMineHardcore plugin) {
@@ -74,7 +76,9 @@ public final class TutorialQuestManager implements Listener {
 
     @EventHandler
     public void onPlayerQuit(PlayerQuitEvent event) {
-        activeQuestSessions.remove(event.getPlayer().getUniqueId());
+        UUID playerId = event.getPlayer().getUniqueId();
+        activeQuestSessions.remove(playerId);
+        lastWaypointAtMillis.remove(playerId);
     }
 
     @EventHandler
@@ -167,6 +171,8 @@ public final class TutorialQuestManager implements Listener {
         activeQuestSessions.put(playerId, isInside);
         if (isInside && !wasInside) {
             completeObjective(event.getPlayer());
+        } else if (!isInside) {
+            showWaypoint(event.getPlayer(), to, false);
         }
     }
 
@@ -177,11 +183,14 @@ public final class TutorialQuestManager implements Listener {
     private void initializePlayer(Player player, boolean showReminder) {
         if (definition == null) return;
         if (!definition.enabled()) {
-            activeQuestSessions.remove(player.getUniqueId());
+            UUID playerId = player.getUniqueId();
+            activeQuestSessions.remove(playerId);
+            lastWaypointAtMillis.remove(playerId);
             return;
         }
         UUID playerId = player.getUniqueId();
         activeQuestSessions.remove(playerId);
+        lastWaypointAtMillis.remove(playerId);
         PlayerProfileDatabaseManager database = plugin.getPlayerProfileDatabaseManager();
         if (database == null) {
             plugin.getLogger().severe("[Quest] Cannot initialize tutorial progress because the profile database is unavailable.");
@@ -235,7 +244,11 @@ public final class TutorialQuestManager implements Listener {
 
             boolean alreadyAtTarget = isAtObjective(player.getLocation());
             activeQuestSessions.put(playerId, alreadyAtTarget);
-            if (alreadyAtTarget) completeObjective(player);
+            if (alreadyAtTarget) {
+                completeObjective(player);
+            } else {
+                showWaypoint(player, player.getLocation(), true);
+            }
         } catch (java.sql.SQLException exception) {
             plugin.getLogger().log(Level.SEVERE, "[Quest] Failed to initialize tutorial progress for " +
                 player.getName(), exception);
@@ -344,6 +357,46 @@ public final class TutorialQuestManager implements Listener {
                 definition.objective().radiusBlocks());
     }
 
+    private void showWaypoint(Player player, Location playerLocation, boolean force) {
+        if (definition == null || !definition.objective().waypointEnabled()) return;
+        long now = System.currentTimeMillis();
+        long updateIntervalMillis = definition.objective().waypointUpdateIntervalTicks() * 50L;
+        Long lastUpdate = lastWaypointAtMillis.get(player.getUniqueId());
+        if (!force && lastUpdate != null && now - lastUpdate < updateIntervalMillis) return;
+        lastWaypointAtMillis.put(player.getUniqueId(), now);
+
+        Optional<RpgWorldManager.ResolvedSpawn> resolvedTarget = plugin.getRpgWorldManager().resolveSpawn(
+            definition.objective().realmId());
+        if (resolvedTarget.isEmpty()) return;
+        Location target = resolvedTarget.get().location();
+        String targetPosition = "§fX " + target.getBlockX() + " Y " + target.getBlockY()
+            + " Z " + target.getBlockZ();
+        if (playerLocation.getWorld() != target.getWorld()) {
+            player.sendActionBar("§eĐi tới spawn " + target.getWorld().getName() + " §7(" + targetPosition + "§7)");
+            return;
+        }
+
+        double dx = target.getX() - playerLocation.getX();
+        double dy = target.getY() - playerLocation.getY();
+        double dz = target.getZ() - playerLocation.getZ();
+        double distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
+        player.sendActionBar("§eĐi tới spawn Nhân giới §7(" + targetPosition + "§7) §8• §f"
+            + Math.round(Math.sqrt(dx * dx + dz * dz)) + " block");
+        if (distance > definition.objective().waypointParticleRangeBlocks()) return;
+
+        int steps = Math.max(1, (int) Math.ceil(distance / 2.5));
+        Location start = playerLocation.clone().add(0, 1.0, 0);
+        Location end = target.clone().add(0, 1.0, 0);
+        for (int step = 1; step <= steps; step++) {
+            double progress = (double) step / steps;
+            Location point = new Location(target.getWorld(),
+                start.getX() + (end.getX() - start.getX()) * progress,
+                start.getY() + (end.getY() - start.getY()) * progress,
+                start.getZ() + (end.getZ() - start.getZ()) * progress);
+            player.spawnParticle(Particle.END_ROD, point, 1, 0, 0, 0, 0);
+        }
+    }
+
     private void completeObjective(Player player) {
         if (definition == null) return;
         UUID playerId = player.getUniqueId();
@@ -355,6 +408,7 @@ public final class TutorialQuestManager implements Listener {
                 Instant.now().toString());
             if (completed) {
                 activeQuestSessions.remove(playerId);
+                lastWaypointAtMillis.remove(playerId);
                 plugin.getCharacterSelectionManager().refreshLoadedProfile(player);
                 previousProfile.ifPresent(profile -> sendLevelUpFeedback(player, profile));
                 player.sendMessage("§a§lNhiệm vụ hoàn thành: §f" + definition.title());
@@ -367,6 +421,7 @@ public final class TutorialQuestManager implements Listener {
                 plugin.getPlayerProfileDatabaseManager().getQuestProgress(playerId.toString(), definition.id());
             if (progress.isPresent() && "completed".equals(progress.get().status())) {
                 activeQuestSessions.remove(playerId);
+                lastWaypointAtMillis.remove(playerId);
                 return;
             }
             plugin.getLogger().warning("[Quest] Could not complete tutorial objective for " +

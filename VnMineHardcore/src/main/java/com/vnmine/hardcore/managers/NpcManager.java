@@ -170,7 +170,19 @@ public final class NpcManager implements Listener, CommandExecutor, TabCompleter
         if (!(event.getWhoClicked() instanceof Player player)
                 || !holder.viewer.equals(player.getUniqueId())
                 || event.getClickedInventory() != event.getView().getTopInventory()) return;
-        if (event.getRawSlot() == 49) player.closeInventory();
+        if (event.getRawSlot() == 49) {
+            player.closeInventory();
+            return;
+        }
+        NpcDefinitionLoader.NpcAction action = holder.actions.get(event.getRawSlot());
+        if (action == null) return;
+        player.closeInventory();
+        switch (action.type()) {
+            case "open-skill-tree" -> plugin.getSkillManager().openSkillTreeFromNpc(player);
+            case "open-quest-journal" -> plugin.getTutorialQuestManager().openJournal(player);
+            case "give-skill-book" -> plugin.getSkillManager().giveSkillBookFromNpc(player, action.bookId());
+            default -> plugin.getLogger().warning("[NPC] Unsupported runtime action '" + action.type() + "'.");
+        }
     }
 
     @EventHandler
@@ -231,6 +243,19 @@ public final class NpcManager implements Listener, CommandExecutor, TabCompleter
             inventory.setItem(dialogueSlots[index], createDialogueItem(
                 Material.PAPER, "§eLời thoại " + (index + 1),
                 List.of(formatDisplayName(line), "§8" + (index + 1) + "/" + definition.dialogue().size())));
+        }
+        int[] actionSlots = {39, 41, 43, 45};
+        for (int index = 0; index < definition.actions().size(); index++) {
+            NpcDefinitionLoader.NpcAction action = definition.actions().get(index);
+            int slot = actionSlots[index];
+            Material material = switch (action.type()) {
+                case "give-skill-book" -> Material.ENCHANTED_BOOK;
+                case "open-skill-tree" -> Material.IRON_SWORD;
+                default -> Material.WRITABLE_BOOK;
+            };
+            inventory.setItem(slot, createDialogueItem(material, "§a" + formatDisplayName(action.label()),
+                List.of("§7Nhấn để thực hiện.")));
+            holder.actions.put(slot, action);
         }
         inventory.setItem(49, createDialogueItem(Material.BARRIER, "§cĐóng", List.of("§7Đóng hội thoại.")));
         player.openInventory(inventory);
@@ -746,6 +771,7 @@ public final class NpcManager implements Listener, CommandExecutor, TabCompleter
 
     private static final class DialogueHolder implements InventoryHolder {
         private final UUID viewer;
+        private final Map<Integer, NpcDefinitionLoader.NpcAction> actions = new LinkedHashMap<>();
         private Inventory inventory;
 
         private DialogueHolder(UUID viewer) {

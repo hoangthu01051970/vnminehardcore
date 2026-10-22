@@ -102,12 +102,32 @@ public final class TutorialQuestDefinitionLoader {
             logger.warning("[Quest] radius-blocks in " + file.getName() + " must be between 1 and 64.");
             valid = false;
         }
+        Boolean waypointEnabled = readOptionalBoolean(objective, "waypoint-enabled", true,
+            file, "quest.objective", logger);
+        Integer waypointUpdateIntervalTicks = readOptionalInteger(objective, "waypoint-update-interval-ticks", 20,
+            file, "quest.objective", logger);
+        if (waypointUpdateIntervalTicks != null
+                && (waypointUpdateIntervalTicks < 5 || waypointUpdateIntervalTicks > 200)) {
+            logger.warning("[Quest] waypoint-update-interval-ticks in " + file.getName()
+                + " must be between 5 and 200.");
+            valid = false;
+        }
+        Integer waypointParticleRangeBlocks = readOptionalInteger(objective, "waypoint-particle-range-blocks", 48,
+            file, "quest.objective", logger);
+        if (waypointParticleRangeBlocks != null
+                && (waypointParticleRangeBlocks < 8 || waypointParticleRangeBlocks > 64)) {
+            logger.warning("[Quest] waypoint-particle-range-blocks in " + file.getName()
+                + " must be between 8 and 64.");
+            valid = false;
+        }
         String startMessage = readRequiredText(objective, "start-message", file, "quest.objective", logger);
         String completeMessage = readRequiredText(objective, "complete-message", file, "quest.objective", logger);
 
         if (enabled == null || id == null || title == null || description == null
                 || rewardType == null || rewardAmount == null || objectiveId == null
                 || objectiveType == null || realmId == null || radiusBlocks == null
+                || waypointEnabled == null || waypointUpdateIntervalTicks == null
+                || waypointParticleRangeBlocks == null
                 || startMessage == null || completeMessage == null) {
             valid = false;
         }
@@ -115,7 +135,8 @@ public final class TutorialQuestDefinitionLoader {
 
         return Optional.of(new TutorialQuestDefinition(
             enabled, id, title, description, new Reward(rewardType, rewardAmount),
-            new Objective(objectiveId, objectiveType, realmId, radiusBlocks, startMessage, completeMessage)
+            new Objective(objectiveId, objectiveType, realmId, radiusBlocks, waypointEnabled,
+                waypointUpdateIntervalTicks, waypointParticleRangeBlocks, startMessage, completeMessage)
         ));
     }
 
@@ -139,6 +160,11 @@ public final class TutorialQuestDefinitionLoader {
         return number.intValue();
     }
 
+    private static Integer readOptionalInteger(
+            ConfigurationSection section, String key, int defaultValue, File file, String parent, Logger logger) {
+        return section.contains(key) ? readRequiredInteger(section, key, file, parent, logger) : defaultValue;
+    }
+
     private static Boolean readRequiredBoolean(
             ConfigurationSection section, String key, File file, String parent, Logger logger) {
         Object value = section.get(key);
@@ -147,6 +173,11 @@ public final class TutorialQuestDefinitionLoader {
             return null;
         }
         return booleanValue;
+    }
+
+    private static Boolean readOptionalBoolean(
+            ConfigurationSection section, String key, boolean defaultValue, File file, String parent, Logger logger) {
+        return section.contains(key) ? readRequiredBoolean(section, key, file, parent, logger) : defaultValue;
     }
 
     public record TutorialQuestDefinition(boolean enabled, String id, String title, String description,
@@ -161,6 +192,9 @@ public final class TutorialQuestDefinitionLoader {
         String type,
         String realmId,
         int radiusBlocks,
+        boolean waypointEnabled,
+        int waypointUpdateIntervalTicks,
+        int waypointParticleRangeBlocks,
         String startMessage,
         String completeMessage
     ) {

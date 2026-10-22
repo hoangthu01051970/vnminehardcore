@@ -29,6 +29,20 @@ public class TutorialQuestDefinitionLoaderTest {
         assertEquals("visit-realm-spawn", definition.objective().type());
         assertEquals("human-realm", definition.objective().realmId());
         assertEquals(8, definition.objective().radiusBlocks());
+        assertTrue(definition.objective().waypointEnabled());
+        assertEquals(20, definition.objective().waypointUpdateIntervalTicks());
+        assertEquals(48, definition.objective().waypointParticleRangeBlocks());
+    }
+
+    @Test
+    public void missingWaypointSettingsUseBackwardCompatibleDefaults() throws Exception {
+        File file = writeQuestConfig("");
+
+        var objective = TutorialQuestDefinitionLoader.load(file, Logger.getAnonymousLogger()).orElseThrow()
+            .objective();
+        assertTrue(objective.waypointEnabled());
+        assertEquals(20, objective.waypointUpdateIntervalTicks());
+        assertEquals(48, objective.waypointParticleRangeBlocks());
     }
 
     @Test
@@ -55,6 +69,19 @@ public class TutorialQuestDefinitionLoaderTest {
         replace(file, "radius-blocks: 8", "radius-blocks: 65");
 
         assertTrue(TutorialQuestDefinitionLoader.load(file, Logger.getAnonymousLogger()).isEmpty());
+    }
+
+    @Test
+    public void waypointSettingsHaveExplicitBounds() throws Exception {
+        File invalidInterval = writeQuestConfig("    waypoint-enabled: true\n"
+            + "    waypoint-update-interval-ticks: 201\n"
+            + "    waypoint-particle-range-blocks: 48\n");
+        File invalidRange = writeQuestConfig("    waypoint-enabled: true\n"
+            + "    waypoint-update-interval-ticks: 20\n"
+            + "    waypoint-particle-range-blocks: 7\n");
+
+        assertTrue(TutorialQuestDefinitionLoader.load(invalidInterval, Logger.getAnonymousLogger()).isEmpty());
+        assertTrue(TutorialQuestDefinitionLoader.load(invalidRange, Logger.getAnonymousLogger()).isEmpty());
     }
 
     @Test
@@ -121,6 +148,30 @@ public class TutorialQuestDefinitionLoaderTest {
             java.nio.file.Files.copy(input, copy.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
         }
         return copy;
+    }
+
+    private File writeQuestConfig(String waypointSettings) throws Exception {
+        File file = temporaryFolder.newFile("waypoint-" + System.nanoTime() + ".yml");
+        String contents = """
+            schema-version: 1
+            quest:
+              enabled: true
+              id: first-steps
+              title: First Steps
+              description: Reach the safe spawn.
+              reward:
+                type: character-exp
+                amount: 25
+              objective:
+                id: reach-human-realm-spawn
+                type: visit-realm-spawn
+                realm-id: human-realm
+                radius-blocks: 8
+            %s    start-message: Reach the spawn.
+                complete-message: You reached safety.
+            """.formatted(waypointSettings);
+        java.nio.file.Files.writeString(file.toPath(), contents);
+        return file;
     }
 
     private void replace(File file, String oldValue, String newValue) throws Exception {

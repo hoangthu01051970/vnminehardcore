@@ -494,8 +494,9 @@ Mỗi portal có dữ liệu:
 - [x] Tạo nhiều NPC runtime bằng villager vanilla có tag/UUID ổn định; lưu/khôi phục theo chunk, lệnh `/vnnpc create|rename|move|remove|info|list`, quyền admin và giới hạn cấu hình 1-100.
 - [ ] Kiểm thử Paper: tạo nhiều NPC, restart/chunk unload-load, rename/move/remove và bảo đảm không trùng entity.
 - [x] Nhấp phải NPC mở dialogue GUI; hiển thị tối đa 20 dòng theo ID/role definition, chặn kéo vật phẩm và có nút đóng.
-- [ ] Nối trainer/quest giver với skill book, quest flow và các hành động trong GUI.
-- [ ] Thêm tutorial waypoint, particle dẫn đường và kiểm thử gameplay bằng Paper.
+- [x] Nối trainer/quest giver với skill book, quest flow và các hành động trong GUI: action cấu hình mở quest journal/skill tree hoặc cấp skill book; kiểm tra không cấp trùng sách đã học/đang có.
+- [x] Thêm tutorial waypoint: action bar theo dõi vị trí/khoảng cách spawn và particle End Rod dẫn đường trong tầm cấu hình.
+- [ ] Kiểm thử gameplay waypoint bằng Paper trên client thực tế; bootstrap đã nhận Paper 26.3-209, ProtocolLib 5.5.0-SNAPSHOT và plugin 2.2.0, hiện dừng vì `eula=false`.
 
 ## 12. Rủi ro và quyết định cốt lõi
 

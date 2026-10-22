@@ -29,7 +29,9 @@ public class NpcDefinitionLoaderTest {
         assertEquals("tutorial", definitions.get("tutorial-guide").type());
         assertEquals("Người dẫn đường", definitions.get("tutorial-guide").displayName());
         assertEquals(2, definitions.get("tutorial-guide").dialogue().size());
+        assertEquals("open-quest-journal", definitions.get("tutorial-guide").actions().getFirst().type());
         assertEquals("trainer", definitions.get("class-trainer").type());
+        assertEquals("open-skill-tree", definitions.get("class-trainer").actions().getFirst().type());
         assertEquals("story", definitions.get("story-keeper").type());
     }
 
@@ -71,6 +73,39 @@ public class NpcDefinitionLoaderTest {
 
         assertTrue(NpcDefinitionLoader.load(invalidId, Logger.getAnonymousLogger()).isEmpty());
         assertTrue(NpcDefinitionLoader.load(invalidDialogue, Logger.getAnonymousLogger()).isEmpty());
+    }
+
+    @Test
+    public void loadsSkillBookActionsAndRejectsUnknownActionTypes() throws IOException {
+        File valid = writeConfig("""
+            schema-version: 1
+            npc-definitions:
+              trainer:
+                type: trainer
+                display-name: Trainer
+                dialogue: [Hello]
+                actions:
+                  - type: give-skill-book
+                    label: "Learn Blade Flare"
+                    book-id: blade-flare-manual
+            """);
+        File invalid = writeConfig("""
+            schema-version: 1
+            npc-definitions:
+              trainer:
+                type: trainer
+                display-name: Trainer
+                dialogue: [Hello]
+                actions:
+                  - type: run-command
+                    label: "Run command"
+            """);
+
+        var action = NpcDefinitionLoader.load(valid, Logger.getAnonymousLogger()).orElseThrow()
+            .get("trainer").actions().getFirst();
+        assertEquals("give-skill-book", action.type());
+        assertEquals("blade-flare-manual", action.bookId());
+        assertTrue(NpcDefinitionLoader.load(invalid, Logger.getAnonymousLogger()).isEmpty());
     }
 
     @Test

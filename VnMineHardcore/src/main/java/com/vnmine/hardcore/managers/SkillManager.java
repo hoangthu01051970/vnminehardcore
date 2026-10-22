@@ -429,6 +429,43 @@ public final class SkillManager implements Listener, CommandExecutor, TabComplet
         player.openInventory(inventory);
     }
 
+    public void openSkillTreeFromNpc(Player player) {
+        openSkillTree(player);
+    }
+
+    public void giveSkillBookFromNpc(Player player, String bookId) {
+        SkillDefinitionLoader.SkillBookDefinition book = registry.books().get(bookId);
+        if (book == null) {
+            plugin.getLogger().warning("[NPC] Configured skill book '" + bookId + "' does not exist.");
+            player.sendMessage("§cSách kỹ năng này hiện không khả dụng.");
+            return;
+        }
+        try {
+            boolean learned = database.getLearnedSkills(player.getUniqueId().toString()).stream()
+                .anyMatch(progress -> progress.skillId().equals(book.skillId()));
+            if (learned) {
+                player.sendMessage("§eBạn đã học kỹ năng này rồi.");
+                return;
+            }
+        } catch (SQLException exception) {
+            plugin.getLogger().log(Level.SEVERE, "Could not check learned skills before NPC book grant for "
+                + player.getName() + ".", exception);
+            player.sendMessage("§cKhông thể kiểm tra kỹ năng đã học. Hãy thử lại sau.");
+            return;
+        }
+        for (ItemStack item : player.getInventory().getContents()) {
+            if (bookId.equals(getBookId(item))) {
+                player.sendMessage("§eBạn đã có sách kỹ năng này trong túi đồ.");
+                return;
+            }
+        }
+        if (!player.getInventory().addItem(createSkillBook(book)).isEmpty()) {
+            player.sendMessage("§cTúi đồ đã đầy; không thể nhận sách kỹ năng.");
+            return;
+        }
+        player.sendMessage("§aBạn nhận được sách kỹ năng §e" + book.displayName() + "§a.");
+    }
+
     private void openSkillDetails(Player player, String skillId) {
         SkillDefinitionLoader.SkillDefinition skill = registry.skills().get(skillId);
         if (skill == null) return;
