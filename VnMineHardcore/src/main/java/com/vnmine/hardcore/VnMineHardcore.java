@@ -2,6 +2,7 @@ package com.vnmine.hardcore;
 
 import com.vnmine.hardcore.listeners.*;
 import com.vnmine.hardcore.managers.*;
+import org.bukkit.configuration.InvalidConfigurationException;
 import org.bukkit.BanList;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
@@ -11,6 +12,7 @@ import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitTask;
+import org.yaml.snakeyaml.error.YAMLException;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -26,6 +28,7 @@ public final class VnMineHardcore extends JavaPlugin {
     private CharacterSelectionManager characterSelectionManager;
     private RpgWorldManager rpgWorldManager;
     private TutorialQuestManager tutorialQuestManager;
+    private SkillManager skillManager;
     private LogManager logManager;
     private ThirstManager thirstManager;
     private DisasterManager disasterManager;
@@ -37,6 +40,7 @@ public final class VnMineHardcore extends JavaPlugin {
     private DeathHistoryManager deathHistoryManager;
     private SpawnProtectionManager spawnProtectionManager;
     private PermissionManager permissionManager;
+    private PortalManager portalManager;
     private MercenaryManager mercenaryManager;
     private TooltipManager tooltipManager;
     private VillagerDataManager villagerDataManager;
@@ -80,6 +84,7 @@ public final class VnMineHardcore extends JavaPlugin {
             configManager.profileDatabaseBackupRetentionCount,
             configManager.profileDatabaseWriteRetries,
             configManager.profileDatabaseWriteRetryDelayMillis);
+        configureCharacterProgression();
         try {
             this.playerProfileDatabaseManager.initialize();
             if (this.playerProfileDatabaseManager.getRecoveryMessage() != null) {
@@ -90,8 +95,16 @@ public final class VnMineHardcore extends JavaPlugin {
             Bukkit.getPluginManager().disablePlugin(this);
             return;
         }
-        this.rpgWorldManager = new RpgWorldManager(this);
         this.characterSelectionManager = new CharacterSelectionManager(this);
+        this.skillManager = new SkillManager(this, playerProfileDatabaseManager, configManager);
+        try {
+            skillManager.initialize(characterSelectionManager.getClassIds());
+        } catch (java.io.IOException exception) {
+            getLogger().log(java.util.logging.Level.SEVERE, "Failed to initialize RPG skill definitions.", exception);
+            Bukkit.getPluginManager().disablePlugin(this);
+            return;
+        }
+        this.rpgWorldManager = new RpgWorldManager(this);
         this.tutorialQuestManager = new TutorialQuestManager(this);
         this.timeControlManager = new TimeControlManager(this, configManager);
         this.timeControlManager.reload();
@@ -109,6 +122,13 @@ public final class VnMineHardcore extends JavaPlugin {
         this.graveManager = new GraveManager(this, configManager);
         this.spawnProtectionManager = new SpawnProtectionManager(this);
         this.permissionManager = new PermissionManager(this);
+        try {
+            this.portalManager = new PortalManager(this);
+        } catch (java.io.IOException | InvalidConfigurationException | YAMLException exception) {
+            getLogger().log(Level.SEVERE, "Failed to load portal definitions.", exception);
+            Bukkit.getPluginManager().disablePlugin(this);
+            return;
+        }
         this.mercenaryManager = new MercenaryManager(this);
         this.tooltipManager = new TooltipManager(this);
 
@@ -116,6 +136,7 @@ public final class VnMineHardcore extends JavaPlugin {
         Bukkit.getPluginManager().registerEvents(characterSelectionManager, this);
         Bukkit.getPluginManager().registerEvents(rpgWorldManager, this);
         Bukkit.getPluginManager().registerEvents(tutorialQuestManager, this);
+        Bukkit.getPluginManager().registerEvents(skillManager, this);
         this.deathListener = new DeathListener(this, configManager, deathRenameManager, deathPenaltyManager);
         this.combatListener = new CombatListener(this, deathListener, configManager);
         this.environmentListener = new EnvironmentListener(this, configManager);
@@ -141,6 +162,7 @@ public final class VnMineHardcore extends JavaPlugin {
         Bukkit.getPluginManager().registerEvents(graveListener, this);
         Bukkit.getPluginManager().registerEvents(spawnProtectionManager, this);
         Bukkit.getPluginManager().registerEvents(permissionManager, this);
+        Bukkit.getPluginManager().registerEvents(portalManager, this);
 
         // Register commands
         for (String commandName : List.of("vnstats", "vnhardcore", "vnreload", "vnhelp",
@@ -150,12 +172,15 @@ public final class VnMineHardcore extends JavaPlugin {
                 "vntime", "vnday", "vnspawn", "tp")) {
             registerCommand(commandName, this, this);
         }
+        registerCommand("vnskills", skillManager, skillManager);
+        registerCommand("vnskillbook", skillManager, skillManager);
         registerCommand("vngroup", permissionManager, permissionManager);
         registerCommand("vnuser", permissionManager, permissionManager);
         registerCommand("vnarmy", mercenaryManager, mercenaryManager);
         registerCommand("vnmenu", mercenaryManager, mercenaryManager);
         registerCommand("quatanthu", mercenaryManager, mercenaryManager);
         registerCommand("vndeathhistory", deathHistoryManager, deathHistoryManager);
+        registerCommand("vnportal", portalManager, portalManager);
         startProfileDatabaseBackupTask();
 
         getLogger().info("§a  VnMineHardcore enabled - Hell difficulty!");
@@ -182,7 +207,17 @@ public final class VnMineHardcore extends JavaPlugin {
             configManager.profileDatabaseWriteRetries,
             configManager.profileDatabaseWriteRetryDelayMillis
         );
+        configureCharacterProgression();
         startProfileDatabaseBackupTask();
+    }
+
+    private void configureCharacterProgression() {
+        playerProfileDatabaseManager.configureCharacterProgression(
+            configManager.characterProgressionMaxLevel,
+            configManager.characterProgressionBaseExperience,
+            configManager.characterProgressionExperiencePerLevel,
+            configManager.characterProgressionSkillPointsPerLevel
+        );
     }
 
     private void startProfileDatabaseBackupTask() {
@@ -202,6 +237,7 @@ public final class VnMineHardcore extends JavaPlugin {
     @Override
     public void onDisable() {
         if (profileDatabaseBackupTask != null) profileDatabaseBackupTask.cancel();
+        if (portalManager != null) portalManager.stop();
         if (thirstManager != null) thirstManager.stop();
         if (deathPenaltyManager != null) deathPenaltyManager.stop();
         if (disasterManager != null) disasterManager.stop();

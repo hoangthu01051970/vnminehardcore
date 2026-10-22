@@ -10,6 +10,10 @@
 
 ### Added
 - Mở rộng menu chính thành 45 ô, phân nhóm tiện ích máy chủ, chức năng RPG và trợ giúp/admin; bổ sung header và separator cho menu admin, giữ nguyên quyền truy cập/điều hướng.
+- Thêm progression nhân vật RPG: EXP quest tự lên nhiều cấp trong cùng transaction, tích lũy skill point, hiển thị level/EXP/điểm chưa dùng trong GUI hồ sơ và cấu hình đường cong cấp.
+- Thêm skill registry YAML và 9 skill book cho các class `swordsman`, `guardian`, `mage`; admin cấp sách bằng `/vnskillbook give`, người chơi dùng sách để học và xem kỹ năng đã học bằng `/vnskills`.
+- Hoàn thiện Phase 3 RPG: Quick Cast, slot 1–9, cast sáu skill chủ động, cooldown/mana cấu hình YAML, hồi mana theo thời gian, GUI skill tree nâng rank bằng skill point và migration SQLite v5→v6.
+- Thêm quản lý portal RPG bằng `/vnportal`: rìu gỗ chọn vùng không phụ thuộc WorldEdit, lưu portal/link trong `portals.yml`, đặt điểm đến, particle ring và chặn dịch chuyển khi chết/combat theo cấu hình.
 - Thêm file `story/chapters.yml` với chapter có ID ổn định, thứ tự hiển thị và loader/kiểm tra cấu hình riêng; giữ nguyên danh sách artifact và `story-id` hiện có trong `story.yml`.
 - Kiểm thử và tách logic merge cấu hình YAML: chỉ thêm giá trị mặc định còn thiếu, không ghi đè cấu hình server; giữ nội dung story legacy, không tự động migration hoặc xóa dữ liệu `story.yml`.
 - Từ chối file story có khóa YAML trùng trước khi cấu hình map có thể ghi đè định nghĩa ID; lỗi được log và nội dung file đó không được nạp.
@@ -28,6 +32,8 @@
 ### Changed
 - Hoàn thành quest tutorial và cộng XP nhân vật trong cùng transaction SQLite; cờ `reward_claimed` chống trao lặp và hỗ trợ nhận bù một lần cho quest đã hoàn tất trước khi có reward.
 - Nâng schema hồ sơ SQLite lên v2 với migration v1→v2 transactional; ghi hồ sơ dùng `BEGIN IMMEDIATE`, backup checkpoint WAL trước khi ghi/migration, và phục hồi an toàn từ backup hợp lệ khi database bị lỗi.
+- Nâng schema hồ sơ SQLite từ v2 lên v3 transactional; chuyển EXP profile hiện có qua đường cong cấp để tạo level/skill point tương ứng và giữ EXP dư.
+- Nâng schema hồ sơ SQLite từ v3 lên v4 transactional; lưu kỹ năng đã học và rank ban đầu, kiểm tra class/cấp yêu cầu trước khi ghi.
 - Thêm backup SQLite định kỳ và giới hạn số bản lưu cấu hình được; retry có giới hạn cho lỗi database tạm bận, áp dụng lại qua `/vnreload`.
 - Thêm API SQLite idempotent cho mở khóa đại lục và lưu trạng thái/bước/hoàn thành quest; duplicate unlock/completion không tạo tiến trình trùng.
 

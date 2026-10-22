@@ -112,6 +112,18 @@ commands:
     description: Xem và khôi phục lịch sử inventory lúc người chơi chết (admin)
     usage: /vndeathhistory [player]
     permission: vnmine.command.death.history
+  vnskills:
+    description: Mở quick cast, cây kỹ năng hoặc xem kỹ năng RPG đã học
+    usage: /vnskills [list|tree]
+    permission: vnmine.command.skills
+  vnskillbook:
+    description: Cấp sách kỹ năng cho người chơi (admin)
+    usage: /vnskillbook give <người_chơi> <book-id>
+    permission: vnmine.command.skillbook.admin
+  vnportal:
+    description: Tạo và quản lý các portal dịch chuyển RPG
+    usage: /vnportal <wand|pos1|pos2|create|setspawn|link|unlink|enable|disable|remove|info|list|validate>
+    permission: vnmine.command.portal.admin
   vnmenu:
     description: Mở menu chức năng của VnMineHardcore
     usage: /vnmenu
@@ -194,6 +206,15 @@ permissions:
     default: true
   vnmine.command.army.admin:
     description: Cho phép cấp và quản lý lính của người chơi bằng /vnarmy
+    default: op
+  vnmine.command.skills:
+    description: Cho phép xem kỹ năng RPG đã học bằng /vnskills
+    default: true
+  vnmine.command.skillbook.admin:
+    description: Cho phép cấp sách kỹ năng bằng /vnskillbook
+    default: op
+  vnmine.command.portal.admin:
+    description: Cho phép tạo và quản lý portal RPG bằng /vnportal
     default: op
   vnmine.spawnprotection.bypass:
     description: Cho phép người chơi phá hoặc đặt block trong vùng spawn protection

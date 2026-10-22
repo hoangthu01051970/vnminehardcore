@@ -215,6 +215,7 @@ public final class TutorialQuestManager implements Listener {
                         && database.claimCompletedQuestExperienceReward(
                             playerId.toString(), definition.id(), definition.reward().amount(), Instant.now().toString())) {
                     plugin.getCharacterSelectionManager().refreshLoadedProfile(player);
+                    sendLevelUpFeedback(player, profile.get());
                     player.sendMessage("§aPhần thưởng nhiệm vụ đã được lưu: §e+" +
                         definition.reward().amount() + " EXP§a.");
                 }
@@ -347,12 +348,15 @@ public final class TutorialQuestManager implements Listener {
         if (definition == null) return;
         UUID playerId = player.getUniqueId();
         try {
+            Optional<PlayerProfileDatabaseManager.PlayerProfile> previousProfile =
+                plugin.getCharacterSelectionManager().getLoadedProfile(playerId);
             boolean completed = plugin.getPlayerProfileDatabaseManager().completeQuestAndAwardExperience(
                 playerId.toString(), definition.id(), "completed", definition.reward().amount(),
                 Instant.now().toString());
             if (completed) {
                 activeQuestSessions.remove(playerId);
                 plugin.getCharacterSelectionManager().refreshLoadedProfile(player);
+                previousProfile.ifPresent(profile -> sendLevelUpFeedback(player, profile));
                 player.sendMessage("§a§lNhiệm vụ hoàn thành: §f" + definition.title());
                 player.sendMessage("§7" + definition.objective().completeMessage());
                 player.sendMessage("§ePhần thưởng: +" + definition.reward().amount() + " EXP nhân vật.");
@@ -374,6 +378,24 @@ public final class TutorialQuestManager implements Listener {
                 player.getName(), exception);
             activeQuestSessions.put(playerId, true);
             player.sendMessage("§cChưa thể lưu tiến trình nhiệm vụ. Hãy rời khu vực rồi quay lại để thử lại.");
+        }
+    }
+
+    private void sendLevelUpFeedback(Player player,
+                                     PlayerProfileDatabaseManager.PlayerProfile previousProfile) {
+        Optional<PlayerProfileDatabaseManager.PlayerProfile> updatedProfile =
+            plugin.getCharacterSelectionManager().getLoadedProfile(player.getUniqueId());
+        if (updatedProfile.isEmpty()) return;
+
+        PlayerProfileDatabaseManager.PlayerProfile currentProfile = updatedProfile.get();
+        int levelsGained = currentProfile.level() - previousProfile.level();
+        if (levelsGained <= 0) return;
+
+        player.sendMessage("§b§lBạn đã lên cấp " + currentProfile.level() + "!");
+        int pointsGained = currentProfile.unspentSkillPoints() - previousProfile.unspentSkillPoints();
+        if (pointsGained > 0) {
+            player.sendMessage("§d+" + pointsGained + " skill point §7(đang có " +
+                currentProfile.unspentSkillPoints() + ").");
         }
     }
 

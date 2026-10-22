@@ -14,6 +14,8 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -28,12 +30,17 @@ public class PlayerProfileDatabaseManagerTest {
 
         manager.initialize();
 
-        assertEquals(2, manager.getSchemaVersion());
+        assertEquals(6, manager.getSchemaVersion());
         assertTrue(manager.tableExists("meta"));
         assertTrue(manager.tableExists("player_profiles"));
+        assertTrue(columnExists(manager.getDatabaseFile(), "skill_points"));
+        assertTrue(columnExists(manager.getDatabaseFile(), "mana"));
+        assertTrue(columnExists(manager.getDatabaseFile(), "mana_updated_at"));
         assertTrue(manager.tableExists("player_quest_progress"));
         assertTrue(manager.tableExists("player_world_progress"));
         assertTrue(manager.tableExists("player_portal_progress"));
+        assertTrue(manager.tableExists("player_skill_progress"));
+        assertTrue(manager.tableExists("player_skill_slots"));
     }
 
     @Test
@@ -43,7 +50,7 @@ public class PlayerProfileDatabaseManagerTest {
 
         manager.initialize();
 
-        assertEquals(2, manager.getSchemaVersion());
+        assertEquals(6, manager.getSchemaVersion());
         assertTrue(columnExists(manager.getDatabaseFile(), "selected_class"));
         try (Connection connection = open(manager.getDatabaseFile());
              Statement statement = connection.createStatement();
@@ -53,6 +60,21 @@ public class PlayerProfileDatabaseManagerTest {
             assertEquals("Legacy", resultSet.getString("player_name"));
             assertEquals("human", resultSet.getString("selected_race"));
         }
+    }
+
+    @Test
+    public void migratesV2ProfilesAndConvertsExistingExperienceToLevelsAndPoints() throws Exception {
+        PlayerProfileDatabaseManager manager = newManager();
+        createLegacyDatabase(manager.getDatabaseFile(), 2, 1, 375);
+
+        manager.initialize();
+
+        var profile = manager.getPlayerProfile("legacy-player").orElseThrow();
+        assertEquals(6, manager.getSchemaVersion());
+        assertEquals(3, profile.level());
+        assertEquals(125, profile.exp());
+        assertEquals(2, profile.unspentSkillPoints());
+        assertNotNull(latestBackup(manager));
     }
 
     @Test
@@ -72,14 +94,91 @@ public class PlayerProfileDatabaseManagerTest {
     }
 
     @Test
-    public void refusesDatabaseCreatedByNewerPluginVersion() throws Exception {
+    public void v2ToV3MigrationIsAtomicWhenVersionUpdateFails() throws Exception {
+        PlayerProfileDatabaseManager manager = newManager();
+        createLegacyDatabase(manager.getDatabaseFile(), 2, 1, 375);
+        try (Connection connection = open(manager.getDatabaseFile());
+             Statement statement = connection.createStatement()) {
+            statement.execute("CREATE TRIGGER reject_v3_schema_update BEFORE UPDATE ON meta " +
+                "WHEN NEW.key = 'schema_version' AND NEW.value = '3' " +
+                "BEGIN SELECT RAISE(ABORT, 'forced failure'); END");
+        }
+
+        assertThrows(SQLException.class, manager::initialize);
+
+        assertEquals(2, manager.getSchemaVersion());
+        assertFalse(columnExists(manager.getDatabaseFile(), "skill_points"));
+        try (Connection connection = open(manager.getDatabaseFile());
+             Statement statement = connection.createStatement();
+             var resultSet = statement.executeQuery(
+                 "SELECT level, exp FROM player_profiles WHERE uuid = 'legacy-player'")) {
+            assertTrue(resultSet.next());
+            assertEquals(1, resultSet.getInt("level"));
+            assertEquals(375, resultSet.getInt("exp"));
+        }
+    }
+
+    @Test
+    public void v3ToV4MigrationIsAtomicWhenVersionUpdateFails() throws Exception {
         PlayerProfileDatabaseManager manager = newManager();
         createLegacyDatabase(manager.getDatabaseFile(), 3);
+        try (Connection connection = open(manager.getDatabaseFile());
+             Statement statement = connection.createStatement()) {
+            statement.execute("CREATE TRIGGER reject_v4_schema_update BEFORE UPDATE ON meta " +
+                "WHEN NEW.key = 'schema_version' AND NEW.value = '4' " +
+                "BEGIN SELECT RAISE(ABORT, 'forced failure'); END");
+        }
+
+        assertThrows(SQLException.class, manager::initialize);
+
+        assertEquals(3, manager.getSchemaVersion());
+        assertFalse(manager.tableExists("player_skill_progress"));
+    }
+
+    @Test
+    public void v4ToV5MigrationIsAtomicWhenVersionUpdateFails() throws Exception {
+        PlayerProfileDatabaseManager manager = newManager();
+        createLegacyDatabase(manager.getDatabaseFile(), 4);
+        try (Connection connection = open(manager.getDatabaseFile());
+             Statement statement = connection.createStatement()) {
+            statement.execute("CREATE TRIGGER reject_v5_schema_update BEFORE UPDATE ON meta " +
+                "WHEN NEW.key = 'schema_version' AND NEW.value = '5' " +
+                "BEGIN SELECT RAISE(ABORT, 'forced failure'); END");
+        }
+
+        assertThrows(SQLException.class, manager::initialize);
+
+        assertEquals(4, manager.getSchemaVersion());
+        assertFalse(manager.tableExists("player_skill_slots"));
+    }
+
+    @Test
+    public void v5ToV6ManaMigrationIsAtomicWhenVersionUpdateFails() throws Exception {
+        PlayerProfileDatabaseManager manager = newManager();
+        createLegacyDatabase(manager.getDatabaseFile(), 5);
+        try (Connection connection = open(manager.getDatabaseFile());
+             Statement statement = connection.createStatement()) {
+            statement.execute("CREATE TRIGGER reject_v6_schema_update BEFORE UPDATE ON meta " +
+                "WHEN NEW.key = 'schema_version' AND NEW.value = '6' " +
+                "BEGIN SELECT RAISE(ABORT, 'forced failure'); END");
+        }
+
+        assertThrows(SQLException.class, manager::initialize);
+
+        assertEquals(5, manager.getSchemaVersion());
+        assertFalse(columnExists(manager.getDatabaseFile(), "mana"));
+        assertFalse(columnExists(manager.getDatabaseFile(), "mana_updated_at"));
+    }
+
+    @Test
+    public void refusesDatabaseCreatedByNewerPluginVersion() throws Exception {
+        PlayerProfileDatabaseManager manager = newManager();
+        createLegacyDatabase(manager.getDatabaseFile(), 7);
 
         SQLException exception = assertThrows(SQLException.class, manager::initialize);
 
         assertTrue(exception.getMessage().contains("newer than supported"));
-        assertEquals(3, manager.getSchemaVersion());
+        assertEquals(7, manager.getSchemaVersion());
     }
 
     @Test
@@ -101,6 +200,103 @@ public class PlayerProfileDatabaseManagerTest {
             assertTrue(resultSet.next());
             assertEquals("Ares", resultSet.getString("player_name"));
         }
+    }
+
+    @Test
+    public void skillLearningChecksProfileRequirementsAndPersistsExactlyOnce() throws Exception {
+        PlayerProfileDatabaseManager manager = newManager();
+        manager.initialize();
+        String uuid = "11111111-2222-3333-4444-555555666666";
+        manager.createPlayerProfile(uuid, "Ares", "human", "swordsman", 2, 0,
+            "human-realm", "2026-10-21T00:00:00Z");
+
+        assertEquals(PlayerProfileDatabaseManager.SkillLearnResult.REQUIREMENTS_NOT_MET,
+            manager.learnSkill(uuid, "shield-wall", "guardian", 1, "learned"));
+        assertEquals(PlayerProfileDatabaseManager.SkillLearnResult.REQUIREMENTS_NOT_MET,
+            manager.learnSkill(uuid, "battle-focus", "swordsman", 3, "learned"));
+        assertEquals(PlayerProfileDatabaseManager.SkillLearnResult.LEARNED,
+            manager.learnSkill(uuid, "blade-flare", "swordsman", 1, "2026-10-21T00:01:00Z"));
+        assertEquals(PlayerProfileDatabaseManager.SkillLearnResult.ALREADY_LEARNED,
+            manager.learnSkill(uuid, "blade-flare", "swordsman", 1, "2026-10-21T00:02:00Z"));
+        assertEquals(List.of(new PlayerProfileDatabaseManager.SkillProgress(
+            "blade-flare", 1, "2026-10-21T00:01:00Z")), manager.getLearnedSkills(uuid));
+        assertEquals(PlayerProfileDatabaseManager.SkillLearnResult.PROFILE_NOT_FOUND,
+            manager.learnSkill("missing", "blade-flare", "swordsman", 1, "learned"));
+    }
+
+    @Test
+    public void quickSkillSlotsPersistAndEnforceLearnedClassAndUniqueAssignment() throws Exception {
+        PlayerProfileDatabaseManager manager = newManager();
+        manager.initialize();
+        String uuid = "11111111-2222-3333-4444-555555666666";
+        manager.createPlayerProfile(uuid, "Ares", "human", "swordsman", 2, 0,
+            "human-realm", "2026-10-21T00:00:00Z");
+        manager.learnSkill(uuid, "blade-flare", "swordsman", 1, "learned");
+        manager.learnSkill(uuid, "guard-break", "swordsman", 2, "learned");
+
+        assertEquals(PlayerProfileDatabaseManager.QuickSlotResult.ASSIGNED,
+            manager.assignQuickSkill(uuid, 1, "blade-flare", "swordsman"));
+        assertEquals(PlayerProfileDatabaseManager.QuickSlotResult.ALREADY_ASSIGNED,
+            manager.assignQuickSkill(uuid, 2, "blade-flare", "swordsman"));
+        assertEquals(PlayerProfileDatabaseManager.QuickSlotResult.SKILL_NOT_LEARNED,
+            manager.assignQuickSkill(uuid, 2, "battle-focus", "swordsman"));
+        assertEquals(PlayerProfileDatabaseManager.QuickSlotResult.ASSIGNED,
+            manager.assignQuickSkill(uuid, 1, "guard-break", "swordsman"));
+        assertEquals(PlayerProfileDatabaseManager.QuickSlotResult.ASSIGNED,
+            manager.assignQuickSkill(uuid, 9, "blade-flare", "swordsman"));
+        assertEquals(Map.of(1, "guard-break", 9, "blade-flare"), manager.getQuickSkillSlots(uuid));
+        assertTrue(manager.clearQuickSkillSlot(uuid, 1));
+        assertFalse(manager.clearQuickSkillSlot(uuid, 1));
+        assertEquals(Map.of(9, "blade-flare"), manager.getQuickSkillSlots(uuid));
+    }
+
+    @Test
+    public void skillUpgradeSpendsPointAndIncrementsRankAtomically() throws Exception {
+        PlayerProfileDatabaseManager manager = newManager();
+        manager.initialize();
+        String uuid = "11111111-2222-3333-4444-555555666666";
+        manager.createPlayerProfile(uuid, "Ares", "human", "swordsman", 1, 0,
+            "human-realm", "2026-10-21T00:00:00Z");
+        manager.learnSkill(uuid, "blade-flare", "swordsman", 1, "learned");
+        assertEquals(PlayerProfileDatabaseManager.SkillUpgradeResult.REQUIREMENTS_NOT_MET,
+            manager.upgradeSkill(uuid, "blade-flare", "swordsman", 1, 3));
+        manager.startQuestProgress(uuid, "training", "started", "2026-10-21T00:00:00Z");
+        manager.completeQuestAndAwardExperience(uuid, "training", "done", 100,
+            "2026-10-21T00:01:00Z");
+
+        assertEquals(PlayerProfileDatabaseManager.SkillUpgradeResult.UPGRADED,
+            manager.upgradeSkill(uuid, "blade-flare", "swordsman", 1, 3));
+        assertEquals(2, manager.getLearnedSkills(uuid).getFirst().rank());
+        assertEquals(0, manager.getPlayerProfile(uuid).orElseThrow().unspentSkillPoints());
+        try (Connection connection = open(manager.getDatabaseFile());
+             Statement statement = connection.createStatement()) {
+            statement.execute("UPDATE player_profiles SET level = 3 WHERE uuid = '" + uuid + "'");
+        }
+        assertEquals(PlayerProfileDatabaseManager.SkillUpgradeResult.NO_SKILL_POINTS,
+            manager.upgradeSkill(uuid, "blade-flare", "swordsman", 1, 3));
+        assertEquals(PlayerProfileDatabaseManager.SkillUpgradeResult.MAX_RANK,
+            manager.upgradeSkill(uuid, "blade-flare", "swordsman", 1, 2));
+    }
+
+    @Test
+    public void manaRegeneratesOverTimeAndCannotBeOverspent() throws Exception {
+        PlayerProfileDatabaseManager manager = newManager();
+        manager.initialize();
+        String uuid = "11111111-2222-3333-4444-555555666666";
+        manager.createPlayerProfile(uuid, "Ares", "human", "swordsman", 1, 0,
+            "human-realm", "2026-10-21T00:00:00Z");
+        long now = 1_000_000L;
+
+        assertEquals(new PlayerProfileDatabaseManager.ManaState(100, 100),
+            manager.getManaState(uuid, 100, 5, now).orElseThrow());
+        assertEquals(PlayerProfileDatabaseManager.ManaSpendResult.SPENT,
+            manager.spendMana(uuid, 40, 100, 5, now));
+        assertEquals(new PlayerProfileDatabaseManager.ManaState(90, 100),
+            manager.getManaState(uuid, 100, 5, now + 6_000).orElseThrow());
+        assertEquals(PlayerProfileDatabaseManager.ManaSpendResult.NOT_ENOUGH_MANA,
+            manager.spendMana(uuid, 101, 100, 5, now + 6_000));
+        assertEquals(new PlayerProfileDatabaseManager.ManaState(90, 100),
+            manager.getManaState(uuid, 100, 0, now + 6_000).orElseThrow());
     }
 
     @Test
@@ -283,6 +479,25 @@ public class PlayerProfileDatabaseManagerTest {
     }
 
     @Test
+    public void questRewardCanGrantMultipleLevelsAndSkillPointsExactlyOnce() throws Exception {
+        PlayerProfileDatabaseManager manager = newManager();
+        manager.configureCharacterProgression(30, 100, 50, 1);
+        manager.initialize();
+        String uuid = "11111111-2222-3333-4444-555555666666";
+        assertTrue(manager.createPlayerProfile(uuid, "Ares", "human", "swordsman", 1, 0,
+            "human-realm", "created"));
+        assertTrue(manager.startQuestProgress(uuid, "first-trial", "complete-trial", "started"));
+
+        assertTrue(manager.completeQuestAndAwardExperience(uuid, "first-trial", "completed", 375, "completed"));
+        assertFalse(manager.completeQuestAndAwardExperience(uuid, "first-trial", "completed", 375, "duplicate"));
+
+        var profile = manager.getPlayerProfile(uuid).orElseThrow();
+        assertEquals(3, profile.level());
+        assertEquals(125, profile.exp());
+        assertEquals(2, profile.unspentSkillPoints());
+    }
+
+    @Test
     public void completedQuestCanClaimAnUnclaimedExperienceRewardOnlyOnce() throws Exception {
         PlayerProfileDatabaseManager manager = newManager();
         manager.initialize();
@@ -363,7 +578,7 @@ public class PlayerProfileDatabaseManagerTest {
         manager.migrateIfNeeded();
         manager.initialize();
 
-        assertEquals(2, manager.getSchemaVersion());
+        assertEquals(6, manager.getSchemaVersion());
         assertFalse(manager.createPlayerProfile(uuid, "Ares", "demon", "berserker", 1, 0,
             "demon-realm", "2026-10-21T01:00:00Z"));
         try (Connection connection = open(manager.getDatabaseFile());
@@ -404,18 +619,34 @@ public class PlayerProfileDatabaseManagerTest {
     }
 
     private void createLegacyDatabase(File databaseFile, int schemaVersion) throws Exception {
+        createLegacyDatabase(databaseFile, schemaVersion, 1, 0);
+    }
+
+    private void createLegacyDatabase(File databaseFile, int schemaVersion, int level, int experience)
+        throws Exception {
         Files.createDirectories(databaseFile.getParentFile().toPath());
         try (Connection connection = open(databaseFile);
              Statement statement = connection.createStatement()) {
             statement.execute("CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT NOT NULL)");
             statement.execute("INSERT INTO meta (key, value) VALUES ('schema_version', '" + schemaVersion + "')");
+            String selectedClassColumn = schemaVersion >= 2 ? "selected_class TEXT, " : "";
+            String skillPointsColumn = schemaVersion >= 3 ? "skill_points INTEGER NOT NULL DEFAULT 0, " : "";
             statement.execute("CREATE TABLE player_profiles (" +
                 "uuid TEXT PRIMARY KEY, player_name TEXT NOT NULL, selected_race TEXT, " +
-                "level INTEGER NOT NULL DEFAULT 1, exp INTEGER NOT NULL DEFAULT 0, home_world TEXT, " +
+                selectedClassColumn + "level INTEGER NOT NULL DEFAULT 1, exp INTEGER NOT NULL DEFAULT 0, " +
+                skillPointsColumn + "home_world TEXT, " +
                 "created_at TEXT NOT NULL, updated_at TEXT NOT NULL, is_active INTEGER NOT NULL DEFAULT 1)");
-            statement.execute("INSERT INTO player_profiles " +
-                "(uuid, player_name, selected_race, level, exp, home_world, created_at, updated_at) " +
-                "VALUES ('legacy-player', 'Legacy', 'human', 1, 0, 'human-realm', 'created', 'updated')");
+            if (schemaVersion >= 2) {
+                statement.execute("INSERT INTO player_profiles " +
+                    "(uuid, player_name, selected_race, selected_class, level, exp, home_world, created_at, updated_at) " +
+                    "VALUES ('legacy-player', 'Legacy', 'human', 'swordsman', " + level + ", " + experience +
+                    ", 'human-realm', 'created', 'updated')");
+            } else {
+                statement.execute("INSERT INTO player_profiles " +
+                    "(uuid, player_name, selected_race, level, exp, home_world, created_at, updated_at) " +
+                    "VALUES ('legacy-player', 'Legacy', 'human', " + level + ", " + experience +
+                    ", 'human-realm', 'created', 'updated')");
+            }
         }
     }
 
