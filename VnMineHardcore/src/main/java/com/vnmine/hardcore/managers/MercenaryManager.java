@@ -150,6 +150,17 @@ import org.bukkit.util.Vector;
 public final class MercenaryManager implements CommandExecutor, TabCompleter, Listener {
    private static final String COMMAND_PERMISSION = "vnmine.command.army";
    private static final String ADMIN_PERMISSION = "vnmine.command.army.admin";
+    private static final int MAIN_MENU_SIZE = 45;
+    private static final int MAIN_MENU_STATS_SLOT = 10;
+    private static final int MAIN_MENU_STATUS_SLOT = 12;
+    private static final int MAIN_MENU_ARMY_SLOT = 14;
+    private static final int MAIN_MENU_REWARD_SLOT = 16;
+    private static final int MAIN_MENU_CHARACTER_SLOT = 28;
+    private static final int MAIN_MENU_WORLD_MAP_SLOT = 30;
+    private static final int MAIN_MENU_QUEST_JOURNAL_SLOT = 32;
+    private static final int MAIN_MENU_STORY_SLOT = 34;
+    private static final int MAIN_MENU_HELP_SLOT = 40;
+    private static final int MAIN_MENU_ADMIN_SLOT = 42;
    private static final Set<String> VALID_SKILLS = Set.of(
       "ATTACK",
       "RANGED_ATTACK",
@@ -6186,35 +6197,43 @@ public final class MercenaryManager implements CommandExecutor, TabCompleter, Li
             return;
         }
         ServiceMenuHolder holder = createServiceMenu(player, MenuType.MAIN, null, null, null, 0,
-            27, "VnMine • Menu chính");
+            MAIN_MENU_SIZE, "VnMine • Menu chính");
         Inventory inventory = holder.inventory;
-        if (player.hasPermission("vnmine.command.stats")) inventory.setItem(10,
+        for (int slot = 0; slot < 9; slot++) {
+            inventory.setItem(slot, menuItem(Material.GRAY_STAINED_GLASS_PANE, "§r", List.of()));
+            inventory.setItem(slot + 18, menuItem(Material.GRAY_STAINED_GLASS_PANE, "§r", List.of()));
+        }
+        inventory.setItem(4, menuItem(Material.CLOCK, "§6VnMineHardcore", List.of(
+            "§7Trung tâm tiện ích máy chủ.")));
+        inventory.setItem(22, menuItem(Material.AMETHYST_SHARD, "§dHành trình RPG", List.of(
+            "§7Nhân vật, bản đồ, nhiệm vụ và truyện.")));
+        if (player.hasPermission("vnmine.command.stats")) inventory.setItem(MAIN_MENU_STATS_SLOT,
             menuItem(Material.BOOK, "§eThống kê", List.of("§7Xem thống kê sinh tồn của bạn.")));
-        if (player.hasPermission("vnmine.command.status")) inventory.setItem(12,
+        if (player.hasPermission("vnmine.command.status")) inventory.setItem(MAIN_MENU_STATUS_SLOT,
             menuItem(Material.COMPASS, "§bTrạng thái server", List.of("§7Xem tình trạng VnMineHardcore.")));
         if (player.hasPermission(COMMAND_PERMISSION) && enabled) {
-            inventory.setItem(14, menuItem(Material.IRON_SWORD, "§6Quản lý quân đội", List.of("§7Xem và điều khiển lính.")));
+            inventory.setItem(MAIN_MENU_ARMY_SLOT, menuItem(Material.IRON_SWORD, "§6Quản lý quân đội", List.of("§7Xem và điều khiển lính.")));
         }
-        if (player.hasPermission("vnmine.command.reward")) inventory.setItem(16,
+        if (player.hasPermission("vnmine.command.reward")) inventory.setItem(MAIN_MENU_REWARD_SLOT,
             menuItem(Material.CHEST, "§6Phần thưởng", List.of("§7Nhận phần thưởng boss đang chờ.")));
         if (plugin.getConfig().getBoolean("rpg.character-creation.enabled", true)) {
-            inventory.setItem(18, menuItem(Material.ENDER_EYE, "§dNhân vật RPG", List.of(
+            inventory.setItem(MAIN_MENU_CHARACTER_SLOT, menuItem(Material.ENDER_EYE, "§dNhân vật RPG", List.of(
                 "§7Chọn chủng tộc và class của bạn.", "§7Hệ thống lưu tiến trình trên SQLite.")));
         }
         if (plugin.getConfig().getBoolean("rpg.world-map.enabled", true)) {
-            inventory.setItem(19, menuItem(Material.MAP, "§bBản đồ đại lục", List.of(
+            inventory.setItem(MAIN_MENU_WORLD_MAP_SLOT, menuItem(Material.MAP, "§bBản đồ đại lục", List.of(
                 "§7Xem đại lục khởi đầu và trạng thái world.")));
         }
         if (plugin.getConfig().getBoolean("rpg.quest-journal.enabled", true)) {
-            inventory.setItem(20, menuItem(Material.WRITABLE_BOOK, "§bNhật ký nhiệm vụ", List.of(
+            inventory.setItem(MAIN_MENU_QUEST_JOURNAL_SLOT, menuItem(Material.WRITABLE_BOOK, "§bNhật ký nhiệm vụ", List.of(
                 "§7Xem nhiệm vụ tutorial và mục tiêu hiện tại.")));
         }
-        inventory.setItem(21, menuItem(Material.KNOWLEDGE_BOOK, "§dSổ truyện", List.of(
+        inventory.setItem(MAIN_MENU_STORY_SLOT, menuItem(Material.KNOWLEDGE_BOOK, "§dSổ truyện", List.of(
             "§7Đọc danh sách chapter đã được nạp.")));
-        inventory.setItem(22, menuItem(Material.WRITABLE_BOOK, "§bTrợ giúp", List.of("§7Mở hướng dẫn lệnh máy chủ.")));
+        inventory.setItem(MAIN_MENU_HELP_SLOT, menuItem(Material.WRITABLE_BOOK, "§bTrợ giúp", List.of("§7Mở hướng dẫn lệnh máy chủ.")));
         if (hasAdminMenuAccess(player)
                 && plugin.getConfig().getBoolean("menus.admin.enabled", true)) {
-            inventory.setItem(24, menuItem(Material.COMMAND_BLOCK, "§cAdmin", List.of("§7Mở công cụ quản trị.")));
+            inventory.setItem(MAIN_MENU_ADMIN_SLOT, menuItem(Material.COMMAND_BLOCK, "§cAdmin", List.of("§7Mở công cụ quản trị.")));
         }
         player.openInventory(inventory);
     }
@@ -6448,6 +6467,12 @@ public final class MercenaryManager implements CommandExecutor, TabCompleter, Li
    private void openAdminMenu(Player player) {
       if (this.hasAdminMenuAccess(player)) {
          MercenaryManager.ServiceMenuHolder holder = this.createServiceMenu(player, MercenaryManager.MenuType.ADMIN, null, null, null, 0, 54, "VnMine • Admin");
+            for (int slot = 0; slot < 9; slot++) {
+                holder.inventory.setItem(slot, this.menuItem(Material.GRAY_STAINED_GLASS_PANE, "§r", List.of()));
+                holder.inventory.setItem(slot + 36, this.menuItem(Material.GRAY_STAINED_GLASS_PANE, "§r", List.of()));
+            }
+            holder.inventory.setItem(4, this.menuItem(Material.COMMAND_BLOCK, "§cCông cụ quản trị", List.of(
+                "§7Các thao tác quản lý server.")));
          if (player.hasPermission("vnmine.command.army.admin")) {
             holder.inventory.setItem(11, this.menuItem(Material.IRON_SWORD, "§6Quân đội", List.of("§7Chọn người chơi để cấp lính hoặc token.")));
          }
@@ -8451,29 +8476,29 @@ public final class MercenaryManager implements CommandExecutor, TabCompleter, Li
             String choice = holder.choices.get(slot);
             switch (holder.type) {
                case MAIN:
-                  if (slot == 10) {
+                        if (slot == MAIN_MENU_STATS_SLOT) {
                      player.performCommand("vnstats");
-                  } else if (slot == 12) {
+                        } else if (slot == MAIN_MENU_STATUS_SLOT) {
                      player.performCommand("vnhardcore");
-                  } else if (slot == 14 && this.enabled) {
+                        } else if (slot == MAIN_MENU_ARMY_SLOT && this.enabled) {
                      this.openArmyMenu(player, 0);
-                  } else if (slot == 16) {
+                        } else if (slot == MAIN_MENU_REWARD_SLOT) {
                      player.performCommand("reward");
-                  } else if (slot == 18 && VnMineHardcore.getInstance() != null
+                        } else if (slot == MAIN_MENU_CHARACTER_SLOT && VnMineHardcore.getInstance() != null
                       && plugin.getConfig().getBoolean("rpg.character-creation.enabled", true)
                       && VnMineHardcore.getInstance().getCharacterSelectionManager() != null) {
                             VnMineHardcore.getInstance().getCharacterSelectionManager().openCharacterMenu(player);
-                        } else if (slot == 19 && plugin.getConfig().getBoolean("rpg.world-map.enabled", true)) {
+                        } else if (slot == MAIN_MENU_WORLD_MAP_SLOT && plugin.getConfig().getBoolean("rpg.world-map.enabled", true)) {
                             this.openWorldMap(player, 0);
-                  } else if (slot == 20 && VnMineHardcore.getInstance() != null
+                        } else if (slot == MAIN_MENU_QUEST_JOURNAL_SLOT && VnMineHardcore.getInstance() != null
                       && plugin.getConfig().getBoolean("rpg.quest-journal.enabled", true)
                       && VnMineHardcore.getInstance().getTutorialQuestManager() != null) {
                      VnMineHardcore.getInstance().getTutorialQuestManager().openJournal(player);
-                        } else if (slot == 21) {
+                        } else if (slot == MAIN_MENU_STORY_SLOT) {
                             this.openStoryMenu(player, 0);
-                  } else if (slot == 22) {
+                        } else if (slot == MAIN_MENU_HELP_SLOT) {
                      player.performCommand("vnhelp");
-                  } else if (slot == 24 && this.hasAdminMenuAccess(player)) {
+                        } else if (slot == MAIN_MENU_ADMIN_SLOT && this.hasAdminMenuAccess(player)) {
                      this.openAdminMenu(player);
                   }
                   break;
