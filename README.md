@@ -609,11 +609,17 @@ title-cased role. Names are limited to 64 characters and support `&` color
 codes. Create and move require a player location; other commands may be run
 from console. Runtime NPCs are stationary, silent, invulnerable vanilla
 villagers and are protected from the custom villager-trade system. Right-click
-is intentionally blocked until dialogue interactions are implemented.
+opens a 54-slot dialogue GUI showing up to 20 configured lines; its controls
+are decorative except for the close button, so this slice does not yet start
+quests, teach skills, or sell items. Dialogue lookup first tries a definition
+whose ID matches the runtime NPC ID and role, then uses the first definition of
+the same role. Add role-specific definition entries to provide distinct
+dialogue. NPC roles without a matching definition show a setup message instead
+of silently using unrelated dialogue.
 `rpg.npc.max-runtime-npcs` sets the runtime limit (default `100`, range `1-100`).
 The command requires `vnmine.command.npc.admin` (default: operators). Admin GUI,
-dialogue GUI/actions, quests, waypoint particles, and custom skins remain future
-work.
+dialogue actions, trainer/quest integration, waypoint particles, and custom
+skins remain future work.
 
 ### Death Section
 ```yaml

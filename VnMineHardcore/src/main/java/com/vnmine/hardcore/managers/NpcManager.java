@@ -38,10 +38,18 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityCombustEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityTransformEvent;
+import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.world.ChunkLoadEvent;
 import org.bukkit.event.world.WorldLoadEvent;
+import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.InventoryHolder;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
+import org.bukkit.Material;
+import org.bukkit.inventory.EquipmentSlot;
 import org.yaml.snakeyaml.error.YAMLException;
 
 public final class NpcManager implements Listener, CommandExecutor, TabCompleter {
@@ -136,9 +144,40 @@ public final class NpcManager implements Listener, CommandExecutor, TabCompleter
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onNpcInteract(PlayerInteractEntityEvent event) {
-        if (!isManagedNpc(event.getRightClicked())) return;
+        if (event.getHand() != EquipmentSlot.HAND || !isManagedNpc(event.getRightClicked())) return;
         event.setCancelled(true);
-        event.getPlayer().sendMessage("§7NPC dialogue wordt in een volgende update toegevoegd.");
+        String id = event.getRightClicked().getPersistentDataContainer()
+            .get(npcIdKey, PersistentDataType.STRING);
+        NpcRecord npc = id == null ? null : npcs.get(id);
+        if (npc == null) {
+            plugin.getLogger().warning("[NPC] Managed entity " + event.getRightClicked().getUniqueId()
+                + " has no matching runtime record.");
+            event.getPlayer().sendMessage("§cDeze NPC-gegevens zijn niet beschikbaar.");
+            return;
+        }
+        NpcDefinitionLoader.NpcDefinition definition = findDialogueDefinition(id, npc.type(), definitions);
+        if (definition == null) {
+            event.getPlayer().sendMessage("§7Deze NPC heeft nog geen dialoog in npc-definitions.yml.");
+            return;
+        }
+        openDialogue(event.getPlayer(), npc, definition);
+    }
+
+    @EventHandler
+    public void onDialogueClick(InventoryClickEvent event) {
+        if (!(event.getView().getTopInventory().getHolder() instanceof DialogueHolder holder)) return;
+        event.setCancelled(true);
+        if (!(event.getWhoClicked() instanceof Player player)
+                || !holder.viewer.equals(player.getUniqueId())
+                || event.getClickedInventory() != event.getView().getTopInventory()) return;
+        if (event.getRawSlot() == 49) player.closeInventory();
+    }
+
+    @EventHandler
+    public void onDialogueDrag(InventoryDragEvent event) {
+        if (event.getView().getTopInventory().getHolder() instanceof DialogueHolder) {
+            event.setCancelled(true);
+        }
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
@@ -158,6 +197,60 @@ public final class NpcManager implements Listener, CommandExecutor, TabCompleter
 
     static boolean isValidId(String id) {
         return id != null && ID_PATTERN.matcher(id).matches();
+    }
+
+    static NpcDefinitionLoader.NpcDefinition findDialogueDefinition(
+            String npcId, String type, Map<String, NpcDefinitionLoader.NpcDefinition> definitions) {
+        NpcDefinitionLoader.NpcDefinition exact = definitions.get(npcId);
+        if (exact != null && exact.type().equals(type)) return exact;
+        return definitions.values().stream()
+            .filter(definition -> definition.type().equals(type))
+            .findFirst()
+            .orElse(null);
+    }
+
+    private void openDialogue(Player player, NpcRecord npc, NpcDefinitionLoader.NpcDefinition definition) {
+        DialogueHolder holder = new DialogueHolder(player.getUniqueId());
+        Inventory inventory = Bukkit.createInventory(holder, 54, dialogueTitle(npc.displayName()));
+        holder.inventory = inventory;
+
+        for (int slot = 0; slot < inventory.getSize(); slot++) {
+            inventory.setItem(slot,
+                createDialogueItem(Material.GRAY_STAINED_GLASS_PANE, " ", List.of()));
+        }
+
+        inventory.setItem(4, createDialogueItem(Material.WRITABLE_BOOK,
+            formatDisplayName(npc.displayName()), List.of("§7" + titleCase(npc.type()))));
+        int[] dialogueSlots = {
+            10, 11, 12, 13, 14, 15, 16,
+            19, 20, 21, 22, 23, 24, 25,
+            28, 29, 30, 31, 32, 33, 34
+        };
+        for (int index = 0; index < definition.dialogue().size(); index++) {
+            String line = definition.dialogue().get(index);
+            inventory.setItem(dialogueSlots[index], createDialogueItem(
+                Material.PAPER, "§eLời thoại " + (index + 1),
+                List.of(formatDisplayName(line), "§8" + (index + 1) + "/" + definition.dialogue().size())));
+        }
+        inventory.setItem(49, createDialogueItem(Material.BARRIER, "§cĐóng", List.of("§7Đóng hội thoại.")));
+        player.openInventory(inventory);
+    }
+
+    private static ItemStack createDialogueItem(Material material, String name, List<String> lore) {
+        ItemStack item = new ItemStack(material);
+        ItemMeta meta = item.getItemMeta();
+        if (meta != null) {
+            meta.setDisplayName(name);
+            if (!lore.isEmpty()) meta.setLore(lore);
+            item.setItemMeta(meta);
+        }
+        return item;
+    }
+
+    private static String dialogueTitle(String displayName) {
+        String plainName = ChatColor.stripColor(formatDisplayName(displayName));
+        if (plainName.length() > 32) plainName = plainName.substring(0, 32);
+        return "§6" + plainName;
     }
 
     private void createNpc(CommandSender sender, String[] args) throws IOException {
@@ -648,6 +741,20 @@ public final class NpcManager implements Listener, CommandExecutor, TabCompleter
 
         private NpcRecord withEntityId(UUID newEntityId) {
             return new NpcRecord(id, type, displayName, location, newEntityId, world);
+        }
+    }
+
+    private static final class DialogueHolder implements InventoryHolder {
+        private final UUID viewer;
+        private Inventory inventory;
+
+        private DialogueHolder(UUID viewer) {
+            this.viewer = viewer;
+        }
+
+        @Override
+        public Inventory getInventory() {
+            return inventory;
         }
     }
 }
