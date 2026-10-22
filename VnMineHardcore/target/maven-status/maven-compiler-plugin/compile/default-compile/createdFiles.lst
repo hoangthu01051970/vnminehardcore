@@ -20,6 +20,7 @@ com/vnmine/hardcore/managers/BossEventManager$7.class
 com/vnmine/hardcore/listeners/SpawnerControlListener.class
 com/vnmine/hardcore/managers/MercenaryManager$TemporaryTorch.class
 com/vnmine/hardcore/managers/PermissionManager.class
+com/vnmine/hardcore/managers/HumanRealmDefinitionLoader$AccessCondition.class
 com/vnmine/hardcore/managers/DisasterManager$4.class
 com/vnmine/hardcore/managers/TooltipManager.class
 com/vnmine/hardcore/listeners/EnvironmentListener.class
