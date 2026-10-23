@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+## [v2.3.1] - 2026-10-23
+
+### Changed
+- Quick Cast chỉ hiển thị một hàng 9 slot; bấm phím số để cast luôn đóng menu, kể cả khi slot trống hoặc cast thất bại.
+
 ## [v2.3.0] - 2026-10-23
 
 ### Added

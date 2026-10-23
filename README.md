@@ -448,8 +448,11 @@ the skill book unlock, and requires character level `required-level + current
 rank`. The skill-point spend and rank increase are committed in one SQLite
 transaction.
 
-Pressing Q opens the same menu by default, including while a container is open;
-using Q on an item slot cancels that drop and opens Quick Cast. Dragging an item
+Pressing Q opens Quick Cast by default, including while a container is open. Its
+menu contains one row for quick slots 1-9; Minecraft still displays the
+player's inventory below plugin inventories. Pressing a number key casts that
+slot and closes Quick Cast whether the skill succeeds or reports a failure.
+Using Q on an item slot cancels that drop and opens Quick Cast. Dragging an item
 outside a chest or container uses the normal mouse-drop behavior and does not
 open the menu. Administrators can disable either `rpg.skills.quick-cast.enabled` or
 `rpg.skills.quick-cast.intercept-drop-key` in `config.yml` to retain normal Q

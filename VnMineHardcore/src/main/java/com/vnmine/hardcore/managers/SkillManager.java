@@ -99,7 +99,7 @@ public final class SkillManager implements Listener, CommandExecutor, TabComplet
         scheduleQuickCastToggle(player);
     }
 
-    @EventHandler(ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.HIGHEST)
     public void onQuickCastInventoryClick(InventoryClickEvent event) {
         if (!(event.getWhoClicked() instanceof Player player)) return;
 
@@ -121,16 +121,21 @@ public final class SkillManager implements Listener, CommandExecutor, TabComplet
 
         if (!(event.getView().getTopInventory().getHolder() instanceof QuickCastHolder holder)) return;
         event.setCancelled(true);
-        if (event.getClickedInventory() != event.getView().getTopInventory()) return;
 
         if (event.getClick() == ClickType.NUMBER_KEY) {
             if (holder.screen != QuickCastScreen.QUICK_BAR) return;
             int hotbarButton = event.getHotbarButton();
-            if (hotbarButton >= 0 && hotbarButton < 9) {
-                castQuickSlot(player, hotbarButton + 1);
+            try {
+                if (hotbarButton >= 0 && hotbarButton < 9) {
+                    castQuickSlot(player, hotbarButton + 1);
+                }
+            } finally {
+                player.closeInventory();
             }
             return;
         }
+
+        if (event.getClickedInventory() != event.getView().getTopInventory()) return;
 
         if (holder.screen == QuickCastScreen.SKILL_TREE && event.getSlot() == 53) {
             VnMineHardcore instance = VnMineHardcore.getInstance();
@@ -364,29 +369,8 @@ public final class SkillManager implements Listener, CommandExecutor, TabComplet
         }
         Map<Integer, String> assignedSlots = getQuickSlots(player);
         QuickCastHolder holder = new QuickCastHolder(QuickCastScreen.QUICK_BAR, 0);
-        Inventory inventory = Bukkit.createInventory(holder, 27, "§6Quick Cast");
+        Inventory inventory = Bukkit.createInventory(holder, 9, "§6Quick Cast");
         holder.inventory = inventory;
-        Optional<PlayerProfileDatabaseManager.ManaState> loadedMana = getManaState(player);
-        if (loadedMana.isEmpty()) return;
-        PlayerProfileDatabaseManager.ManaState mana = loadedMana.get();
-        PlayerProfileDatabaseManager.PlayerProfile profile;
-        try {
-            profile = database.getPlayerProfile(player.getUniqueId().toString()).orElseThrow();
-        } catch (SQLException | java.util.NoSuchElementException exception) {
-            plugin.getLogger().log(Level.SEVERE, "Could not load RPG profile for Quick Cast: "
-                + player.getName() + ".", exception);
-            player.sendMessage("§cKhông thể tải hồ sơ RPG. Hãy thử lại sau.");
-            return;
-        }
-        ItemStack status = new ItemStack(Material.LAPIS_LAZULI);
-        ItemMeta statusMeta = status.getItemMeta();
-        statusMeta.setDisplayName("§bMana " + mana.currentMana() + "/" + mana.maxMana());
-        statusMeta.setLore(List.of("§7Cấp nhân vật: " + profile.level(),
-            "§7Skill point: " + profile.unspentSkillPoints(),
-            "§eDùng /vnskills tree để nâng kỹ năng."));
-        status.setItemMeta(statusMeta);
-        inventory.setItem(4, status);
-        int[] cells = {10, 11, 12, 13, 14, 15, 16, 19, 20};
         for (int slot = 1; slot <= 9; slot++) {
             String skillId = assignedSlots.get(slot);
             SkillDefinitionLoader.SkillDefinition skill = skillId == null ? null : registry.skills().get(skillId);
@@ -404,7 +388,7 @@ public final class SkillManager implements Listener, CommandExecutor, TabComplet
                         "§bMana: " + skill.manaCost(),
                         "§aNhấp trái để cast", "§cNhấp phải để bỏ gán"));
             }
-            inventory.setItem(cells[slot - 1], icon);
+            inventory.setItem(slot - 1, icon);
         }
         player.openInventory(inventory);
     }
@@ -698,19 +682,8 @@ public final class SkillManager implements Listener, CommandExecutor, TabComplet
         return icon;
     }
 
-    private static int quickBarSlot(int inventorySlot) {
-        return switch (inventorySlot) {
-            case 10 -> 1;
-            case 11 -> 2;
-            case 12 -> 3;
-            case 13 -> 4;
-            case 14 -> 5;
-            case 15 -> 6;
-            case 16 -> 7;
-            case 19 -> 8;
-            case 20 -> 9;
-            default -> -1;
-        };
+    static int quickBarSlot(int inventorySlot) {
+        return inventorySlot >= 0 && inventorySlot < 9 ? inventorySlot + 1 : -1;
     }
 
     private Map<Integer, String> getQuickSlots(Player player) {
@@ -769,7 +742,16 @@ public final class SkillManager implements Listener, CommandExecutor, TabComplet
     }
 
     private void castQuickSlot(Player player, int slot) {
-        String skillId = getQuickSlots(player).get(slot);
+        Map<Integer, String> quickSlots;
+        try {
+            quickSlots = database.getQuickSkillSlots(player.getUniqueId().toString());
+        } catch (SQLException exception) {
+            plugin.getLogger().log(Level.SEVERE, "Could not load quick skill slots before cast for "
+                + player.getName() + ".", exception);
+            player.sendMessage("§cKhông thể tải quick slots. Hãy thử lại sau.");
+            return;
+        }
+        String skillId = quickSlots.get(slot);
         if (skillId == null) {
             player.sendMessage("§7Slot " + slot + " chưa được gán kỹ năng.");
             return;
