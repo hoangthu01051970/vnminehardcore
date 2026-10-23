@@ -80,8 +80,8 @@ rpg:
       # [VI] Bật giao diện quick cast; mặc định true.
       # [EN] Enable the quick-cast menu; defaults to true.
       enabled: true
-      # [VI] Dùng Q (thả vật phẩm) mở menu; mặc định true, khi bật Q không làm rơi vật phẩm.
-      # [EN] Use Q (drop-item action) to open the menu; defaults to true and prevents item drops.
+      # [VI] Dùng Q khi không mở kho/container để mở menu; mặc định true, không can thiệp thao tác thả vật phẩm trong kho.
+      # [EN] Use Q outside containers to open the menu; defaults to true and ignores item drops from containers.
       intercept-drop-key: true
   character-creation:
     # [VI] Bật/tắt mục tạo nhân vật trong menu và việc mở GUI; mặc định true.

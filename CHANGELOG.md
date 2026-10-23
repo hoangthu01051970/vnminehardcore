@@ -2,6 +2,17 @@
 
 ## [Unreleased]
 
+### Fixed
+- Không mở Quick Cast khi người chơi thả vật phẩm từ rương hoặc container khác; phím Q trong các giao diện này giữ nguyên hành vi.
+
+## [v2.2.1] - 2026-10-23
+
+### Added
+- Ghi log console cho lệnh portal, kết quả lưu cấu hình, trạng thái điểm đến và kết quả validate để hỗ trợ chẩn đoán trên server.
+
+### Fixed
+- Không mở Quick Cast khi người chơi thả vật phẩm từ rương hoặc container khác; phím Q trong các giao diện này giữ nguyên hành vi.
+
 ## [v2.2.0] - 2026-10-22
 
 ### Added

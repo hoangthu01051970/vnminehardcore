@@ -35,9 +35,25 @@ if [[ ! -x "$playitd" || ! -x "$playit_cli" ]]; then
     exit 1
 fi
 
-if [[ ! -f "$paper_jar" ]]; then
-    printf 'Missing Paper server JAR. Place it at: %s\n' "$paper_jar" >&2
-    exit 1
+if [[ ! -s "$paper_jar" ]]; then
+    paper_url="https://fill-data.papermc.io/v1/objects/a9dad541bf083d5a5f0b65b6a6a98263c55344f22f254c31628b528cf22b9423/paper-26.3-214.jar"
+    paper_download_tmp="$paper_jar.download"
+    if ! command -v curl >/dev/null 2>&1; then
+        printf 'curl is required to download the Paper server JAR.\n' >&2
+        exit 1
+    fi
+    printf 'Paper server JAR is missing. Downloading to: %s\n' "$paper_jar"
+    if ! curl -fL --retry 3 --connect-timeout 20 -o "$paper_download_tmp" "$paper_url"; then
+        rm -f "$paper_download_tmp"
+        printf 'Failed to download Paper server JAR from: %s\n' "$paper_url" >&2
+        exit 1
+    fi
+    if [[ ! -s "$paper_download_tmp" ]]; then
+        rm -f "$paper_download_tmp"
+        printf 'Downloaded Paper server JAR is empty.\n' >&2
+        exit 1
+    fi
+    mv -- "$paper_download_tmp" "$paper_jar"
 fi
 
 plugin_found=false
@@ -48,8 +64,49 @@ for plugin_jar in "$server_dir/plugins"/VnMineHardcore*.jar; do
     fi
 done
 
-if [[ "$plugin_found" != true || ! -f "$server_dir/plugins/ProtocolLib.jar" ]]; then
-    printf 'Missing VnMineHardcore JAR or ProtocolLib under %s/plugins\n' "$server_dir" >&2
+plugin_dir="$server_dir/plugins"
+protocollib_jar="$plugin_dir/ProtocolLib.jar"
+if [[ ! -s "$protocollib_jar" ]]; then
+    protocollib_url="https://github.com/dmulloy2/ProtocolLib/releases/download/dev-build/ProtocolLib.jar"
+    protocollib_download_tmp="$protocollib_jar.download"
+    mkdir -p -- "$plugin_dir"
+    if ! command -v curl >/dev/null 2>&1; then
+        printf 'curl is required to download ProtocolLib.\n' >&2
+        exit 1
+    fi
+    if ! command -v unzip >/dev/null 2>&1; then
+        printf 'unzip is required to validate the ProtocolLib download.\n' >&2
+        exit 1
+    fi
+    printf 'ProtocolLib is missing. Downloading to: %s\n' "$protocollib_jar"
+    if ! curl -fL --retry 3 --connect-timeout 20 -o "$protocollib_download_tmp" "$protocollib_url"; then
+        rm -f "$protocollib_download_tmp"
+        printf 'Failed to download ProtocolLib from: %s\n' "$protocollib_url" >&2
+        exit 1
+    fi
+    if ! unzip -tq "$protocollib_download_tmp" >/dev/null; then
+        rm -f "$protocollib_download_tmp"
+        printf 'Downloaded ProtocolLib file is not a valid JAR archive.\n' >&2
+        exit 1
+    fi
+    protocollib_descriptor="$(unzip -p "$protocollib_download_tmp" paper-plugin.yml 2>/dev/null || true)"
+    if [[ -z "$protocollib_descriptor" ]]; then
+        rm -f "$protocollib_download_tmp"
+        printf 'ProtocolLib JAR is missing paper-plugin.yml.\n' >&2
+        exit 1
+    fi
+    protocollib_version="$(sed -n 's/^version:[[:space:]]*//p' <<< "$protocollib_descriptor" | head -n 1 | tr -d "\"")"
+    if [[ "$protocollib_version" != 5.5.0-SNAPSHOT* ]]; then
+        rm -f "$protocollib_download_tmp"
+        printf 'Unsupported ProtocolLib version: %s (required: 5.5.0-SNAPSHOT).\n' \
+            "${protocollib_version:-unknown}" >&2
+        exit 1
+    fi
+    mv -- "$protocollib_download_tmp" "$protocollib_jar"
+fi
+
+if [[ "$plugin_found" != true ]]; then
+    printf 'Missing VnMineHardcore JAR under %s\n' "$plugin_dir" >&2
     exit 1
 fi
 

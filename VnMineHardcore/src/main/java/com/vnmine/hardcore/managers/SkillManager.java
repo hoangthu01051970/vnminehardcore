@@ -28,6 +28,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
@@ -87,6 +88,11 @@ public final class SkillManager implements Listener, CommandExecutor, TabComplet
             return;
         }
         Player player = event.getPlayer();
+        Inventory topInventory = player.getOpenInventory().getTopInventory();
+        if (!(topInventory.getHolder() instanceof QuickCastHolder)
+                && player.getOpenInventory().getType() != InventoryType.CRAFTING) {
+            return;
+        }
         try {
             Optional<PlayerProfileDatabaseManager.PlayerProfile> profile =
                 database.getPlayerProfile(player.getUniqueId().toString());
