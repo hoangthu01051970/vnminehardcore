@@ -505,6 +505,19 @@ public final class SkillManager implements Listener, CommandExecutor, TabComplet
         player.sendMessage("§aBạn nhận được sách kỹ năng §e" + book.displayName() + "§a.");
     }
 
+    public List<SkillDefinitionLoader.SkillBookDefinition> getSkillBooks() {
+        return registry.books().values().stream()
+            .sorted(Comparator.comparing(SkillDefinitionLoader.SkillBookDefinition::id)).toList();
+    }
+
+    public boolean giveSkillBookTo(Player target, String bookId) {
+        SkillDefinitionLoader.SkillBookDefinition book = registry.books().get(bookId);
+        if (book == null) return false;
+        if (!target.getInventory().addItem(createSkillBook(book)).isEmpty()) return false;
+        target.sendMessage("§aBạn nhận được sách kỹ năng §e" + book.displayName() + "§a.");
+        return true;
+    }
+
     private void openSkillDetails(Player player, String skillId) {
         SkillDefinitionLoader.SkillDefinition skill = registry.skills().get(skillId);
         if (skill == null) return;
@@ -1180,14 +1193,11 @@ public final class SkillManager implements Listener, CommandExecutor, TabComplet
             sender.sendMessage("§cKhông tìm thấy book-id: " + args[2]);
             return true;
         }
-        ItemStack item = createSkillBook(book);
-        Map<Integer, ItemStack> overflow = target.getInventory().addItem(item);
-        if (!overflow.isEmpty()) {
+        if (!giveSkillBookTo(target, book.id())) {
             sender.sendMessage("§cTúi đồ người chơi đã đầy; không có sách nào được cấp.");
             return true;
         }
         sender.sendMessage("§aĐã cấp sách §e" + book.id() + "§a cho §f" + target.getName() + "§a.");
-        target.sendMessage("§aBạn nhận được sách kỹ năng §e" + book.displayName() + "§a.");
         return true;
     }
 
