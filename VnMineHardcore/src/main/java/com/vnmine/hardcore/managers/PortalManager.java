@@ -164,7 +164,8 @@ public final class PortalManager implements Listener, CommandExecutor, TabComple
             }
             sourceLocation.getWorld().spawnParticle(Particle.PORTAL, sourceLocation, 24, 0.4, 0.6, 0.4, 0.05);
             destination.getWorld().spawnParticle(Particle.PORTAL, destination, 24, 0.4, 0.6, 0.4, 0.05);
-            player.sendMessage("§aPortal: §f" + source.name() + " §7→ §f" + target.name());
+            player.sendMessage("§aBạn đã dịch chuyển từ §f" + source.name() + " §ađến §f"
+                + target.name() + "§a.");
         } else {
             player.sendMessage("§cDịch chuyển thất bại; hãy thử lại.");
         }

@@ -2,8 +2,10 @@
 
 ## [Unreleased]
 
-### Fixed
-- Không mở Quick Cast khi người chơi thả vật phẩm từ rương hoặc container khác; phím Q trong các giao diện này giữ nguyên hành vi.
+## [v2.2.2] - 2026-10-23
+
+### Changed
+- Đổi thông báo khi đi qua portal thành “Bạn đã dịch chuyển từ <cổng nguồn> đến <cổng đích>”.
 
 ## [v2.2.1] - 2026-10-23
 
@@ -11,7 +13,7 @@
 - Ghi log console cho lệnh portal, kết quả lưu cấu hình, trạng thái điểm đến và kết quả validate để hỗ trợ chẩn đoán trên server.
 
 ### Fixed
-- Không mở Quick Cast khi người chơi thả vật phẩm từ rương hoặc container khác; phím Q trong các giao diện này giữ nguyên hành vi.
+- Phân biệt phím Q với thao tác kéo item ra ngoài inventory: chỉ phím Q mở Quick Cast và bị chặn rơi item; thao tác bằng chuột vẫn giữ nguyên.
 
 ## [v2.2.0] - 2026-10-22
 
